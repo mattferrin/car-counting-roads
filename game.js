@@ -25,34 +25,27 @@
   const NS = 'http://www.w3.org/2000/svg';
   const routes = Array.from(document.querySelectorAll('.route'));
   let state = initial(), busy = false, animation = 0, generation = 0;
-  // Above twenty, each numbered parking space holds a group of five.
-  // The extra row leaves room for the individual cars left over.
-  const extraHeight = LIMIT > 20 ? 30 : 0;
+  let extraHeight = 0;
   $('capacity').textContent = LIMIT;
-  if (extraHeight) {
-    $('group-key').textContent = ' Above 20 in a garage, each ⑤ means five cars.';
+  function render() {
+    const rows = Math.ceil(Math.max(state.blue, state.gold) / 5);
+    extraHeight = Math.max(0, rows - 4) * 23;
     for (const name of ['blue', 'gold']) $(name + '-building').setAttribute('height', 174 + extraHeight);
     $('map').setAttribute('viewBox', '0 0 420 ' + (622 + extraHeight));
     for (const road of routes.filter(r => r.dataset.kind === 'bottom').concat($('lower-title'))) {
       road.setAttribute('transform', 'translate(0 ' + extraHeight + ')');
     }
-  }
-  function render() {
     for (const [name, x] of [['blue', 102], ['gold', 244]]) {
       $(name + '-num').textContent = state[name];
       $(name + '-cars').replaceChildren();
       $(name + '-empty').style.display = state[name] === 0 ? 'block' : 'none';
       $(name + '-empty').removeAttribute('hidden');
-      const groups = state[name] > 20 ? Math.floor(state[name] / 5) : 0;
-      const singles = state[name] - groups * 5;
-      for (let i = 0; i < groups + singles; i++) {
-        const singleInExtraRow = groups > 0 && i >= groups;
-        const slot = singleInExtraRow ? i - groups : i;
+      for (let slot = 0; slot < state[name]; slot++) {
         const car = document.createElementNS(NS, 'text');
         car.setAttribute('x', x + (slot % 5) * 18.5);
-        car.setAttribute('y', singleInExtraRow ? 419 : 327 + Math.floor(slot / 5) * 23);
+        car.setAttribute('y', 327 + Math.floor(slot / 5) * 23);
         car.setAttribute('class', 'garage-car');
-        car.textContent = i < groups ? '⑤' : '🚗';
+        car.textContent = '🚗';
         $(name + '-cars').appendChild(car);
       }
     }

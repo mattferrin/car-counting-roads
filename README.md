@@ -7,7 +7,7 @@ A small, touch-friendly math playground. Drive cars between a Blue garage and a 
 - Upper roads go Blue → Gold; lower roads go Gold → Blue.
 - Transfers preserve the total. Entry and exit change it.
 - The equation stays visible while scrolling.
-- Up to 20 cars by default. Append `?max=50` or `?max=100` to the game URL to change the limit. Whole numbers from 10 through 100 are supported; other values fall back to 20. Above 20 parked cars, each ⑤ counts as five cars and leftover cars appear below. In every mode, impossible roads are faded and inactive.
+- Up to 20 cars by default. Append `?max=50` or `?max=100` to the game URL to change the limit. Whole numbers from 10 through 100 are supported; other values fall back to 20. Every parked car has its own symbol. Garages grow taller in rows of five. In every mode, impossible roads are faded and inactive.
 - Reset returns to 5 Blue + 5 Gold, including during an animation.
 - Keyboard support: Tab to a road and press Enter or Space. Reduced-motion settings are respected.
 
