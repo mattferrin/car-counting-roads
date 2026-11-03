@@ -1,7 +1,9 @@
 /* Car Counting Roads: the connected-road starter, refined for touch. */
 (function (root) {
   'use strict';
-  const LIMIT = 20;
+  const rawMax = new URLSearchParams(root.location?.search).get('max');
+  const requested = Number(rawMax);
+  const LIMIT = /^\d+$/.test(rawMax) && requested >= 10 && requested <= 100 ? requested : 20;
   const initial = () => ({ blue: 5, gold: 5 });
   function canMove(state, kind, n) {
     if (![1, 5, 10].includes(n)) return false;
@@ -23,18 +25,34 @@
   const NS = 'http://www.w3.org/2000/svg';
   const routes = Array.from(document.querySelectorAll('.route'));
   let state = initial(), busy = false, animation = 0, generation = 0;
+  // Above twenty, each numbered parking space holds a group of five.
+  // The extra row leaves room for the individual cars left over.
+  const extraHeight = LIMIT > 20 ? 30 : 0;
+  $('capacity').textContent = LIMIT;
+  if (extraHeight) {
+    $('group-key').textContent = ' Above 20 in a garage, each ⑤ means five cars.';
+    for (const name of ['blue', 'gold']) $(name + '-building').setAttribute('height', 174 + extraHeight);
+    $('map').setAttribute('viewBox', '0 0 420 ' + (622 + extraHeight));
+    for (const road of routes.filter(r => r.dataset.kind === 'bottom').concat($('lower-title'))) {
+      road.setAttribute('transform', 'translate(0 ' + extraHeight + ')');
+    }
+  }
   function render() {
     for (const [name, x] of [['blue', 102], ['gold', 244]]) {
       $(name + '-num').textContent = state[name];
       $(name + '-cars').replaceChildren();
       $(name + '-empty').style.display = state[name] === 0 ? 'block' : 'none';
       $(name + '-empty').removeAttribute('hidden');
-      for (let i = 0; i < state[name]; i++) {
+      const groups = state[name] > 20 ? Math.floor(state[name] / 5) : 0;
+      const singles = state[name] - groups * 5;
+      for (let i = 0; i < groups + singles; i++) {
+        const singleInExtraRow = groups > 0 && i >= groups;
+        const slot = singleInExtraRow ? i - groups : i;
         const car = document.createElementNS(NS, 'text');
-        car.setAttribute('x', x + (i % 5) * 18.5);
-        car.setAttribute('y', 327 + Math.floor(i / 5) * 23);
+        car.setAttribute('x', x + (slot % 5) * 18.5);
+        car.setAttribute('y', singleInExtraRow ? 419 : 327 + Math.floor(slot / 5) * 23);
         car.setAttribute('class', 'garage-car');
-        car.textContent = '🚗';
+        car.textContent = i < groups ? '⑤' : '🚗';
         $(name + '-cars').appendChild(car);
       }
     }
@@ -85,7 +103,7 @@
         car.style.visibility = progress < 0 || progress > 1 ? 'hidden' : 'visible';
         const p = path.getPointAtLength(Math.max(0, Math.min(1, progress)) * length);
         car.setAttribute('x', p.x);
-        car.setAttribute('y', p.y);
+        car.setAttribute('y', p.y + (kind === 'bottom' ? extraHeight : 0));
       });
       if (now - started >= duration + (n - 1) * stagger) finish();
       else animation = requestAnimationFrame(frame);
@@ -109,3 +127,4 @@
   });
   render();
 })(typeof window === 'undefined' ? globalThis : window);
+
