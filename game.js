@@ -1,6 +1,9 @@
 /* Car Counting Roads: the connected-road starter, refined for touch. */
 (function (root) {
   'use strict';
+  const params = new URLSearchParams(root.location?.search);
+  const mermaids = params.get('theme') === 'mermaids';
+  const theme = mermaids ? {icon:'🧜‍♀️', single:'mermaid', plural:'mermaids', route:'tunnel', home:'pool'} : {icon:'🚗', single:'car', plural:'cars', route:'road', home:'garage'};
   const rawMax = new URLSearchParams(root.location?.search).get('max');
   const requested = Number(rawMax);
   const LIMIT = /^\d+$/.test(rawMax) && requested >= 10 && requested <= 100 ? requested : 20;
@@ -22,6 +25,27 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = { LIMIT, initial, canMove, move };
   if (!root.document) return;
   const $ = id => document.getElementById(id);
+  if (!params.has('theme') && !params.has('max')) {
+    $('home').hidden = false;
+    $('game').hidden = true;
+    document.title = 'Ayan & Aliya’s Counting Worlds';
+    return;
+  }
+  document.body.classList.toggle('underwater', mermaids);
+  document.querySelector('h1:not(#home h1)').textContent = mermaids ? 'Aliya’s Mermaid Game' : 'Ayan’s Car Game';
+  document.title = mermaids ? 'Aliya’s Mermaid Game' : 'Ayan’s Car Game';
+  $('mode-label').textContent = `Count up to ${LIMIT}`;
+  document.querySelector('#game .eyebrow').textContent = mermaids ? 'A little swim. A little math.' : 'A little drive. A little math.';
+  if (mermaids) {
+    // Translate presentation only; state, routes, and arithmetic stay shared.
+    const translate = text => text.replaceAll('🚗', theme.icon).replace(/cars/g, 'mermaids').replace(/Cars/g, 'Mermaids').replace(/car\b/g, 'mermaid').replace(/roads/g, 'tunnels').replace(/ROADS/g, 'TUNNELS').replace(/road/g, 'tunnel').replace(/garages/g, 'pools').replace(/garage/g, 'pool');
+    const walker = document.createTreeWalker($('game'), 4);
+    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node => node.textContent = translate(node.textContent));
+    $('game').querySelectorAll('[aria-label]').forEach(node => node.setAttribute('aria-label', translate(node.getAttribute('aria-label'))));
+    for (const name of ['blue','gold']) $(name + '-building').setAttribute('rx', '24');
+    $('map').insertAdjacentHTML('afterbegin', `<defs><linearGradient id="ocean" x2="0" y2="1"><stop stop-color="#c8f5f5"/><stop offset="1" stop-color="#5dbbd4"/></linearGradient><pattern id="bubbles" width="70" height="90" patternUnits="userSpaceOnUse"><circle cx="22" cy="30" r="6" fill="none" stroke="#fff" opacity=".45"/><circle cx="48" cy="66" r="3" fill="#fff" opacity=".4"/><path d="M0 85 Q18 72 35 85 T70 85" fill="none" stroke="#fff" opacity=".22"/></pattern></defs><rect width="420" height="1200" fill="url(#ocean)"/><rect width="420" height="1200" fill="url(#bubbles)"/><g fill="none" stroke="#268d80" stroke-width="5" stroke-linecap="round" opacity=".55"><path d="M25 235 Q5 212 24 190 M25 235 Q45 211 30 205 M395 235 Q375 210 392 186 M395 235 Q410 215 405 205"/></g>`);
+  }
   const NS = 'http://www.w3.org/2000/svg';
   const routes = Array.from(document.querySelectorAll('.route'));
   let state = initial(), busy = false, animation = 0, generation = 0;
@@ -45,7 +69,7 @@
         car.setAttribute('x', x + (slot % 5) * 18.5);
         car.setAttribute('y', 327 + Math.floor(slot / 5) * 23);
         car.setAttribute('class', 'garage-car');
-        car.textContent = '🚗';
+        car.textContent = theme.icon;
         $(name + '-cars').appendChild(car);
       }
     }
@@ -62,7 +86,7 @@
     if (busy || !canMove(state, kind, n)) return;
     const next = move(state, kind, n);
     const sameTotal = kind === 'top' || kind === 'bottom';
-    const plural = n === 1 ? 'car' : 'cars';
+    const plural = n === 1 ? theme.single : theme.plural;
     const message = sameTotal
       ? `${n} ${plural} moved to ${kind === 'top' ? 'Gold' : 'Blue'}. Still ${next.blue + next.gold} altogether!`
       : `${n} ${plural} ${kind === 'entry' ? 'came in' : 'went out'}. Now ${next.blue + next.gold} altogether!`;
@@ -76,13 +100,13 @@
     if (root.matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
     busy = true;
     render();
-    $('feedback').textContent = `${n} ${plural} ${kind === 'exit' ? 'leaving' : 'on the road'}…`;
+    $('feedback').textContent = `${n} ${plural} ${kind === 'exit' ? 'leaving' : `on the ${theme.route}`}…`;
     const path = route.querySelector('.road');
     const length = path.getTotalLength();
     const token = ++generation;
     const cars = Array.from({ length: n }, () => {
       const car = document.createElementNS(NS, 'text');
-      car.textContent = '🚗';
+      car.textContent = theme.icon;
       car.setAttribute('class', 'moving-car');
       $('traffic').appendChild(car);
       return car;
@@ -115,9 +139,8 @@
     busy = false;
     state = initial();
     $('traffic').replaceChildren();
-    $('feedback').textContent = 'Back to 5 Blue + 5 Gold = 10. Choose a road!';
+    $('feedback').textContent = `Back to 5 Blue + 5 Gold = 10. Choose a ${theme.route}!`;
     render();
   });
   render();
 })(typeof window === 'undefined' ? globalThis : window);
-

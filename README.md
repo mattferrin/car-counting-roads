@@ -21,3 +21,16 @@ Serve this directory with a static web server. Run `node test.cjs` for exhaustiv
 
 GitHub Pages serves `main` / `(root)`. Changes to the root files deploy automatically. The implementation refines the supplied connected-road starter, keeping its two-garage layout and twelve road actions.
 
+## Two counting worlds
+
+The repository homepage is a game chooser with large links for 20, 50, and 100.
+
+- `?theme=cars&max=20`: Ayan’s Car Game.
+- `?theme=mermaids&max=100`: Aliya’s Mermaid Game.
+- Existing `?max=50` links still open the car game.
+- Missing/unknown themes on game links use cars; missing/invalid maximums use 20.
+- Home links and assets are relative, including under `/car-counting-roads/`.
+
+Both themes use the same SVG map and `game.js` movement/rendering logic. Theme-specific copy and symbols are selected once; `themes.css` supplies the underwater scenery and homepage presentation. Individual characters remain in rows of five, and both destinations grow vertically as needed. The unchanged base URL now opens the chooser.
+
+Run `node test-themes.cjs` to check both themes across every supported maximum from 10–100, every valid state, all twelve actions, and invalid/default parameter handling (over four million cases).
