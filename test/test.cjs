@@ -3,7 +3,7 @@ const { LIMIT, initial, canMove, move } = require('./game.js');
 let checked = 0;
 for (let blue = 0; blue <= LIMIT; blue++) for (let gold = 0; gold <= LIMIT - blue; gold++) {
   const state = { blue, gold };
-  for (const kind of ['entry','exit','top','bottom']) for (const n of [1,5,10]) {
+  for (const kind of ['entry','exit','top','bottom']) for (const n of [1,10]) {
     const expected = kind === 'entry' ? blue + gold + n <= LIMIT : kind === 'top' ? blue >= n : gold >= n;
     assert.equal(canMove(state, kind, n), expected);
     const after = move(state, kind, n);
@@ -18,7 +18,9 @@ for (let blue = 0; blue <= LIMIT; blue++) for (let gold = 0; gold <= LIMIT - blu
     checked++;
   }
 }
-assert.deepEqual(initial(), { blue:5, gold:5 });
+assert.deepEqual(initial(), { blue:10, gold:0 });
 assert.equal(canMove(initial(), 'unknown', 1), false);
 assert.equal(canMove(initial(), 'entry', -1), false);
-console.log(`${checked} movement cases passed: all states, all twelve roads, bounds, conservation, immutability.`);
+for (const kind of ['entry','exit','top','bottom']) assert.equal(canMove({blue:10,gold:10},kind,5),false);
+console.log(`${checked} movement cases passed: all states, all eight tens/ones actions, bounds, conservation, immutability.`);
+

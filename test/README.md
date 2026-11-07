@@ -188,3 +188,15 @@ counting game's palette (`#1264a0` blue / `#885500` gold, light grass
 and aqua) predates the Quest tokens and differs from them where the
 same roles appear. Recolouring it would visibly change the game the
 kids already play, so it stays as-is until Matt says otherwise.
+
+
+## Unified Counting Play (test only)
+
+The original car and mermaid games now share the Quest equation bar, place-value colors, two counting pools, approved Candidate M mermaids, and fixed All games dock. A fresh game starts with 10 on the left and 0 on the right. Complete tens occupy ten-column rows; remaining ones share a bottom row across both pools.
+
+There are eight actions: add to the left, take from the right, move left-to-right, and move right-to-left, each by one ten or one one. Five-unit actions are rejected by the engine. Transfers preserve the total; adding and taking away change it. Animated individual characters follow curved paths, with transfers looping around the pressed control. Reset safely cancels a move in progress. Reduced motion skips flights. Changing themes preserves the current quantities.
+
+The existing `index.html?theme=cars|mermaids&max=20|50|100` URLs continue to work. No theme/max query opens the game chooser. Capacity values 10–100 are supported; malformed or out-of-range values use 20. All assets and navigation remain under test/. Root production files and both Quest implementations are unchanged.
+
+Validation: `node test/test.cjs` and `node test/test-themes.cjs` cover both themes, every supported capacity and all valid count states for the eight actions, including rejecting five-unit moves. The root suites remain unchanged. Browser checks cover phone-width layouts, full-capacity disabled actions, exact rendered counts, both transfer directions, entry/exit, theme switching, and reset during a flight.
+

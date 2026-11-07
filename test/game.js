@@ -1,15 +1,13 @@
-/* Car Counting Roads: the connected-road starter, refined for touch. */
+/* Counting Play: shared arithmetic and the same two counting worlds as the Quests. */
 (function (root) {
   'use strict';
   const params = new URLSearchParams(root.location?.search);
-  const mermaids = params.get('theme') === 'mermaids';
-  const theme = mermaids ? {icon:'🧜‍♀️', single:'mermaid', plural:'mermaids', route:'tunnel', home:'pool'} : {icon:'🚗', single:'car', plural:'cars', route:'road', home:'garage'};
-  const rawMax = new URLSearchParams(root.location?.search).get('max');
+  const rawMax = params.get('max');
   const requested = Number(rawMax);
   const LIMIT = /^\d+$/.test(rawMax) && requested >= 10 && requested <= 100 ? requested : 20;
-  const initial = () => ({ blue: 5, gold: 5 });
+  const initial = () => ({ blue: 10, gold: 0 });
   function canMove(state, kind, n) {
-    if (![1, 5, 10].includes(n)) return false;
+    if (![1, 10].includes(n)) return false;
     if (kind === 'entry') return state.blue + state.gold + n <= LIMIT;
     if (kind === 'top') return state.blue >= n;
     if (kind === 'bottom' || kind === 'exit') return state.gold >= n;
@@ -24,123 +22,151 @@
   }
   if (typeof module !== 'undefined' && module.exports) module.exports = { LIMIT, initial, canMove, move };
   if (!root.document) return;
-  const $ = id => document.getElementById(id);
+  const doc = root.document;
+  const $ = id => doc.getElementById(id);
   if (!params.has('theme') && !params.has('max')) {
     $('home').hidden = false;
-    $('game').hidden = true;
-    document.title = 'Ayan & Aliya’s Counting Worlds';
     return;
   }
-  document.body.classList.toggle('underwater', mermaids);
-  document.querySelector('h1:not(#home h1)').textContent = mermaids ? 'Aliya’s Mermaid Game' : 'Ayan’s Car Game';
-  document.title = mermaids ? 'Aliya’s Mermaid Game' : 'Ayan’s Car Game';
-  $('mode-label').textContent = `Count up to ${LIMIT}`;
-  document.querySelector('#game .eyebrow').textContent = mermaids ? 'A little swim. A little math.' : 'A little drive. A little math.';
-  if (mermaids) {
-    // Translate presentation only; state, routes, and arithmetic stay shared.
-    const translate = text => text.replaceAll('🚗', theme.icon).replace(/cars/g, 'mermaids').replace(/Cars/g, 'Mermaids').replace(/car\b/g, 'mermaid').replace(/roads/g, 'tunnels').replace(/ROADS/g, 'TUNNELS').replace(/road/g, 'tunnel').replace(/garages/g, 'pools').replace(/garage/g, 'pool');
-    const walker = document.createTreeWalker($('game'), 4);
-    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
-    nodes.forEach(node => node.textContent = translate(node.textContent));
-    $('game').querySelectorAll('[aria-label]').forEach(node => node.setAttribute('aria-label', translate(node.getAttribute('aria-label'))));
-    for (const name of ['blue','gold']) $(name + '-building').setAttribute('rx', '24');
-    $('map').insertAdjacentHTML('afterbegin', `<defs><linearGradient id="ocean" x2="0" y2="1"><stop stop-color="#c8f5f5"/><stop offset="1" stop-color="#5dbbd4"/></linearGradient><pattern id="bubbles" width="70" height="90" patternUnits="userSpaceOnUse"><circle cx="22" cy="30" r="6" fill="none" stroke="#fff" opacity=".45"/><circle cx="48" cy="66" r="3" fill="#fff" opacity=".4"/><path d="M0 85 Q18 72 35 85 T70 85" fill="none" stroke="#fff" opacity=".22"/></pattern></defs><rect width="420" height="1200" fill="url(#ocean)"/><rect width="420" height="1200" fill="url(#bubbles)"/><g fill="none" stroke="#268d80" stroke-width="5" stroke-linecap="round" opacity=".55"><path d="M25 235 Q5 212 24 190 M25 235 Q45 211 30 205 M395 235 Q375 210 392 186 M395 235 Q410 215 405 205"/></g>`);
-  }
-  const NS = 'http://www.w3.org/2000/svg';
-  const routes = Array.from(document.querySelectorAll('.route'));
-  let state = initial(), busy = false, animation = 0, generation = 0;
-  let extraHeight = 0;
-  $('capacity').textContent = LIMIT;
-  function render() {
-    const rows = Math.ceil(Math.max(state.blue, state.gold) / 5);
-    extraHeight = Math.max(0, rows - 4) * 23;
-    for (const name of ['blue', 'gold']) $(name + '-building').setAttribute('height', 174 + extraHeight);
-    $('map').setAttribute('viewBox', '0 0 420 ' + (622 + extraHeight));
-    for (const road of routes.filter(r => r.dataset.kind === 'bottom').concat($('lower-title'))) {
-      road.setAttribute('transform', 'translate(0 ' + extraHeight + ')');
+  $('game').hidden = false;
+  let theme = params.get('theme') === 'mermaids' ? 'mermaids' : 'cars';
+  let state = initial(), busy = false, generation = 0, serial = 0;
+  let ids = { blue: Array.from({ length: 10 }, () => ++serial), gold: [] };
+  const animations = new Set();
+  const names = () => theme === 'mermaids' ? ['Teal', 'Pink', 'mermaids'] : ['Blue', 'Gold', 'cars'];
+  const symbol = side => theme === 'mermaids' ? 'mermaid-' + (side === 'blue' ? 'teal' : 'pink') : 'car-' + (side === 'blue' ? 'blue' : 'gold');
+  const artwork = side => '<svg viewBox="0 0 44 ' + (theme === 'mermaids' ? '30' : '26') + '" aria-hidden="true"><use href="#' + symbol(side) + '"></use></svg>';
+  const numberMarkup = n => String(n).split('').map((digit,i,all) => '<span class="d-' + (all.length-i>2?'hun':all.length-i===2?'tens':'ones') + '">' + digit + '</span>').join('');
+  const placeCaption = n => '<span class="t">' + Math.floor(n / 10) + (Math.floor(n / 10) === 1 ? ' ten' : ' tens') + '</span> · <span class="o">' + n % 10 + (n % 10 === 1 ? ' one' : ' ones') + '</span>';
+  const actions = [['entry',10],['entry',1],['exit',10],['exit',1],['top',10],['top',1],['bottom',10],['bottom',1]];
+  const scene = () => theme === 'mermaids'
+    ? '<svg viewBox="0 0 162 220" preserveAspectRatio="none" aria-hidden="true"><g stroke="#d9bd7a" stroke-width="2" fill="none" opacity=".7"><path d="M0 190Q40 182 81 190T162 190M0 202Q40 194 81 202T162 202M0 214Q40 206 81 214T162 214"/></g><g fill="#fff" opacity=".7"><circle cx="25" cy="56" r="3"/><circle cx="140" cy="80" r="4"/><circle cx="122" cy="38" r="2"/></g><path d="m28 126 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" fill="#ffb3c8"/><path d="m132 150 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" fill="#ffbe72"/></svg>'
+    : '<svg viewBox="0 0 162 220" preserveAspectRatio="none" aria-hidden="true"><path d="M55 220Q125 175 78 140T105 75T78 0" fill="none" stroke="#e7d5a3" stroke-width="18"/><path d="M55 220Q125 175 78 140T105 75T78 0" fill="none" stroke="#fff2c3" stroke-width="2" stroke-dasharray="4 8"/><g fill="#83b982"><ellipse cx="22" cy="90" rx="4" ry="2"/><ellipse cx="135" cy="139" rx="4" ry="2"/></g><g fill="#f3abc0"><ellipse cx="29" cy="170" rx="4" ry="2"/><ellipse cx="139" cy="48" rx="4" ry="2"/></g></svg>';
+  function buildActions() {
+    $('outside-actions').replaceChildren(); $('transfer-actions').replaceChildren();
+    const [left, right, thing] = names();
+    for (const [kind, n] of actions) {
+      const button = doc.createElement('button');
+      button.type = 'button'; button.className = 'landmark free-action ' + (n === 10 ? 'place-ten' : 'place-one');
+      button.dataset.kind = kind; button.dataset.amount = n;
+      const label = kind === 'entry' ? 'Add to ' + left : kind === 'exit' ? 'Take from ' + right : kind === 'top' ? left + ' → ' + right : right + ' → ' + left;
+      const operation = kind === 'entry' ? '+' : kind === 'exit' ? '−' : kind === 'top' ? '→' : '←';
+      button.innerHTML = '<span class="free-amount" aria-hidden="true">' + (kind === 'entry' || kind === 'exit' ? operation + n : n + operation) + '</span><span class="free-place" aria-hidden="true">1 ' + (n === 10 ? 'ten' : 'one') + '</span><span class="name" aria-hidden="true">' + label + '</span>';
+      button.setAttribute('aria-label', label + ': ' + n + ' ' + (n === 1 ? thing.slice(0,-1) : thing) + ' (1 ' + (n === 10 ? 'ten' : 'one') + ')');
+      button.addEventListener('click', () => drive(button));
+      (kind === 'entry' || kind === 'exit' ? $('outside-actions') : $('transfer-actions')).appendChild(button);
     }
-    for (const [name, x] of [['blue', 102], ['gold', 244]]) {
-      $(name + '-num').textContent = state[name];
-      $(name + '-cars').replaceChildren();
-      $(name + '-empty').style.display = state[name] === 0 ? 'block' : 'none';
-      $(name + '-empty').removeAttribute('hidden');
-      for (let slot = 0; slot < state[name]; slot++) {
-        const car = document.createElementNS(NS, 'text');
-        car.setAttribute('x', x + (slot % 5) * 18.5);
-        car.setAttribute('y', 327 + Math.floor(slot / 5) * 23);
-        car.setAttribute('class', 'garage-car');
-        car.textContent = theme.icon;
-        $(name + '-cars').appendChild(car);
+  }
+  function animate(el, frames, options) {
+    const a = el.animate(frames, options); animations.add(a);
+    a.finished.catch(() => {}).finally(() => animations.delete(a));
+    return a;
+  }
+  function render(positions) {
+    const [left, right, thing] = names();
+    const rows = Math.max(2, Math.floor(Math.max(state.blue, state.gold) / 10) + 1);
+    $('left').innerHTML = numberMarkup(state.blue); $('right').innerHTML = numberMarkup(state.gold); $('total').innerHTML = numberMarkup(state.blue + state.gold);
+    for (const [side, label] of [['blue',left],['gold',right]]) {
+      $(side + '-label').textContent = label + ' ' + thing;
+      $(side + '-num').innerHTML = numberMarkup(state[side]); $(side + '-cap').innerHTML = placeCaption(state[side]);
+      const pool = $(side + '-pool');
+      const rowHeight = Math.max(20, pool.clientWidth / 10 * 30 / 44 + 8);
+      pool.style.gridTemplateRows = 'repeat(' + rows + ', ' + rowHeight + 'px)';
+      pool.setAttribute('aria-label', state[side] + ' ' + label.toLowerCase() + ' ' + thing);
+      pool.innerHTML = '<div class="free-scenery">' + scene() + '</div>';
+      const tens = Math.floor(state[side] / 10);
+      for (let r = 0; r < tens; r++) {
+        const band = doc.createElement('div'); band.className = 'free-band'; band.style.gridRow = r + 1; pool.appendChild(band);
+      }
+      const ground = doc.createElement('div'); ground.className = 'free-ground'; ground.style.gridRow = rows; pool.appendChild(ground);
+      ids[side].forEach((id, i) => {
+        const obj = doc.createElement('span'); obj.className = 'free-unit'; obj.dataset.unit = id;
+        obj.style.gridColumn = i % 10 + 1; obj.style.gridRow = i < tens * 10 ? Math.floor(i / 10) + 1 : rows;
+        obj.innerHTML = artwork(side); pool.appendChild(obj);
+        const old = positions?.get(id);
+        if (old && !root.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          const rect = obj.getBoundingClientRect();
+          animate(obj, [{transform:'translate('+(old.x-rect.x)+'px,'+(old.y-rect.y)+'px)'},{transform:'translate(0,0)'}], {duration:350,easing:'ease-out'});
+        }
+      });
+      if (!state[side]) {
+        const empty = doc.createElement('span'); empty.className = 'free-empty'; empty.textContent = 'Empty'; empty.style.gridRow = 1; pool.appendChild(empty);
       }
     }
-    $('left').textContent = state.blue;
-    $('right').textContent = state.gold;
-    $('total').textContent = state.blue + state.gold;
-    for (const r of routes) {
-      r.setAttribute('aria-disabled', String(busy || !canMove(state, r.dataset.kind, Number(r.dataset.amount))));
-    }
-    $('map').setAttribute('aria-busy', String(busy));
+    doc.querySelectorAll('.free-action').forEach(b => { b.disabled = busy || !canMove(state,b.dataset.kind,Number(b.dataset.amount)); });
+    doc.querySelectorAll('.theme-pill').forEach(b => { b.disabled = busy; b.setAttribute('aria-pressed',String(b.dataset.theme === theme)); });
+    $('game').setAttribute('aria-busy',String(busy));
   }
-  function drive(route) {
-    const kind = route.dataset.kind, n = Number(route.dataset.amount);
-    if (busy || !canMove(state, kind, n)) return;
-    const next = move(state, kind, n);
-    const sameTotal = kind === 'top' || kind === 'bottom';
-    const plural = n === 1 ? theme.single : theme.plural;
-    const message = sameTotal
-      ? `${n} ${plural} moved to ${kind === 'top' ? 'Gold' : 'Blue'}. Still ${next.blue + next.gold} altogether!`
-      : `${n} ${plural} ${kind === 'entry' ? 'came in' : 'went out'}. Now ${next.blue + next.gold} altogether!`;
-    const finish = () => {
-      state = next;
-      busy = false;
-      $('traffic').replaceChildren();
-      $('feedback').textContent = message;
-      render();
-    };
-    if (root.matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
-    busy = true;
-    render();
-    $('feedback').textContent = `${n} ${plural} ${kind === 'exit' ? 'leaving' : `on the ${theme.route}`}…`;
-    const path = route.querySelector('.road');
-    const length = path.getTotalLength();
-    const token = ++generation;
-    const cars = Array.from({ length: n }, () => {
-      const car = document.createElementNS(NS, 'text');
-      car.textContent = theme.icon;
-      car.setAttribute('class', 'moving-car');
-      $('traffic').appendChild(car);
-      return car;
-    });
-    const started = performance.now();
-    const duration = 750, stagger = n > 1 ? 65 : 0;
-    function frame(now) {
-      if (token !== generation) return;
-      cars.forEach((car, i) => {
-        const progress = (now - started - i * stagger) / duration;
-        car.style.visibility = progress < 0 || progress > 1 ? 'hidden' : 'visible';
-        const p = path.getPointAtLength(Math.max(0, Math.min(1, progress)) * length);
-        car.setAttribute('x', p.x);
-        car.setAttribute('y', p.y + (kind === 'bottom' ? extraHeight : 0));
+  async function drive(button) {
+    const kind = button.dataset.kind, n = Number(button.dataset.amount);
+    if (busy || !canMove(state,kind,n)) return;
+    const next = move(state,kind,n);
+    const token = ++generation; busy = true;
+    const source = kind === 'entry' ? null : kind === 'top' ? 'blue' : 'gold';
+    const dest = kind === 'exit' ? null : kind === 'top' ? 'gold' : 'blue';
+    const movingIds = source ? (n === 10 ? ids[source].slice(0,n) : ids[source].slice(-n)) : Array.from({length:n},()=>++serial);
+    const movingSet = new Set(movingIds);
+    const positions = new Map([...doc.querySelectorAll('.free-unit')].filter(e=>!movingSet.has(Number(e.dataset.unit))).map(e=>[Number(e.dataset.unit),e.getBoundingClientRect()]));
+    doc.querySelectorAll('.free-action,.theme-pill').forEach(b=>{b.disabled=true;});
+    $('game').setAttribute('aria-busy','true');
+    const reduced = root.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ghosts = [];
+    if (!reduced) {
+      const target = button.getBoundingClientRect(); const tx=target.x+target.width/2, ty=target.y+target.height/2;
+      const destination = dest ? $(dest+'-pool').getBoundingClientRect() : target;
+      const cellWidth = (dest ? destination.width : $(source+'-pool').clientWidth)/10;
+      movingIds.forEach((id,i)=>{
+        const original = source ? doc.querySelector('[data-unit="'+id+'"]') : null;
+        const r = original?.getBoundingClientRect();
+        const width = r?.width || cellWidth, height = r?.height || Math.max(20,width*30/44+8);
+        const x = r ? r.x : tx-width/2+(i%5-2)*width*.65;
+        const y = r ? r.y : ty-height/2+Math.floor(i/5)*height*.65;
+        const slot = dest ? ids[dest].length+i : 0;
+        const newRows = Math.max(2,Math.floor(Math.max(next.blue,next.gold)/10)+1);
+        const destRow = dest && slot < Math.floor(next[dest]/10)*10 ? Math.floor(slot/10) : newRows-1;
+        const rowHeight = Math.max(20,destination.width/10*30/44+8);
+        const endX = dest ? destination.x+(slot%10)*cellWidth : tx-width/2+(i%5-2)*width*.65;
+        const endY = dest ? destination.y+destRow*(rowHeight+4) : ty-height/2+Math.floor(i/5)*height*.65;
+        const ghost=doc.createElement('span'); ghost.className='free-flyer';ghost.innerHTML=artwork(source||dest);
+        Object.assign(ghost.style,{left:x+'px',top:y+'px',width:width+'px',height:height+'px'});
+        doc.body.appendChild(ghost);ghosts.push(ghost); if(original)original.style.visibility='hidden';
+        const orbit = kind==='top'||kind==='bottom';
+        const sx=x+width/2, sy=y+height/2, ex=endX+width/2, ey=endY+height/2;
+        const rx=target.width*.58, ry=target.height*.58;
+        const d=orbit
+          ? `M${sx} ${sy} C${sx} ${sy+35} ${tx-rx} ${ty-ry} ${tx} ${ty-ry} C${tx+rx*.56} ${ty-ry} ${tx+rx} ${ty-ry*.56} ${tx+rx} ${ty} C${tx+rx} ${ty+ry*.56} ${tx+rx*.56} ${ty+ry} ${tx} ${ty+ry} C${tx-rx*.56} ${ty+ry} ${tx-rx} ${ty+ry*.56} ${tx-rx} ${ty} C${tx-rx} ${ty-ry*.56} ${tx-rx*.56} ${ty-ry} ${tx} ${ty-ry} C${tx+rx} ${ty-ry} ${ex} ${ey+35} ${ex} ${ey}`
+          : `M${sx} ${sy} C${sx} ${(sy+ey)/2} ${ex} ${(sy+ey)/2} ${ex} ${ey}`;
+        Object.assign(ghost.style,{left:'0px',top:'0px',offsetPath:'path("'+d+'")',offsetRotate:'0deg',offsetAnchor:'center'});
+        animate(ghost,[{offsetDistance:'0%',opacity:1},{offsetDistance:'100%',opacity:kind==='exit'?0:1}],{duration:orbit?1400:700,delay:i*28,easing:'ease-in-out',fill:'forwards'});
       });
-      if (now - started >= duration + (n - 1) * stagger) finish();
-      else animation = requestAnimationFrame(frame);
+      await Promise.all([...animations].map(a=>a.finished.catch(()=>{})));
     }
-    animation = requestAnimationFrame(frame);
+    ghosts.forEach(g=>g.remove()); if(token!==generation)return;
+    if(source)ids[source]=ids[source].filter(id=>!movingSet.has(id));
+    if(dest)ids[dest].push(...movingIds);
+    state=next;busy=false;render(positions);
+    const [left,right,thing]=names();
+    $('feedback').textContent = n+' '+(n===1?thing.slice(0,-1):thing)+' '+(kind==='entry'?'added':kind==='exit'?'taken away':'moved')+'. '+left+' '+state.blue+', '+right+' '+state.gold+'. '+(state.blue+state.gold)+' altogether.';
   }
-  for (const route of routes) {
-    route.addEventListener('click', () => drive(route));
-    route.addEventListener('keydown', event => {
-      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); drive(route); }
-    });
+  function setTheme(value) {
+    theme=value;doc.body.dataset.theme=theme;
+    const title=theme==='mermaids'?"Aliya's Mermaid World":"Ayan's Car World";
+    doc.title=title+' · Counting Play';$('world-line').textContent=title+' · Counting Play';
+    doc.querySelector('.equation').setAttribute('aria-label',names()[0]+' plus '+names()[1]+' equals total');
+    const nextLimit=LIMIT<50?50:LIMIT<100?100:20;
+    $('bigger-world').textContent='Try '+nextLimit;
+    $('bigger-world').href='?theme='+theme+'&max='+nextLimit;
+    const query=new URLSearchParams({theme,max:String(LIMIT)});root.history.replaceState(null,'','?'+query);
+    buildActions();render();
   }
-  $('reset').addEventListener('click', () => {
-    ++generation;
-    cancelAnimationFrame(animation);
-    busy = false;
-    state = initial();
-    $('traffic').replaceChildren();
-    $('feedback').textContent = `Back to 5 Blue + 5 Gold = 10. Choose a ${theme.route}!`;
-    render();
+  doc.querySelectorAll('.theme-pill').forEach(b=>b.addEventListener('click',()=>{if(!busy)setTheme(b.dataset.theme);}));
+  $('reset').addEventListener('click',()=>{
+    ++generation;animations.forEach(a=>a.cancel());animations.clear();
+    doc.querySelectorAll('.free-flyer').forEach(e=>e.remove());
+    state=initial();ids={blue:Array.from({length:10},()=>++serial),gold:[]};busy=false;render();
+    $('feedback').textContent='Reset. Ten on the left, zero on the right.';
   });
-  render();
+  let resizeFrame;
+  root.addEventListener('resize',()=>{root.cancelAnimationFrame(resizeFrame);resizeFrame=root.requestAnimationFrame(()=>{if(!busy)render();});});
+  $('capacity').textContent=LIMIT;setTheme(theme);
 })(typeof window === 'undefined' ? globalThis : window);
