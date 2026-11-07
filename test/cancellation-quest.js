@@ -68,7 +68,8 @@
   var prevLeftTens = null, prevRightTens = null;
 
   var eqA, eqB, eqQ, leftNum, rightNum, leftCap, rightCap, leftGrid, rightGrid,
-      leftSide, rightSide, captionBar, nextChip, newMysteryBtn, cheerEl, landscapeEl;
+      leftSide, rightSide, captionBar, nextChip, newMysteryBtn, cheerEl, landscapeEl,
+      progressFill, progressTicks, cancelledTally;
 
   /* ---------- voices: pre-recorded clips, two distinct voices ---------- */
   /* Counts are spoken from short recorded clips — one male voice for the
@@ -114,9 +115,48 @@
     return frags;
   }
 
+  /* The word each clip says, so the fallback speech and the captions can
+   * be built from the same fragments the clips play. */
+  var FRAG_WORDS = {
+    'zero': 'zero',
+    'tens-0': 'zero tens', 'tens-1': 'one ten', 'tens-2': 'two tens', 'tens-3': 'three tens',
+    'tens-4': 'four tens', 'tens-5': 'five tens', 'tens-6': 'six tens', 'tens-7': 'seven tens',
+    'tens-8': 'eight tens', 'tens-9': 'nine tens',
+    'ones-0': 'zero ones', 'ones-1': 'one one', 'ones-2': 'two ones', 'ones-3': 'three ones',
+    'ones-4': 'four ones', 'ones-5': 'five ones', 'ones-6': 'six ones', 'ones-7': 'seven ones',
+    'ones-8': 'eight ones', 'ones-9': 'nine ones',
+    'hundreds-0': 'zero hundreds', 'hundreds-1': 'one hundred', 'hundreds-2': 'two hundreds',
+    'hundreds-3': 'three hundreds', 'hundreds-4': 'four hundreds', 'hundreds-5': 'five hundreds',
+    'hundreds-6': 'six hundreds', 'hundreds-7': 'seven hundreds', 'hundreds-8': 'eight hundreds',
+    'hundreds-9': 'nine hundreds',
+    'answer': 'The answer is'
+  };
+  function fragsText(frags) { return frags.map(function (f) { return FRAG_WORDS[f]; }).join(', '); }
+
+  /* Only the place that just changed — the changing place is what the
+   * children should be counting, not the places that stayed the same.
+   * A tens move speaks only the tens, a ones move only the ones, a
+   * hundred move only the hundreds; when a place runs out it is named
+   * once ("zero tens" / "zero ones" / "zero hundreds"). The full count
+   * is still always visible in the panels, and the answer is spoken
+   * in full. */
+  function changingFragments(n, amount) {
+    var pv = E.placeValue(n);
+    if (amount === 100) {
+      if (pv.hundreds > 0) return ['hundreds-' + pv.hundreds];
+      return ['hundreds-0'];
+    }
+    if (amount === 10) {
+      if (pv.tens > 0) return ['tens-' + pv.tens];
+      return ['tens-0'];
+    }
+    if (pv.ones > 0) return ['ones-' + pv.ones];
+    return ['ones-0'];
+  }
+
   var CLIP_FRAGS = ['tens-0', 'tens-1', 'tens-2', 'tens-3', 'tens-4', 'tens-5', 'tens-6', 'tens-7', 'tens-8', 'tens-9',
-    'ones-1', 'ones-2', 'ones-3', 'ones-4', 'ones-5', 'ones-6', 'ones-7', 'ones-8', 'ones-9',
-    'hundreds-1', 'hundreds-2', 'hundreds-3', 'hundreds-4', 'hundreds-5', 'hundreds-6', 'hundreds-7', 'hundreds-8', 'hundreds-9',
+    'ones-0', 'ones-1', 'ones-2', 'ones-3', 'ones-4', 'ones-5', 'ones-6', 'ones-7', 'ones-8', 'ones-9',
+    'hundreds-0', 'hundreds-1', 'hundreds-2', 'hundreds-3', 'hundreds-4', 'hundreds-5', 'hundreds-6', 'hundreds-7', 'hundreds-8', 'hundreds-9',
     'zero'];
 
   /* Fetch + decode every clip in the background; playback uses whatever is
@@ -144,10 +184,13 @@
   }
 
   /* One side's count, spoken in its voice. Clips when every fragment is
-   * buffered, device speech otherwise. Resolves when the phrase ends. */
+   * buffered, device speech otherwise. Resolves when the phrase ends.
+   * p.frags is the exact fragment list to play (changing place, or the
+   * full count for the answer); p.text is the same words, for the
+   * device-speech fallback and for nothing else. */
   function playPhrase(p, token) {
     if (!soundOn) return Promise.resolve();
-    var frags = (p.prefix || []).concat(fragmentsFor(p.n, p.sayZero));
+    var frags = p.frags;
     var ctx = ensureAudioCtx();
     var ready = ctx && frags.every(function (f) { return clipBuffers[p.kind + ':' + f]; });
     if (ready) {
@@ -201,8 +244,8 @@
     return { boy: boy, girl: girl };
   }
 
-  /* Play phrases in order: [{kind, n, sayZero, prefix?, text}]. Captions
-   * are set by the caller at the same time, so words and screen agree. */
+  /* Play phrases in order: [{kind, frags, text}]. Captions are set by
+   * the caller at the same time, so words and screen agree. */
   function playPhrases(list) {
     if (!soundOn) return;
     var token = speechToken;
@@ -243,6 +286,22 @@
   }
   function popSound() { blip(520, 0.12, 'triangle', 0.09); setTimeout(function () { blip(760, 0.14, 'triangle', 0.07); }, 90); }
   function boomSound() { blip(170, 0.3, 'sine', 0.12); setTimeout(function () { blip(95, 0.35, 'sine', 0.12); }, 110); popSound(); }
+  /* A rising whoosh as the rows leave — the sound of the flight. */
+  function whooshSound() {
+    if (!soundOn) return;
+    try {
+      var ctx = ensureAudioCtx(); if (!ctx) return;
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(280, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(920, ctx.currentTime + 0.45);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.07, ctx.currentTime + 0.08);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      o.connect(g).connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + 0.55);
+    } catch (e) {}
+  }
   function cheerSound() { [523, 659, 784, 1047].forEach(function (f, i) { setTimeout(function () { blip(f, 0.25, 'sine', 0.1); }, i * 130); }); }
 
   /* ---------- rendering ---------- */
@@ -255,6 +314,7 @@
     return html;
   }
   function captionHtml(n) {
+    if (n === 0) return 'zero';
     var pv = E.placeValue(n);
     var parts = [];
     if (pv.hundreds > 0) parts.push('<span class="h">' + pv.hundreds + ' hundred' + (pv.hundreds > 1 ? 's' : '') + '</span>');
@@ -322,12 +382,46 @@
   }
 
   function renderNextMove() {
+    renderProgress();
+    renderCancelled();
     if (solved || stepIndex >= solution.moves.length) {
       nextChip.innerHTML = 'All cancelled! 🎉';
       return;
     }
     var amt = solution.moves[stepIndex];
     nextChip.innerHTML = 'Next: <span class="amt">' + E.describeMove(amt) + '</span> from each side — tap a place!';
+  }
+
+  /* The journey to zero: how much is still left to cancel, with a tick
+   * for every ten still standing. The whole game is "cancel until the
+   * second side is zero", and this bar is that idea in one picture. */
+  var progressB = null;
+  function renderProgress() {
+    var b = solution.b;
+    var right = solution.states[stepIndex].right;
+    progressFill.style.width = (b > 0 ? (right / b * 100) : 0) + '%';
+    if (progressB !== b) {
+      progressB = b;
+      progressTicks.innerHTML = '';
+      for (var t = 10; t < b; t += 10) {
+        var tick = el('span');
+        tick.style.left = (t / b * 100) + '%';
+        progressTicks.appendChild(tick);
+      }
+    }
+  }
+
+  /* What has been cancelled so far, in place-value words — the moves
+   * already made, added up: two tens and three ones is the 27 coming
+   * apart as the children play it. */
+  function renderCancelled() {
+    var cancelled = solution.b - solution.states[stepIndex].right;
+    if (cancelled > 0) {
+      cancelledTally.textContent = 'Cancelled: ' + E.captionCount(cancelled);
+      cancelledTally.hidden = false;
+    } else {
+      cancelledTally.hidden = true;
+    }
   }
 
   function setCaption(lines) {
@@ -341,26 +435,38 @@
     });
   }
 
-  function sayCounts() {
+  /* After a move, only the place that just changed is counted — the
+   * changing place is the counting; the rest is already on screen.
+   * No name tags on the lines: the voices don't belong to the kids,
+   * and the two lines are told apart by colour and order, left then
+   * right. (The answer is still spoken — and captioned — in full.) */
+  function sayCounts(amount) {
     var st = solution.states[stepIndex];
     var lz = zeroTensFlag(st.left, 'left');
     var rz = zeroTensFlag(st.right, 'right');
-    var leftPhrase = E.describeCount(st.left, lz);
-    var rightPhrase = E.describeCount(st.right, rz);
-    var T = THEMES[theme];
+    var leftFrags, rightFrags;
+    if (amount === 1 || amount === 10 || amount === 100) {
+      leftFrags = changingFragments(st.left, amount);
+      rightFrags = changingFragments(st.right, amount);
+    } else {
+      leftFrags = fragmentsFor(st.left, lz);
+      rightFrags = fragmentsFor(st.right, rz);
+    }
+    var leftText = fragsText(leftFrags);
+    var rightText = fragsText(rightFrags);
     setCaption([
-      { cls: 'left-voice', tag: T.leftName, text: leftPhrase + '.' },
-      { cls: 'right-voice', tag: T.rightName, text: rightPhrase + '.' }
+      { cls: 'left-voice', text: leftText + '.' },
+      { cls: 'right-voice', text: rightText + '.' }
     ]);
     playPhrases([
-      { kind: 'boy', n: st.left, sayZero: lz, text: leftPhrase },
-      { kind: 'girl', n: st.right, sayZero: rz, text: rightPhrase }
+      { kind: 'boy', frags: leftFrags, text: leftText },
+      { kind: 'girl', frags: rightFrags, text: rightText }
     ]);
   }
 
   function speakAnswer(answer) {
     var phrase = E.describeCount(answer, false);
-    playPhrases([{ kind: 'girl', n: answer, sayZero: false, prefix: ['answer'], text: 'The answer is ' + phrase + '!' }]);
+    playPhrases([{ kind: 'girl', frags: ['answer'].concat(fragmentsFor(answer, false)), text: 'The answer is ' + phrase + '!' }]);
   }
 
   /* ---------- landmarks ---------- */
@@ -426,26 +532,32 @@
    * Returns the fixed wrappers. The nodes are the REAL objects, so the
    * children watch the actual cars/mermaids leave — nothing teleports. */
   function liftObjects(grid, amount) {
+    // The glow colour is the place that is moving: blue for a ten,
+    // orange for a one, purple for a hundred — the same colours as the
+    // digits, so the flight and the numbers teach the same thing.
+    var glow = amount === 100 ? 'glow-hun' : amount === 10 ? 'glow-ten' : 'glow-one';
     var wraps = [];
     if (amount === 1) {
       var objs = $all('.obj', grid);
       var last = objs[objs.length - 1];
-      wraps.push(wrapNodes([last], last.parentNode));
+      wraps.push(wrapNodes([last], last.parentNode, glow));
       return wraps;
     }
     var need = amount / 10; // 1 whole row for a ten, 10 for a hundred
     var fullRows = $all('.ten-row', grid).filter(function (r) { return r.children.length === 10; });
     fullRows.slice(-need).forEach(function (row) {
-      wraps.push(wrapNodes($all('.obj', row), row));
+      wraps.push(wrapNodes($all('.obj', row), row, glow));
     });
     return wraps;
   }
 
   /* Move real nodes into a fixed wrapper at their current screen spot. */
-  function wrapNodes(nodes, row) {
+  function wrapNodes(nodes, row, glow) {
     var first = nodes[0].getBoundingClientRect();
     var last = nodes[nodes.length - 1].getBoundingClientRect();
-    var wrap = el('div', 'flying flying-row');
+    // 'telegraph': the row glows in place a beat before it flies, so the
+    // eye is already on the right group when it leaves.
+    var wrap = el('div', 'flying flying-row telegraph' + (glow ? ' ' + glow : ''));
     wrap.style.left = first.left + 'px';
     wrap.style.top = first.top + 'px';
     wrap.style.width = (last.right - first.left) + 'px';
@@ -473,11 +585,57 @@
   /* The collision: two whole rows meeting at the landmark explode into a
    * double burst of the landmark's magic plus star-bursts, and the
    * landmark itself thumps. Single objects keep the small burst above. */
-  function bigBurst(landmarkEl, lm) {
+  function bigBurst(landmarkEl, lm, amount) {
     burst(landmarkEl, lm.fx.concat(['💥', '⭐', '💥']));
     setTimeout(function () { burst(landmarkEl, ['💥', '✨', '⭐', '💥']); }, 130);
+    shockwave(landmarkEl);
+    if (amount >= 100) {
+      // A hundred is the biggest smash in the game: a third burst and a
+      // little shake of the whole page.
+      setTimeout(function () { burst(landmarkEl, ['💥', '⭐', '✨', '💥']); }, 260);
+      var page = document.querySelector('.page');
+      if (page) {
+        page.classList.add('shake');
+        setTimeout(function () { page.classList.remove('shake'); }, 350);
+      }
+    }
     landmarkEl.classList.add('boom');
     setTimeout(function () { landmarkEl.classList.remove('boom'); }, 550);
+  }
+
+  /* An expanding ring at the collision point — the smash, drawn. */
+  function shockwave(landmarkEl) {
+    var host = landscapeEl;
+    var r = landmarkEl.getBoundingClientRect();
+    var hr = host.getBoundingClientRect();
+    var s = el('span', 'shockwave');
+    s.style.left = (r.left - hr.left + r.width / 2) + 'px';
+    s.style.top = (r.top - hr.top + r.height / 2) + 'px';
+    host.appendChild(s);
+    setTimeout(function () { s.remove(); }, 650);
+  }
+
+  /* A few sparkles trail behind a flying row, so the flight reads as
+   * magic in motion — only for the big moves; ones stay quiet. */
+  function trailSparkles(wrappers) {
+    [0, 160, 320].forEach(function (delay) {
+      setTimeout(function () {
+        wrappers.forEach(function (w) {
+          if (!w.isConnected) return;
+          var r = w.getBoundingClientRect();
+          var s = el('span', 'trail', '✨');
+          s.style.left = (r.left + Math.random() * r.width) + 'px';
+          s.style.top = (r.top + Math.random() * r.height) + 'px';
+          document.body.appendChild(s);
+          setTimeout(function () { s.remove(); }, 750);
+        });
+      }, delay);
+    });
+  }
+
+  /* A tiny buzz when the rows collide — phones only, harmless elsewhere. */
+  function vibrate(amount) {
+    try { if (navigator.vibrate) navigator.vibrate(amount >= 10 ? 30 : 12); } catch (e) {}
   }
 
   /* ---------- one cancellation tap ---------- */
@@ -493,14 +651,19 @@
     var flights = [];
     // Whole rows meet at the landmark: both rows leave at once and arrive
     // together, so they smash into each other and explode. Single objects
-    // keep the gentle stagger they already had.
-    leftWraps.forEach(function (w) { flights.push(flyTo(w, target, 0)); });
-    rightWraps.forEach(function (w) { flights.push(flyTo(w, target, amount >= 10 ? 0 : 90)); });
+    // keep the gentle stagger they already had. Every flight waits a
+    // beat (the telegraph) so the glowing row is seen before it goes.
+    var TELEGRAPH = 260;
+    leftWraps.forEach(function (w) { flights.push(flyTo(w, target, TELEGRAPH)); });
+    rightWraps.forEach(function (w) { flights.push(flyTo(w, target, TELEGRAPH + (amount >= 10 ? 0 : 90))); });
+    whooshSound();
+    if (amount >= 10) trailSparkles(leftWraps.concat(rightWraps));
     btn.classList.add('busy');
-    setTimeout(function () { btn.classList.remove('busy'); }, 650);
+    setTimeout(function () { btn.classList.remove('busy'); }, 950);
     Promise.all(flights).then(function () {
-      if (amount >= 10) { bigBurst(btn, lm); boomSound(); }
+      if (amount >= 10) { bigBurst(btn, lm, amount); boomSound(); }
       else { burst(btn, lm.fx); popSound(); }
+      vibrate(amount);
       stepIndex++;
       var st = solution.states[stepIndex];
       renderSide('left', st.left, true);
@@ -511,7 +674,7 @@
         solved = true;
         celebrate();
       } else {
-        sayCounts();
+        sayCounts(amount);
       }
       updateLandmarkState();
     });
@@ -610,7 +773,7 @@
     } else {
       setCaption([
         { cls: 'note', text: 'Tap a place below to cancel ' + E.describeMove(solution.moves[0]) + ' from each side.' },
-        { cls: 'note', text: 'The two voices will count what is left — in tens and ones.' }
+        { cls: 'note', text: 'The two voices will count the place that just changed — tens first, then ones.' }
       ]);
     }
   }
@@ -677,6 +840,9 @@
     newMysteryBtn = $('#new-mystery');
     cheerEl = $('#cheer');
     landscapeEl = $('#landscape');
+    progressFill = $('#progress-fill');
+    progressTicks = $('#progress-ticks');
+    cancelledTally = $('#cancelled-tally');
 
     var specific = parseParams();
     soundOn = read('sound', 'on') !== 'off';

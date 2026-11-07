@@ -67,6 +67,11 @@ body[data-theme="mermaids"] .pill[aria-pressed="true"] { background: #0e7d8c; bo
 .pill.sound { min-width: 46px; }
 .pill:disabled { opacity: .45; cursor: default; }
 
+/* Progress to zero (inside the sticky equation bar) */
+.progress { position: relative; height: 10px; margin: 8px 4px 0; border-radius: 999px; background: #e6eef7; overflow: hidden; }
+.progress-fill { height: 100%; width: 100%; border-radius: 999px; background: var(--right); transition: width .5s ease; }
+.progress-ticks span { position: absolute; top: 0; bottom: 0; width: 2px; background: #94a6b8; opacity: .7; }
+
 /* ---- Quantity panels ---- */
 .quantities { display: flex; gap: 10px; align-items: stretch; margin-top: 12px; position: relative; }
 .side {
@@ -114,6 +119,14 @@ body[data-theme="mermaids"] .side.right .ten-row { border-color: rgba(214, 51, 1
 .flying { position: fixed; z-index: 60; pointer-events: none; margin: 0; will-change: transform; }
 .flying-row { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; padding: 3px; }
 
+/* Telegraph: the row glows in place a beat before it flies. The glow
+ * colour is the place that is moving — blue for a ten, orange for a
+ * one, purple for a hundred — the same colours as the digits. */
+.flying.telegraph { box-shadow: 0 0 0 3px #ffbf47, 0 0 22px rgba(255, 191, 71, .8); }
+.flying.glow-ten { box-shadow: 0 0 0 3px var(--tens), 0 0 22px rgba(22, 104, 214, .55); }
+.flying.glow-one { box-shadow: 0 0 0 3px var(--ones), 0 0 22px rgba(232, 113, 10, .55); }
+.flying.glow-hun { box-shadow: 0 0 0 3px var(--huns), 0 0 22px rgba(124, 77, 255, .55); }
+
 /* ---- Landscape + landmarks ---- */
 .landscape {
   position: relative; margin-top: 14px; border-radius: var(--radius);
@@ -153,6 +166,7 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
 
 /* Next-move + caption */
 .nextmove { text-align: center; margin: 10px 0 0; }
+.cancelled { text-align: center; font-size: 14px; font-weight: 700; color: var(--soft-ink); margin: 6px 0 0; }
 .nextmove .chip {
   display: inline-block; background: #fff; border-radius: 999px; box-shadow: var(--shadow);
   padding: 8px 14px; font-weight: 800; font-size: 15px;
@@ -214,6 +228,19 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
 
 /* ---- Particles ---- */
 .burst { position: absolute; z-index: 6; pointer-events: none; font-size: 20px; animation: burst-fly .9s ease-out forwards; }
+
+/* Shockwave ring at the collision point */
+.shockwave { position: absolute; z-index: 6; pointer-events: none; width: 70px; height: 70px; margin: -35px 0 0 -35px; border: 4px solid #ffbf47; border-radius: 50%; animation: shock .55s ease-out forwards; }
+@keyframes shock { from { transform: scale(.3); opacity: .9; } to { transform: scale(2.4); opacity: 0; } }
+/* Sparkle trail behind a flying row */
+.trail { position: fixed; z-index: 55; pointer-events: none; font-size: 18px; animation: trail-fade .7s ease-out forwards; }
+@keyframes trail-fade { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-26px) scale(.5); } }
+/* Hundred-move shake */
+.page.shake { animation: page-shake .3s ease; }
+@keyframes page-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+/* Gentle pulse on the unanswered "?" — the goal, not a distraction */
+.equation .q:not(.revealed) { animation: q-pulse 1.6s ease-in-out infinite; }
+@keyframes q-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
 @keyframes burst-fly { to { transform: translate(var(--dx), var(--dy)) scale(.4) rotate(160deg); opacity: 0; } }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
 @keyframes drift { 0%, 100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-9px) translateX(6px); } }

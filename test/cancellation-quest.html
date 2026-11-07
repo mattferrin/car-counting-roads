@@ -53,6 +53,7 @@
     <div class="equation" role="heading" aria-label="Subtraction problem">
       <span id="eq-a">84</span><span class="op">−</span><span id="eq-b">27</span><span class="op">=</span><span class="q" id="eq-q">?</span>
     </div>
+    <div class="progress" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div><div class="progress-ticks" id="progress-ticks"></div></div>
     <div class="toggles">
       <button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true">🚗 Ayan</button>
       <button type="button" class="pill theme-pill" data-theme="mermaids" aria-pressed="false">🧜‍♀️ Aliya</button>
@@ -80,6 +81,7 @@
     <section class="landscape" id="landscape" aria-label="Cancellation places — tap one to cancel"></section>
 
     <p class="nextmove"><span class="chip" id="next-chip">Next: one ten from each side — tap a place!</span></p>
+    <p class="cancelled" id="cancelled-tally" hidden></p>
 
     <div class="caption-bar" id="captions" aria-live="polite">
       <p class="line note">Tap a place below to cancel from each side.</p>
@@ -110,11 +112,13 @@
       sides — hundreds first, then tens, then ones, one unit at a time. The
       difference never changes, so when the second side reaches zero, what is
       left on the first side <em>is</em> the answer.</p>
-      <p><strong>Voices:</strong> counts are spoken in tens and ones
-      (“eight tens, four ones”), not fused names like “eighty-four”, so the
-      counting pattern stays visible: six tens, five tens, four tens… then
-      ones count down on their own. The two voices (one per side) take turns.
-      Sound starts after the first tap. You can also open a problem directly,
+      <p><strong>Voices:</strong> after each move only the place that just
+      changed is counted — tens while tens are being cancelled (“seven tens”,
+      “six tens”…), then ones on their own (“three ones”, “two ones”…).
+      The full count is always on screen, and the answer is spoken in full
+      (“The answer is five tens, seven ones!”). The two voices (one per
+      side) take turns. Sound starts after the first tap. You can also open
+      a problem directly,
       e.g. <code>cancellation-quest.html?theme=mermaids&amp;a=84&amp;b=27</code></p>
     </details>
   </main>
