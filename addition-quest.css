@@ -1,0 +1,389 @@
+/* Addition Quest — styles.
+ * Mobile-first (iPhone), centred column on larger screens. Local assets only: CSS scenery, SVG characters and landmark illustrations.
+ * Two worlds share the layout; body[data-theme="cars"|"mermaids"] swaps
+ * the palette and scenery. The maths layout never changes.
+ * Sibling of Cancellation Quest: same palette, grid and effects.
+ */
+:root {
+  --ink: #22303c;
+  --soft-ink: #3a5560;
+  --card: #ffffff;
+  --tens: #1668d6;   /* tens digit colour, used everywhere a ten is shown */
+  --ones: #e8710a;   /* ones digit colour */
+  --huns: #7c4dff;   /* hundreds digit colour */
+  --left: #1668d6;   /* left quantity identity: Ayan / blue */
+  --right: #c98a04;  /* right quantity identity: Aliya / gold (cars) */
+  --accent: #ff5d8f;
+  --good: #1d9e57;
+  --shadow: 0 6px 18px rgba(20, 40, 70, .14);
+  --radius: 18px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
+  background: linear-gradient(180deg,#79bfe8 0%,#bfe6ff 30%,#cdeeb0 30.5%,#8fce6e 62%,#6db95a 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+/* The mermaid world is a mid-tone sea blue, not a dark slab: the two
+ * themes keep the same visual weight — light sky vs sea, both light
+ * enough that the white cards and controls read the same way. */
+body[data-theme="mermaids"] { background: linear-gradient(180deg,#0a6d99 0%,#1a8fb8 34%,#127a9e 55%,#e8d29a 78%,#d9bd7a 100%); --right: #d63384; }
+button { font-family: inherit; }
+button:focus-visible, summary:focus-visible { outline: 3px solid #ffbf47; outline-offset: 2px; }
+
+/* The page is the burst host: waypoint bursts can fire at a landmark
+ * in either of the two landmark strips, so they are positioned against
+ * the page, not one strip. */
+.page { max-width: 600px; margin: 0 auto; padding: 6px 12px 40px; position: relative; }
+
+/* ---- Equation bar (NOT sticky — layout fix, Defect 1) ----
+ * It used to stick to the top of the viewport, and at max scroll the
+ * ~120px bar sat on top of the above-strip (strip at 64–121 behind
+ * the 0–120 bar): only a sliver of the landmark buttons peeked out
+ * and Palace/Whirlpool/Turtle Rock/Dolphin Cove were un-tappable
+ * until scrolled back up. Static: the bar scrolls away with the
+ * page, so the landmarks are never covered at any scroll position.
+ * The bar is also slimmed (smaller equation/pills, no world-line
+ * margin) to buy back vertical room for the caption below. */
+.eqbar {
+  position: static;
+  background: rgba(255, 255, 255, .96);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 6px 12px;
+  text-align: center;
+}
+/* At solved the celebration banner carries the moment, so the
+ * world-line hides and the equation + answer get those 14px. */
+.page:has(#celebrate-banner.show) .eqbar .world-line { display: none; }
+.page:has(#celebrate-banner.show) .eqbar { padding: 4px 12px; }
+.eqbar .world-line { font-size: 12px; color: var(--soft-ink); font-weight: 700; margin: 0 0 6px; }
+.equation {
+  font-size: clamp(28px, 8vw, 38px);
+  font-weight: 800; line-height: 1.05; letter-spacing: 1px;
+  margin: 0 0 4px; font-variant-numeric: tabular-nums;
+  display: flex; align-items: baseline; justify-content: center; gap: .18em; flex-wrap: wrap;
+}
+.equation .op { color: var(--soft-ink); font-weight: 700; }
+.equation .q {
+  min-width: 1.1em; display: inline-block; text-align: center;
+  color: #b98a00; background: #fff7d6; border: 2px dashed #e8c53a; border-radius: 12px;
+  padding: 0 .12em;
+}
+.equation .q.revealed { border-style: solid; background: #fff1a8; animation: answer-pop .7s ease; }
+.d-hun { color: var(--huns); } .d-tens { color: var(--tens); } .d-ones { color: var(--ones); }
+.eqbar .toggles { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.pill {
+  border: 2px solid #d7e3ef; background: #f2f7fc; color: var(--ink);
+  border-radius: 999px; padding: 5px 11px; font-size: 14px; font-weight: 700; cursor: pointer;
+  min-height: 28px;
+}
+.pill.sound { min-width: 46px; }
+.pill:disabled { opacity: .45; cursor: default; }
+
+/* ---- Quantity panels ---- */
+.quantities { display: flex; gap: 10px; align-items: stretch; margin-top: 8px; position: relative; }
+.side {
+  flex: 1 1 0; min-width: 0;
+  background: rgba(255,251,236,.94); border: 3px solid rgba(255,255,255,.95);
+  border-radius: 20px; box-shadow: var(--shadow);
+  padding: 6px 8px;
+}
+body[data-theme="mermaids"] .side { background: rgba(232,248,250,.94); }
+.side .who { font-weight: 800; font-size: 15px; }
+.side .wrow { display: flex; align-items: center; gap: 6px; }
+.side .who-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side .who .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--left); flex: none; }
+.side.right .who .dot { background: var(--right); }
+.side .who small { font-weight: 600; color: var(--soft-ink); }
+.side .bignum {
+  font-size: clamp(28px, 8vw, 38px); font-weight: 800; line-height: 1.05;
+  font-variant-numeric: tabular-nums; margin: 0;
+}
+.side .bignum.changed { animation: digit-flash .8s ease; }
+.side .caption { font-size: 14px; font-weight: 700; color: var(--soft-ink); margin: 0 0 4px; min-height: 1.2em; }
+.side .caption .t { color: var(--tens); } .side .caption .o { color: var(--ones); }
+.side .caption .h { color: var(--huns); }
+.plus-badge {
+  position: absolute; left: 50%; top: 34px; transform: translateX(-50%);
+  width: 34px; height: 34px; border-radius: 50%; background: #fff; box-shadow: var(--shadow);
+  display: grid; place-items: center; font-size: 24px; font-weight: 800; color: var(--soft-ink); z-index: 5;
+}
+.grid { display: flex; flex-direction: column; gap: 6px; min-height: 34px; }
+.ten-row {
+  display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px;
+  border: 2px solid rgba(22, 104, 214, .28); border-radius: 10px; padding: 3px;
+  background: rgba(22, 104, 214, .05);
+}
+.side.right .ten-row { border-color: rgba(201, 138, 4, .35); background: rgba(201, 138, 4, .06); }
+body[data-theme="mermaids"] .side.right .ten-row { border-color: rgba(214, 51, 132, .35); background: rgba(214, 51, 132, .06); }
+.ten-row.single { border-style: dashed; }
+.obj { display: block; line-height: 0; }
+.obj.emoji { display: flex; align-items: center; justify-content: center; line-height: 1; }
+.obj svg { width: 100%; height: auto; display: block; }
+.grid.empty::after {
+  content: "all moved over!"; display: block; text-align: center; color: var(--soft-ink);
+  font-weight: 700; font-size: 14px; padding: 8px 0;
+}
+.side.done { outline: 3px solid var(--good); }
+.side.done .bignum { color: var(--good); }
+
+/* Flying objects (FLIP animation clones the real nodes) */
+.flying { position: fixed; z-index: 60; pointer-events: none; margin: 0; will-change: transform; }
+.flying-row { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; padding: 3px; }
+
+/* Telegraph: the row glows in place a beat before it flies. The glow
+ * colour is the place that is moving — blue for a ten, orange for a
+ * one, purple for a hundred — the same colours as the digits. */
+.flying.telegraph { box-shadow: 0 0 0 3px #ffbf47, 0 0 22px rgba(255, 191, 71, .8); }
+.flying.glow-ten { box-shadow: 0 0 0 3px var(--tens), 0 0 22px rgba(22, 104, 214, .55); }
+.flying.glow-one { box-shadow: 0 0 0 3px var(--ones), 0 0 22px rgba(232, 113, 10, .55); }
+.flying.glow-hun { box-shadow: 0 0 0 3px var(--huns), 0 0 22px rgba(124, 77, 255, .55); }
+
+/* ---- Two compact landmark strips, one above and one below the panels ----
+ * Compactness is the point: the landmarks sit in two tight rows hugging
+ * the panels — four above, four below — instead of scattered around the
+ * page. Each strip is a flex row, so the four landmarks share the width
+ * evenly and nothing wraps awkwardly on iPhone portrait; the cards are
+ * small (34px art, 11px name) so the row stays short. The sky strip
+ * above the equation bar is gone (round 4). The landmarks are the only
+ * move trigger: they nudge on the first move, and the child taps one to
+ * send the cars there. Above is sky, below is grass (sea floor for
+ * mermaids). */
+.landmark-strip {
+  display: flex; gap: 6px; margin-top: 6px; background: transparent;
+  box-shadow: none; padding: 2px;
+}
+.above-strip {
+  background: transparent;
+}
+body[data-theme="mermaids"] .above-strip {
+  background: transparent;
+}
+.below-strip {
+  background: transparent;
+}
+body[data-theme="mermaids"] .below-strip {
+  background: transparent;
+}
+.landmark {
+  flex: 1 1 0; min-width: 0; z-index: 4;
+  background: rgba(255, 255, 255, .92); border: 3px solid #fff; border-radius: 16px;
+  box-shadow: var(--shadow); cursor: pointer; padding: 2px 2px 3px;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  transition: transform .15s ease;
+}
+.landmark:active { transform: scale(.94); }
+.landmark:disabled { opacity: .55; cursor: default; }
+/* Defect 6: at solved every landmark sits at .55 permanently, so the
+ * landmark area looks washed-out at the celebration moment. When the
+ * banner is showing, the problem is solved — restore full opacity
+ * there and signal "locked" only with muted colour (the buttons stay
+ * disabled, cursor default). Mid-move the banner is hidden, so the
+ * .55 dim still reads as "busy, wait" while a move is in flight. */
+#celebrate-banner.show ~ main .landmark:disabled { opacity: 1; filter: saturate(.7); }
+.landmark .art { font-size: 28px; line-height: 1; }
+.landmark .name { font-size: 10px; font-weight: 800; line-height: 1.15; text-align: center; }
+.landmark .hint { display: none; font-size: 10px; color: var(--soft-ink); font-weight: 600; line-height: 1.1; text-align: center; }
+.landmark.nudge { animation: nudge 1.2s ease-in-out infinite; }
+.landmark.busy { animation: landmark-joy .6s ease; }
+.landmark.boom { animation: landmark-boom .5s ease; }
+
+/* Next-move + caption */
+.nextmove { text-align: center; margin: 6px 0 0; }
+.cancelled { text-align: center; font-size: 14px; font-weight: 700; color: var(--soft-ink); margin: 4px 0 0; }
+.nextmove .chip {
+  display: inline-block; background: #fff; border-radius: 999px; box-shadow: var(--shadow);
+  padding: 6px 14px; font-weight: 800; font-size: 15px;
+}
+.nextmove .chip .amt { color: var(--tens); }
+/* Phase 5: slimmed so the one-line load caption fits above the fold at
+ * 390x844 — min-height 48px + 8px padding (was 64px + 12px). During a
+ * move the two 15px voice lines make the bar ~54px; only the parents
+ * section below shifts, never the game above.
+ * Layout round (Defect 2): slimmed further — 6px padding, 44px
+ * min-height, 15px voice lines — so the caption stays in the fold
+ * after a move as well as at load. The moved tally above it stays. */
+.caption-bar {
+  margin-top: 6px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 6px 14px; min-height: 44px;
+}
+.caption-bar .line { font-size: 15px; font-weight: 700; line-height: 1.3; margin: 0; }
+.caption-bar .line.left-voice { color: var(--left); }
+.caption-bar .line.right-voice { color: var(--right); }
+.caption-bar .line.note { color: var(--soft-ink); font-size: 14px; font-weight: 600; }
+.caption-bar .who-tag {
+  display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .06em; border-radius: 6px; padding: 1px 6px; margin-right: 6px; color: #fff;
+  background: var(--left); vertical-align: 1px;
+}
+.caption-bar .right-voice .who-tag { background: var(--right); }
+
+/* ---- Celebration banner: right under the equation bar ----
+ * Big cheer plus a big pulsing New Mystery button, full-width on
+ * mobile. Shown only when the problem is solved; exactly one New
+ * Mystery button on the page (the old small bottom one is gone).
+ * Slimmed in the layout round (Defect 2): the banner is the biggest
+ * single push of the solved caption below the fold, so its padding,
+ * cheer and button are all tightened — still big, just not 150px+. */
+.celebrate-banner {
+  display: none; margin-top: 8px; text-align: center;
+  background: linear-gradient(135deg, #fff7d6, #ffe9a8);
+  border: 3px solid #ffbf47; border-radius: 22px; box-shadow: 0 10px 26px rgba(20, 40, 70, .2);
+  padding: 6px 14px 8px;
+}
+.celebrate-banner.show { display: block; animation: banner-in .5s ease; }
+.celebrate-banner .cheer { font-size: 20px; font-weight: 800; color: var(--good); margin: 0 0 4px; }
+.new-mystery {
+  display: none; font-size: 22px; font-weight: 800; color: #fff; cursor: pointer;
+  background: linear-gradient(135deg, #ff5d8f, #ff9a3d); border: none; border-radius: 999px;
+  padding: 14px 26px; box-shadow: 0 8px 22px rgba(255, 93, 143, .45);
+  animation: answer-pop .6s ease;
+}
+.new-mystery.show { display: inline-block; }
+.celebrate-banner .new-mystery {
+  width: 100%; font-size: 20px; padding: 8px 20px;
+  animation: banner-pulse 1.4s ease-in-out infinite;
+}
+@keyframes banner-pulse {
+  0%, 100% { box-shadow: 0 8px 22px rgba(255, 93, 143, .45); }
+  50% { box-shadow: 0 8px 34px rgba(255, 93, 143, .85), 0 0 0 6px rgba(255, 191, 71, .5); }
+}
+@keyframes banner-in { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.stars { position: fixed; inset: 0; pointer-events: none; z-index: 70; overflow: hidden; }
+.stars span { position: absolute; font-size: 26px; animation: star-fall 1.6s ease-in forwards; }
+.answer-flyer {
+  position: fixed; z-index: 80; font-weight: 800; pointer-events: none;
+  font-size: clamp(38px, 11vw, 56px); font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 0 #fff, 0 6px 18px rgba(0,0,0,.25);
+}
+
+/* ---- Parents (unobtrusive config) ---- */
+.parents {
+  margin-top: 18px; background: rgba(255, 255, 255, .85); border-radius: var(--radius);
+  padding: 10px 14px; font-size: 14px; color: var(--soft-ink);
+}
+.parents summary { cursor: pointer; font-weight: 800; color: var(--ink); font-size: 14px; }
+.parents .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 4px; align-items: center; }
+.parents .lbl { font-weight: 800; color: var(--ink); }
+.parents .mini {
+  border: 2px solid #d7e3ef; background: #fff; border-radius: 999px; padding: 6px 11px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.parents .mini[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.parents p { margin: 8px 0; line-height: 1.45; }
+.parents code { background: #eef3f8; border-radius: 5px; padding: 0 4px; }
+
+/* ---- Footer ---- */
+.foot { margin-top: 20px; text-align: center; font-size: 14px; }
+.foot a { color: var(--left); font-weight: 700; }
+.foot .test-note { color: var(--soft-ink); font-size: 13px; margin-top: 6px; }
+
+/* ---- Particles ---- */
+.burst { position: absolute; z-index: 6; pointer-events: none; font-size: 20px; animation: burst-fly .9s ease-out forwards; }
+
+/* Shockwave ring at the collision point */
+.shockwave { position: absolute; z-index: 6; pointer-events: none; width: 70px; height: 70px; margin: -35px 0 0 -35px; border: 4px solid #ffbf47; border-radius: 50%; animation: shock .55s ease-out forwards; }
+@keyframes shock { from { transform: scale(.3); opacity: .9; } to { transform: scale(2.4); opacity: 0; } }
+/* Sparkle trail behind a flying row */
+.trail { position: fixed; z-index: 55; pointer-events: none; font-size: 18px; animation: trail-fade .7s ease-out forwards; }
+@keyframes trail-fade { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-26px) scale(.5); } }
+/* Hundred-move shake */
+.page.shake { animation: page-shake .3s ease; }
+@keyframes page-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+/* Gentle pulse on the unanswered "?" — the goal, not a distraction */
+.equation .q:not(.revealed) { animation: q-pulse 1.6s ease-in-out infinite; }
+@keyframes q-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+@keyframes burst-fly { to { transform: translate(var(--dx), var(--dy)) scale(.4) rotate(160deg); opacity: 0; } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@keyframes drift { 0%, 100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-9px) translateX(6px); } }
+@keyframes nudge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes landmark-joy { 0% { transform: scale(1); } 35% { transform: scale(1.12) rotate(-2deg); } 70% { transform: scale(1.06) rotate(2deg); } 100% { transform: scale(1); } }
+@keyframes landmark-boom { 0% { transform: scale(1); } 30% { transform: scale(1.22) rotate(-3deg); } 60% { transform: scale(1.1) rotate(2deg); } 100% { transform: scale(1); } }
+@keyframes digit-flash { 0% { background: #fff1a8; border-radius: 8px; } 100% { background: transparent; } }
+@keyframes answer-pop { 0% { transform: scale(.4); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes star-fall { 0% { transform: translateY(-20px) scale(.6); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(46vh) scale(1.15) rotate(140deg); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+@media (min-width: 520px) {
+  /* Landmark widths are flex-driven now; only the art grows. */
+  .landmark .art { font-size: 42px; }
+}
+
+/* Shared, unboxed ten-column pools. No reconstruction between moves. */
+.grid { display: block; position: relative; min-height: 30px; }
+.grid > .obj { position: absolute; left: 0; top: 0; padding: 0 1px; z-index: 2; }
+/* Storybook scene (A★): a painted backdrop (.scene SVG) and one band
+ * per grid row sit BEHIND the objects (z-index 0/1 vs .obj z-index 2).
+ * They are pure decoration — never .obj elements, never transformed,
+ * never pointer targets — so they cannot disturb counts, FLIP or taps.
+ * A full row of ten gets a soft solid wash + thin solid outline set
+ * 4px outside the objects; the ones row gets a darker ground band;
+ * empty rows are unpainted, so the scene shows through. */
+.grid .scene { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.grid .rowband { position: absolute; left: -3px; right: -3px; z-index: 1; pointer-events: none; }
+.side .rowband.ten { background: rgba(22,104,214,.13); border: 2px solid rgba(22,104,214,.45); border-radius: 12px; left: -4px; right: -4px; }
+.side.right .rowband.ten { background: rgba(201,138,4,.14); border-color: rgba(201,138,4,.5); }
+body[data-theme="mermaids"] .side.right .rowband.ten { background: rgba(214,51,132,.12); border-color: rgba(214,51,132,.5); }
+.side .rowband.one { background: rgba(109,185,90,.38); border-radius: 0 0 12px 12px; }
+body[data-theme="mermaids"] .side .rowband.one { background: rgba(217,189,122,.62); }
+.grid > .obj svg { width: 100%; height: 100%; object-fit: contain; }
+.side .caption { min-height: 20px; }
+.side .who { min-height: 30px; }
+.speaking { filter: brightness(1.2); background: #fff0a6; border-radius: 6px; box-shadow: 0 0 12px #ffc845; }
+.bignum .speaking, .equation .speaking { display: inline-block; transform: scale(1.16); }
+/* The progress line only ever carries text mid-move ("Watch them
+ * move over…", "Listen to the count…"); at load and at solved it is
+ * empty, so it reserves no height — the caption sits ~22px higher
+ * in exactly the states where the fold matters. When text appears
+ * mid-move only the parents section below shifts. */
+#progress-status { text-align: center; min-height: 0; margin: 2px 0; font-size: 14px; font-weight: 700; }
+button:disabled { cursor: default; }
+.mini:disabled, .new-mystery:disabled { opacity: .5; }
+.parents .mini { min-height: 44px; }
+@media (prefers-reduced-motion: reduce) {
+  .bignum .speaking, .equation .speaking { transform: none; }
+}
+
+/* ---- Addition Quest: badges, total, moved tally ---- */
+.side { position: relative; }
+.side .who .size-badge {
+  display: inline-block; margin-top: 3px; font-size: 11px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .05em; border-radius: 999px; padding: 2px 8px;
+  background: #eef3f8; color: var(--soft-ink);
+}
+/* The word matches what it says: "bigger" is big, "smaller" is small,
+ * "same size" sits in the middle — never let "smaller" look bigger. */
+.side .who .size-badge.bigger { font-size: 18px; }
+.side .who .size-badge.smaller { font-size: 12px; }
+.side .who .size-badge.same { font-size: 14px; }
+.side.dest .who .size-badge { background: #e3f2e8; color: var(--good); }
+.side.source .who .size-badge { background: #fff3c4; color: #8a6d00; }
+/* The top back-home nav is gone (round 4): the back link lives in the
+ * footer now, so nothing crowds the equation and the top strip. There
+ * is no .game-nav rule at all. */
+
+/* The Move button is gone (round 3): landmarks are the only move
+ * trigger, so there is no .move-row / .move-btn rule at all. */
+.total-badge {
+  text-align: center; font-size: 15px; font-weight: 800; color: var(--ink);
+  background: #fff; border-radius: 999px; box-shadow: var(--shadow);
+  display: inline-block; padding: 5px 14px; margin: 2px 0 0;
+}
+.moved { text-align: center; font-size: 14px; font-weight: 700; color: var(--soft-ink); margin: 2px 0 0; }
+main { text-align: center; }
+.quantities, .landmark-strip, .caption-bar, .parents, .celebrate-banner { text-align: left; }
+/* The objects themselves are no longer a tap target (round 3): the
+ * landmarks carry the only move invite, with their nudge. There is no
+ * .movable class anywhere now — and no transform animation may ever
+ * apply to a positioned .obj again (a transform animation overrides
+ * the inline translate() that positions each object, collapsing every
+ * movable object to the grid origin — the live defect of 2026-11-06). */
+/* Arrival burst particles inside a quantity panel */
+.arrival-burst { position: absolute; z-index: 6; pointer-events: none; font-size: 20px; animation: burst-fly .9s ease-out forwards; }

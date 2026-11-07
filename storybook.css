@@ -1,0 +1,140 @@
+/* Counting Worlds: shared visual skin. No object positioning or motion rules here.
+   Both Quest pages load this AFTER their game-specific CSS. */
+:root {
+  --world-paper: #fff9ec;
+  --world-ink: #294b58;
+  --world-blue: #1668d6;
+  --world-gold: #c98a04;
+  --world-teal: #0e7d8c;
+  --world-pink: #d63384;
+}
+body {
+  background: radial-gradient(ellipse at 10% 0%, #fff4c7 0%, transparent 42%),
+    linear-gradient(180deg, #b5ddec 0%, #dcebd6 48%, #a2c68c 100%);
+  background-attachment: fixed;
+}
+body[data-theme="mermaids"] {
+  --left: var(--world-teal);
+  --right: var(--world-pink);
+  background: radial-gradient(ellipse at 12% 0%, #d5f6ee 0%, transparent 48%),
+    linear-gradient(180deg, #94d7dc 0%, #68b5c4 56%, #e5d4a6 100%);
+  background-attachment: fixed;
+}
+.eqbar { background: #fffaf0; border: 1px solid #ffffff; box-shadow: 0 4px 18px #294b5818; }
+.eqbar .world-line { color: #3a5560; letter-spacing: .02em; font-weight: 700; margin: 0 0 6px; }
+.side { box-shadow: 0 4px 16px #294b5818; }
+.landmark { background: var(--world-paper); border: 2px solid #fffdf5;
+  box-shadow: 0 3px 0 #c4a975, 0 5px 12px #193f4920; }
+.landmark .art { display: grid; place-items: center; height: 28px; width: 28px; }
+.landmark .art img { display: block; width: 28px; height: 28px; border-radius: 8px; pointer-events: none; }
+.landmark .name { color: var(--world-ink); }
+body[data-theme="mermaids"] .landmark { background: #f6fcf5;
+  box-shadow: 0 3px 0 #8cbabc, 0 5px 12px #193f4920; }
+.landmark:focus-visible { outline: 3px solid #294b58; outline-offset: 3px; }
+/* Quest games: a little more air between the header block and the landmarks
+ * and panels below it. Not at solved — the world-line is hidden then and
+ * the caption must stay inside the fold. */
+.page:has(.landmark-strip):not(:has(#celebrate-banner.show)) .eqbar { margin-bottom: 8px; }
+@media (prefers-reduced-motion: reduce) { .landmark.nudge { animation: none; } }
+
+/* ---- Theme toggle: one segmented control bar ----
+ * Both children keep their own colour in both states — a soft tint when
+ * selected, quiet when not — so the selected pill never clashes with
+ * its neighbour the way a solid fill did, and the icons are never
+ * inverted to white silhouettes. */
+/* The header controls are two separate things, not one bar: the theme
+ * switch (cars/mermaids) is its own segmented bar, and sound is a
+ * standalone button beside it with a clear gap between them. */
+.eqbar .toggles { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.eqbar .theme-switch { display: inline-flex; gap: 2px; background: rgba(255,255,255,.65); border: 1px solid #eadfc8; border-radius: 999px; padding: 2px; }
+.pill.theme-pill { background: transparent; border: 2px solid transparent; color: #6b7a80; }
+.pill.theme-pill svg { filter: none; opacity: .65; }
+.pill.theme-pill[data-theme="cars"][aria-pressed="true"] { background: #dbeafe; border-color: #1668d6; color: #1668d6; }
+.pill.theme-pill[data-theme="mermaids"][aria-pressed="true"] { background: #d2f2f2; border-color: #0e7d8c; color: #0e7d8c; }
+.pill.theme-pill[aria-pressed="true"] svg { filter: none; opacity: 1; }
+.pill.sound { background: #f2f7fc; border: 2px solid #d7e3ef; color: #22303c; }
+
+/* Quiet game navigation, below the play area and clear of every touch target. */
+.game-announcements {
+  position: absolute; width: 1px; height: 1px; padding: 0;
+  margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+/* A colorful, fixed dock with square destinations and safe space for play. */
+.page:has(.quest-footer) { padding-bottom: calc(154px + env(safe-area-inset-bottom)); }
+.quest-footer {
+  position: fixed; z-index: 40; left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  width: min(180px, calc(100vw - 24px)); margin: 0; padding: 0;
+}
+.footer-nav {
+  display: grid; grid-template-columns: 1fr; gap: 8px;
+  padding: 8px; border: 1px solid #ffffff35; border-radius: 27px;
+  background: #234b60;
+  box-shadow: 0 8px 0 #18394c24, 0 12px 32px #153a4b40;
+}
+.footer-nav a {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 9px; min-height: 98px;
+  padding: 12px; border-radius: 20px; border: 1px solid #ffffff30;
+  font-size: 15px; font-weight: 800; text-decoration: none;
+  white-space: nowrap; transition: filter .15s ease, transform .15s ease;
+}
+.footer-nav .footer-home {
+  background: linear-gradient(145deg, #287bd2, #1556a1); color: #fff;
+  box-shadow: inset 0 1px 0 #ffffff35;
+}
+.footer-nav svg {
+  order: -1; flex: none; width: 38px; height: 38px; padding: 6px;
+  border-radius: 11px; background: #ffffff18; border: 1px solid #ffffff30;
+}
+.footer-nav a:hover { filter: brightness(1.08); }
+.footer-nav a:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.footer-nav a:active { transform: scale(.97); }
+body[data-theme="mermaids"] .footer-nav { background: #184c5a; }
+body[data-theme="mermaids"] .footer-home { background: linear-gradient(145deg, #138c97, #086576); }
+@media (max-width: 360px) {
+  .footer-nav a { font-size: 14px; }
+}
+
+/* Circle landmark bubbles: perfect circles in varied sizes, subtly
+ * zigzagged, overlapping in different amounts and directions — a cluster
+ * of bubbles, not a neat row. Each circle holds its icon and name. */
+.page:has(.quest-footer) .landmark {
+  aspect-ratio: 1; min-height: 0; justify-content: center;
+  padding: 0; gap: 2px; border-radius: 50%;
+  border: 3px solid #fff; box-shadow: 0 4px 10px rgba(25,63,73,.18);
+}
+.page:has(.quest-footer) .landmark .art {
+  flex: none; width: clamp(28px, 9vw, 48px); height: clamp(28px, 9vw, 48px);
+}
+.page:has(.quest-footer) .landmark .art img { width: 100%; height: 100%; border-radius: 10px; }
+.page:has(.quest-footer) .landmark .name {
+  font-size: 10px; line-height: 1.1;
+}
+/* Varied sizes, a barely-there zigzag, different overlaps and layering
+ * per position — the strip is a centred cluster, not a full-width row. */
+.page .landmark-strip { gap: 0; justify-content: center; align-items: flex-start; }
+.page .landmark-strip .landmark { flex: none; }
+.page .landmark-strip .landmark:nth-child(1) { width: 88px; height: 88px; margin-top: 2px; margin-left: 0; z-index: 4; }
+.page .landmark-strip .landmark:nth-child(2) { width: 96px; height: 96px; margin-top: 5px; margin-left: -8px; z-index: 6; }
+.page .landmark-strip .landmark:nth-child(3) { width: 84px; height: 84px; margin-top: 0; margin-left: -12px; z-index: 5; }
+.page .landmark-strip .landmark:nth-child(4) { width: 92px; height: 92px; margin-top: 3px; margin-left: -10px; z-index: 4; }
+/* Roomier circles need a slightly smaller icon so the name sits higher,
+ * where the circle is widest, and never wraps to a cramped second line. */
+.page .landmark-strip .landmark .art { width: 30px; height: 30px; }
+.page .landmark-strip .landmark .name { white-space: nowrap; }
+.page .landmark-strip .landmark:nth-child(odd) { background: #eff3f9; }
+.page .landmark-strip .landmark:nth-child(even) { background: #faf0e9; }
+/* Disabled landmarks keep their full opacity so the overlapping layers
+ * (which bubble sits above which) still read; they signal "not tappable"
+ * by going muted instead of fading out. */
+.landmark:disabled { opacity: 1; filter: saturate(.55); cursor: default; }
+
+/* Larger squares need a gentler invitation pulse to keep their gutters clear. */
+.page:has(.quest-footer) .landmark.nudge { animation-name: square-landmark-nudge; }
+@keyframes square-landmark-nudge {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.015); }
+}
+

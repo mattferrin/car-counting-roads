@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cancellation Quest — Ayan &amp; Aliya's Counting Worlds (Test)</title>
+<meta name="description" content="A subtraction game for kids: cancel the same amount from both sides, count in tens and ones, and watch what is left become the answer.">
+<!-- Asset cache-busting: every local CSS/JS URL below carries ?v=N.
+     Bump N on ALL of them together on every deploy, so a phone can
+     never mix a cached old file with a new one. Audio files are
+     intentionally unversioned (63 shared clips; re-downloading them
+     every deploy would be wasteful). -->
+<link rel="stylesheet" href="cancellation-quest.css?v=14">
+<link rel="stylesheet" href="storybook.css?v=14">
+</head>
+<body data-theme="cars">
+<!-- Inline SVG symbols: every car is one car, every mermaid is one mermaid.
+     No x10 badges anywhere: a group of ten is ten separate symbols in a row. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="car-blue" viewBox="0 0 44 26">
+      <rect x="3" y="12" width="38" height="8" rx="4" fill="#2f7fe0"/>
+      <path d="M12 12 C12 5 16 2.5 22 2.5 C28 2.5 32 5 32 12 Z" fill="#2f7fe0"/>
+      <path d="M16.5 11 C16.5 7 18.5 5.5 22 5.5 C25.5 5.5 27.5 7 27.5 11 Z" fill="#cfeaff"/>
+      <circle cx="13" cy="20" r="4.2" fill="#22303c"/><circle cx="13" cy="20" r="1.8" fill="#d7e3ef"/>
+      <circle cx="31" cy="20" r="4.2" fill="#22303c"/><circle cx="31" cy="20" r="1.8" fill="#d7e3ef"/>
+    </symbol>
+    <symbol id="car-gold" viewBox="0 0 44 26">
+      <rect x="3" y="12" width="38" height="8" rx="4" fill="#f2b705"/>
+      <path d="M12 12 C12 5 16 2.5 22 2.5 C28 2.5 32 5 32 12 Z" fill="#f2b705"/>
+      <path d="M16.5 11 C16.5 7 18.5 5.5 22 5.5 C25.5 5.5 27.5 7 27.5 11 Z" fill="#fff3c4"/>
+      <circle cx="13" cy="20" r="4.2" fill="#22303c"/><circle cx="13" cy="20" r="1.8" fill="#d7e3ef"/>
+      <circle cx="31" cy="20" r="4.2" fill="#22303c"/><circle cx="31" cy="20" r="1.8" fill="#d7e3ef"/>
+    </symbol>
+    <symbol id="mermaid-teal" viewBox="0 0 44 30"><image href="art/mermaid-selector-M.svg" width="44" height="30"/></symbol>
+    <symbol id="mermaid-pink" viewBox="0 0 44 30"><image href="art/mermaid-selector-M.svg" width="44" height="30"/></symbol>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="eqbar">
+    <p class="world-line">Ayan's Car World · Cancellation Quest</p>
+    <div class="equation" role="heading" aria-label="Subtraction problem">
+      <span id="eq-a">84</span><span class="op">−</span><span id="eq-b">27</span><span class="op">=</span><span class="q" id="eq-q">?</span>
+    </div>
+    <div class="toggles">
+      <div class="theme-switch" role="group" aria-label="Choose a world"><button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true"><svg viewBox="0 0 44 26" width="22" height="13" style="vertical-align:-2px" aria-hidden="true"><use href="#car-blue"/></svg> Ayan</button>
+      <button type="button" class="pill theme-pill" data-theme="mermaids" aria-pressed="false"><img src="art/mermaid-selector-M.svg" width="20" height="14" style="width:20px;height:14px;vertical-align:-2px" alt="" aria-hidden="true"> Aliya</button></div>
+      <button type="button" class="pill sound" id="sound-toggle" aria-pressed="true">🔊 Sound on</button>
+    </div>
+  </header>
+
+  <!-- The celebration banner: big cheer + big New Mystery button, right
+       under the equation bar — impossible to miss when solved.
+       The only New Mystery button on the page. -->
+  <div class="celebrate-banner" id="celebrate-banner" hidden>
+    <p class="cheer" id="cheer" hidden></p>
+    <button type="button" class="new-mystery" id="new-mystery" hidden disabled>✨ New Mystery</button>
+  </div>
+
+  <main>
+    <!-- Two compact landmark strips hugging the panels: four above,
+         four below. The back-home link lives in the footer now, so
+         nothing crowds the equation and the top strip. -->
+    <div class="landmark-strip above-strip" id="landmarks-above" aria-label="Places above the numbers — tap one to cancel"></div>
+    <section class="quantities" aria-label="The two quantities">
+      <div class="side left" id="side-left">
+        <div class="who"><span class="dot"></span><span class="who-label">Blue cars</span></div>
+        <div class="bignum" id="left-num">84</div>
+        <p class="caption" id="left-cap">8 tens · 4 ones</p>
+        <div class="grid" id="left-grid"></div>
+      </div>
+      <div class="minus-badge" aria-hidden="true">−</div>
+      <div class="side right" id="side-right">
+        <div class="who"><span class="dot"></span><span class="who-label">Gold cars</span></div>
+        <div class="bignum" id="right-num">27</div>
+        <p class="caption" id="right-cap">2 tens · 7 ones</p>
+        <div class="grid" id="right-grid"></div>
+      </div>
+    </section>
+
+    <div class="landmark-strip below-strip" id="landmarks-below" aria-label="Places below the numbers — tap one to cancel"></div>
+
+    <!-- Keep narration and move announcements available to assistive technology. -->
+    <div class="game-announcements">
+      <p class="nextmove"><span class="chip" id="next-chip">Next: one ten from each side — tap a place!</span></p>
+    <p id="progress-status" role="status"></p>
+    <p class="cancelled" id="cancelled-tally" hidden></p>
+
+    <div class="caption-bar" id="captions" aria-live="polite">
+      <p class="line note">Tap a place above or below to cancel from each side.</p>
+    </div>
+    </div>
+  </main>
+
+  <footer class="quest-footer">
+    <nav class="footer-nav" aria-label="Game navigation">
+      <a class="footer-home" href="index.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+        <span>All games</span>
+      </a>
+    </nav>
+  </footer>
+</div>
+
+<!-- ?v=14 on every script — bump together with the stylesheet on every deploy (see the cache-busting note in <head>). -->
+<script src="cancellation-engine.js?v=14"></script>
+<script src="cancellation-layout.js?v=14"></script>
+<script src="cancellation-quest.js?v=14"></script>
+</body>
+</html>
+
+
