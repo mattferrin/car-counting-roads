@@ -106,3 +106,10 @@ body[data-theme="mermaids"] .footer-home { background: linear-gradient(145deg, #
 .page:has(.quest-footer) .landmark .name {
   font-size: clamp(10px, 2.8vw, 12px); line-height: 1.1;
 }
+
+/* Larger squares need a gentler invitation pulse to keep their gutters clear. */
+.page:has(.quest-footer) .landmark.nudge { animation-name: square-landmark-nudge; }
+@keyframes square-landmark-nudge {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.015); }
+}
