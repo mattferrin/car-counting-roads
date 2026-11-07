@@ -80,6 +80,7 @@
     <section class="landscape" id="landscape" aria-label="Cancellation places — tap one to cancel"></section>
 
     <p class="nextmove"><span class="chip" id="next-chip">Next: one ten from each side — tap a place!</span></p>
+    <p id="progress-status" role="status"></p>
     <p class="cancelled" id="cancelled-tally" hidden></p>
 
     <div class="caption-bar" id="captions" aria-live="polite">
@@ -101,6 +102,9 @@
       </div>
       <div class="row">
         <span class="lbl">Try one:</span>
+        <button type="button" class="mini test-problem" data-a="78" data-b="35">78 − 35</button>
+        <button type="button" class="mini test-problem" data-a="59" data-b="25">59 − 25</button>
+        <button type="button" class="mini test-problem" data-a="42" data-b="17">42 − 17</button>
         <button type="button" class="mini test-problem" data-a="9" data-b="5">9 − 5</button>
         <button type="button" class="mini test-problem" data-a="25" data-b="15">25 − 15</button>
         <button type="button" class="mini test-problem" data-a="42" data-b="18">42 − 18</button>
@@ -130,6 +134,7 @@
 </div>
 
 <script src="cancellation-engine.js"></script>
+<script src="cancellation-layout.js"></script>
 <script src="cancellation-quest.js"></script>
 </body>
 </html>

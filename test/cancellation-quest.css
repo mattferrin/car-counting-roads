@@ -253,3 +253,21 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
   .landmark { width: 104px; min-height: 112px; }
   .landmark .art { font-size: 50px; }
 }
+
+/* Shared, unboxed ten-column pools. No reconstruction between moves. */
+.grid { display: block; position: relative; min-height: 30px; }
+.grid > .obj { position: absolute; left: 0; top: 0; padding: 0 1px; }
+.grid > .obj svg { width: 100%; height: 100%; object-fit: contain; }
+.side .caption { min-height: 36px; }
+.side .who { min-height: 36px; }
+.speaking { filter: brightness(1.2); background: #fff0a6; border-radius: 6px; box-shadow: 0 0 12px #ffc845; }
+.bignum .speaking, .equation .speaking { display: inline-block; transform: scale(1.16); }
+#progress-status { text-align: center; min-height: 1.3em; margin: 6px 0; font-size: 14px; font-weight: 700; }
+button:disabled { cursor: default; }
+.mini:disabled, .new-mystery:disabled { opacity: .5; }
+.pill, .parents .mini { min-height: 44px; }
+.landmark { width: 23%; }
+.landmark.pos-4 { left: 75%; }
+@media (prefers-reduced-motion: reduce) {
+  .bignum .speaking, .equation .speaking { transform: none; }
+}

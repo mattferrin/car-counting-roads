@@ -61,6 +61,8 @@
   var solution = null;      // engine result for the current problem
   var stepIndex = 0;        // next move to play
   var animating = false;
+  var phase = 'ready';
+  var cancelPlayback = null;
   var solved = false;
   var speechToken = 0;      // invalidates in-flight speech
   var audioCtx = null;
@@ -84,7 +86,6 @@
   var clipBuffers = {};   // "boy:tens-8" -> AudioBuffer, false = missing
   var clipsPreloading = false;
   var clipSources = [];   // live buffer sources, so stopSpeech can cut them
-  var clipTimer = null;
 
   function ensureAudioCtx() {
     try {
@@ -99,7 +100,8 @@
     if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch (e) {} }
     clipSources.forEach(function (s) { try { s.stop(); } catch (e) {} });
     clipSources = [];
-    if (clipTimer) { clearTimeout(clipTimer); clipTimer = null; }
+    if (cancelPlayback) cancelPlayback();
+    clearEmphasis();
   }
 
   /* Fragment names for a count, mirroring E.describeCount exactly. */
@@ -188,44 +190,76 @@
    * p.frags is the exact fragment list to play (changing place, or the
    * full count for the answer); p.text is the same words, for the
    * device-speech fallback and for nothing else. */
-  function playPhrase(p, token) {
-    if (!soundOn) return Promise.resolve();
-    var frags = p.frags;
-    var ctx = ensureAudioCtx();
-    var ready = ctx && frags.every(function (f) { return clipBuffers[p.kind + ':' + f]; });
-    if (ready) {
-      var t = ctx.currentTime + 0.05;
-      frags.forEach(function (f) {
-        var src = ctx.createBufferSource();
-        src.buffer = clipBuffers[p.kind + ':' + f];
-        src.connect(ctx.destination);
-        src.start(t);
-        clipSources.push(src);
-        t += src.buffer.duration + 0.18;
-      });
-      var total = Math.max(0, (t - ctx.currentTime) * 1000);
-      return new Promise(function (res) {
-        clipTimer = setTimeout(function () { clipTimer = null; res(); }, total);
-      });
+  function clearEmphasis() {
+    $all('.speaking').forEach(function (n) { n.classList.remove('speaking'); });
+  }
+  function emphasize(p, frag) {
+    clearEmphasis();
+    if (p.amount) {
+      selectedObjects(p.amount).forEach(function (n) { n.classList.add('speaking'); });
+      nextChip.classList.add('speaking');
+      return;
     }
-    return new Promise(function (res) {
-      speakUtterance(p.text, p.kind, token, res);
-    });
+    var num = p.answer ? eqQ : p.kind === 'boy' ? leftNum : rightNum;
+    var cls = frag.indexOf('hundreds') === 0 ? '.d-hun' : frag.indexOf('tens') === 0 ? '.d-tens' : '.d-ones';
+    var cap = p.kind === 'boy' ? leftCap : rightCap;
+    var digit = $(cls, num) || (frag === 'tens-0' ? $('.t', cap) : null) || num;
+    digit.classList.add('speaking');
+    var line = $(p.kind === 'boy' ? '.left-voice' : '.right-voice', captionBar);
+    if (line) line.classList.add('speaking');
   }
 
-  /* Device speech for one phrase (fallback when clips are not ready). */
-  function speakUtterance(text, kind, token, done) {
-    if (!soundOn || !('speechSynthesis' in window)) { done(); return; }
-    var vs = pickVoices();
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    u.rate = 0.88;
-    u.pitch = kind === 'boy' ? 0.85 : 1.3;
-    var v = kind === 'boy' ? vs.boy : vs.girl;
-    if (v) u.voice = v;
-    u.onend = function () { done(); };
-    u.onerror = function () { done(); };
-    try { window.speechSynthesis.speak(u); } catch (e) { done(); }
+  // Each short recorded fragment completes via onended. Synthesized
+  // fragments use actual start/boundary/end events, never guessed timing.
+  function playFragment(p, frag, token) {
+    if (!soundOn || token !== speechToken) return Promise.resolve();
+    return new Promise(function (resolve) {
+      var finished = false, src = null, utterance = null;
+      var watchdog = setTimeout(function () {
+        // Failure recovery only, not synchronization. Stop failed audio
+        // before releasing the queue so it cannot overlap the next phrase.
+        soundOn = false;
+        var toggle = $('#sound-toggle');
+        if (toggle) { toggle.textContent = '🔇 Tap to retry sound'; toggle.setAttribute('aria-pressed', 'false'); }
+        finish(true);
+      }, 8000);
+      function finish(abort) {
+        if (finished) return;
+        finished = true;
+        clearTimeout(watchdog);
+        if (abort) {
+          if (src) { try { src.stop(); } catch (e) {} }
+          if (utterance) { try { window.speechSynthesis.cancel(); } catch (e) {} }
+        }
+        if (src) { src.disconnect(); clipSources = clipSources.filter(function (s) { return s !== src; }); }
+        cancelPlayback = null;
+        clearEmphasis();
+        resolve();
+      }
+      cancelPlayback = function () { finish(true); };
+      var ctx = ensureAudioCtx();
+      var buffer = clipBuffers[p.kind + ':' + frag];
+      if (ctx && ctx.state === 'running' && buffer) {
+        try {
+          src = ctx.createBufferSource(); src.buffer = buffer;
+          src.connect(ctx.destination); clipSources.push(src);
+          src.onended = function () { finish(false); };
+          src.start(); emphasize(p, frag);
+          return;
+        } catch (e) { finish(true); return; }
+      }
+      if (!('speechSynthesis' in window)) { finish(false); return; }
+      try {
+        utterance = new SpeechSynthesisUtterance(FRAG_WORDS[frag]);
+        var vs = pickVoices();
+        utterance.lang = 'en-US'; utterance.rate = 0.88;
+        utterance.pitch = p.kind === 'boy' ? 0.85 : 1.3;
+        if (vs[p.kind]) utterance.voice = vs[p.kind];
+        utterance.onstart = utterance.onboundary = function () { if (!finished) emphasize(p, frag); };
+        utterance.onend = utterance.onerror = function () { finish(false); };
+        window.speechSynthesis.speak(utterance);
+      } catch (e) { finish(true); }
+    });
   }
 
   function pickVoices() {
@@ -246,16 +280,14 @@
 
   /* Play phrases in order: [{kind, frags, text}]. Captions are set by
    * the caller at the same time, so words and screen agree. */
-  function playPhrases(list) {
-    if (!soundOn) return;
+  async function playPhrases(list) {
     var token = speechToken;
-    var i = 0;
-    function next() {
-      if (token !== speechToken || i >= list.length) return;
-      var p = list[i++];
-      playPhrase(p, token).then(function () { next(); });
+    for (var p of list) {
+      for (var frag of p.frags) {
+        if (token !== speechToken) return;
+        await playFragment(p, frag, token);
+      }
     }
-    next();
   }
 
   /* Whether this side gets the one-time "zero tens" transition phrase:
@@ -318,27 +350,60 @@
     var pv = E.placeValue(n);
     var parts = [];
     if (pv.hundreds > 0) parts.push('<span class="h">' + pv.hundreds + ' hundred' + (pv.hundreds > 1 ? 's' : '') + '</span>');
-    if (pv.tens > 0) parts.push('<span class="t">' + pv.tens + ' ten' + (pv.tens > 1 ? 's' : '') + '</span>');
+    if (pv.tens >= 0) parts.push('<span class="t">' + pv.tens + ' ten' + (pv.tens !== 1 ? 's' : '') + '</span>');
     if (pv.ones > 0 || parts.length === 0) parts.push('<span class="o">' + pv.ones + ' one' + (pv.ones === 1 ? '' : 's') + '</span>');
     return parts.join(' · ');
   }
 
   function buildGrid(grid, count, sym) {
+    // Created only at problem/theme initialization. Survivors retain DOM identity.
     grid.innerHTML = '';
-    grid.classList.toggle('empty', count === 0);
-    var remaining = count;
-    while (remaining > 0) {
-      var take = Math.min(10, remaining);
-      var row = el('div', 'ten-row' + (take < 10 ? ' single' : ''));
-      for (var i = 0; i < take; i++) {
-        var obj = el('span', 'obj');
-        obj.innerHTML = '<svg viewBox="0 0 44 26" aria-hidden="true"><use href="#' + sym + '"></use></svg>';
-        if (sym.indexOf('mermaid') === 0) obj.firstChild.setAttribute('viewBox', '0 0 30 44');
-        row.appendChild(obj);
-      }
-      grid.appendChild(row);
-      remaining -= take;
+    for (var i = 0; i < count; i++) {
+      var obj = el('span', 'obj'); obj.dataset.id = i;
+      obj.innerHTML = '<svg viewBox="' + (sym.indexOf('mermaid') === 0 ? '0 0 30 44' : '0 0 44 26') + '" aria-hidden="true"><use href="#' + sym + '"></use></svg>';
+      grid.appendChild(obj);
     }
+  }
+  function layoutPools(animate, beforeAlignment) {
+    var layout = window.CancellationLayout.plan(solution, stepIndex, beforeAlignment);
+    var jobs = [];
+    ['left', 'right'].forEach(function (side) {
+      var grid = side === 'left' ? leftGrid : rightGrid;
+      var byId = new Map($all('.obj', grid).map(function (n) { return [Number(n.dataset.id), n]; }));
+      var positions = layout[side];
+      var width = grid.clientWidth / 10;
+      var rowHeight = theme === 'mermaids' ? width * 1.6 + 8 : Math.max(22, width * .65 + 10);
+      grid.style.height = (layout.rows * rowHeight) + 'px';
+      grid.classList.toggle('empty', positions.length === 0);
+      positions.forEach(function (pos) {
+        var n = byId.get(pos.id);
+        var old = n.style.transform;
+        var target = 'translate(' + (pos.x * width) + 'px,' + (pos.y * rowHeight) + 'px)';
+        n.style.width = width + 'px'; n.style.height = (rowHeight - 8) + 'px';
+        n.dataset.x = pos.x; n.dataset.y = pos.y;
+        n.style.transform = target;
+        if (animate && old && old !== target && n.animate) {
+          jobs.push(n.animate([{ transform: old }, { transform: target }], {
+            duration: reducedMotion() ? 100 : 620, easing: 'cubic-bezier(.25,.7,.3,1)'
+          }).finished.catch(function () {}));
+        }
+      });
+    });
+    return Promise.all(jobs);
+  }
+  function selectedObjects(amount) {
+    return [leftGrid, rightGrid].flatMap(function (grid) {
+      var nodes = $all('.obj', grid);
+      return amount === 1 ? nodes.slice(-1) : nodes.slice(0, amount);
+    });
+  }
+  function setPhase(value) {
+    phase = value; animating = value !== 'ready' && value !== 'complete';
+    document.body.dataset.phase = phase;
+    updateLandmarkState();
+    var status = $('#progress-status');
+    if (status) status.textContent = phase === 'narrating' ? 'Listen to the count…' :
+      phase === 'moving' ? 'Watch them move together…' : phase === 'celebrating' ? 'You found the answer!' : '';
   }
 
   /* The quantity panels are labelled by colour, never by a child's name:
@@ -366,7 +431,7 @@
       num.classList.add('changed');
     }
     cap.innerHTML = captionHtml(value);
-    buildGrid(grid, value, sym);
+    if (!flash) buildGrid(grid, value, sym);
   }
 
   function renderEquation() {
@@ -438,7 +503,7 @@
       { cls: 'left-voice', text: leftText + '.' },
       { cls: 'right-voice', text: rightText + '.' }
     ]);
-    playPhrases([
+    return playPhrases([
       { kind: 'boy', frags: leftFrags, text: leftText },
       { kind: 'girl', frags: rightFrags, text: rightText }
     ]);
@@ -446,7 +511,7 @@
 
   function speakAnswer(answer) {
     var phrase = E.describeCount(answer, false);
-    playPhrases([{ kind: 'girl', frags: ['answer'].concat(fragmentsFor(answer, false)), text: 'The answer is ' + phrase + '!' }]);
+    return playPhrases([{ kind: 'girl', answer: true, frags: ['answer'].concat(fragmentsFor(answer, false)), text: 'The answer is ' + phrase + '!' }]);
   }
 
   /* ---------- landmarks ---------- */
@@ -481,7 +546,8 @@
       b.disabled = animating || solved;
       b.classList.toggle('nudge', !animating && !solved && stepIndex === 0);
     });
-    $all('.theme-pill').forEach(function (b) { b.disabled = animating; });
+    $all('.theme-pill, .level-pill, .test-problem').forEach(function (b) { b.disabled = animating; });
+    newMysteryBtn.disabled = animating || !solved;
   }
 
   function burst(landmarkEl, chars) {
@@ -500,66 +566,6 @@
       host.appendChild(s);
       setTimeout(function (n) { n.remove(); }.bind(null, s), 950);
     }
-  }
-
-  /* Lift the objects for one move. A move NEVER splits a row: a ten lifts
-   * one whole ten-row, a hundred lifts ten whole ten-rows, a one lifts a
-   * single object. The rows taken are the last complete rows, so the
-   * leftover ones stay put at the bottom and children see a whole group
-   * of ten leave — never a partial row here and a partial row there.
-   * (Always possible: a ten-move only happens while the side holds at
-   * least ten, a hundred-move while it holds at least a hundred.)
-   * Returns the fixed wrappers. The nodes are the REAL objects, so the
-   * children watch the actual cars/mermaids leave — nothing teleports. */
-  function liftObjects(grid, amount) {
-    // The glow colour is the place that is moving: blue for a ten,
-    // orange for a one, purple for a hundred — the same colours as the
-    // digits, so the flight and the numbers teach the same thing.
-    var glow = amount === 100 ? 'glow-hun' : amount === 10 ? 'glow-ten' : 'glow-one';
-    var wraps = [];
-    if (amount === 1) {
-      var objs = $all('.obj', grid);
-      var last = objs[objs.length - 1];
-      wraps.push(wrapNodes([last], last.parentNode, glow));
-      return wraps;
-    }
-    var need = amount / 10; // 1 whole row for a ten, 10 for a hundred
-    var fullRows = $all('.ten-row', grid).filter(function (r) { return r.children.length === 10; });
-    fullRows.slice(-need).forEach(function (row) {
-      wraps.push(wrapNodes($all('.obj', row), row, glow));
-    });
-    return wraps;
-  }
-
-  /* Move real nodes into a fixed wrapper at their current screen spot. */
-  function wrapNodes(nodes, row, glow) {
-    var first = nodes[0].getBoundingClientRect();
-    var last = nodes[nodes.length - 1].getBoundingClientRect();
-    // 'telegraph': the row glows in place a beat before it flies, so the
-    // eye is already on the right group when it leaves.
-    var wrap = el('div', 'flying flying-row telegraph' + (glow ? ' ' + glow : ''));
-    wrap.style.left = first.left + 'px';
-    wrap.style.top = first.top + 'px';
-    wrap.style.width = (last.right - first.left) + 'px';
-    wrap.style.height = first.height + 'px';
-    wrap.style.gridTemplateColumns = 'repeat(' + nodes.length + ', 1fr)';
-    nodes.forEach(function (n) { wrap.appendChild(n); });
-    if (row && !row.hasChildNodes()) row.remove();
-    document.body.appendChild(wrap);
-    return wrap;
-  }
-
-  function flyTo(wrapper, targetRect, delay) {
-    var r = wrapper.getBoundingClientRect();
-    var dx = targetRect.left + targetRect.width / 2 - (r.left + r.width / 2);
-    var dy = targetRect.top + targetRect.height / 2 - (r.top + r.height / 2);
-    var dur = reducedMotion() ? 180 : 620;
-    var anim = wrapper.animate([
-      { transform: 'translate(0px, 0px) scale(1)', opacity: 1 },
-      { transform: 'translate(' + dx * 0.5 + 'px,' + (dy * 0.5 - 64) + 'px) scale(1.06) rotate(-3deg)', opacity: 1, offset: 0.55 },
-      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.3)', opacity: 0.85 }
-    ], { duration: dur, delay: delay, easing: 'ease-in-out', fill: 'forwards' });
-    return anim.finished.catch(function () {}).then(function () { wrapper.remove(); });
   }
 
   /* The collision: two whole rows meeting at the landmark explode into a
@@ -595,13 +601,80 @@
     setTimeout(function () { s.remove(); }, 650);
   }
 
-  /* A few sparkles trail behind a flying row, so the flight reads as
+  /* A tiny buzz when the rows collide — phones only, harmless elsewhere. */
+  function vibrate(amount) {
+    try { if (navigator.vibrate) navigator.vibrate(amount >= 10 ? 30 : 12); } catch (e) {}
+  }
+
+  /* ---------- flight to the pressed button ----------
+   * The cancellation first shows in place: the matching objects sit
+   * highlighted in their aligned positions while the amount is narrated,
+   * so it is obvious exactly which ones cancel. Then the REAL objects
+   * lift off together — one whole group per side, never a partial row —
+   * and fly down to the landmark the kid just tapped, arriving together
+   * to collide and explode there. Only then do the survivors slide up
+   * together to take their place. */
+  function liftObjects(grid, amount) {
+    // The glow colour is the place that is moving: blue for a ten,
+    // orange for a one, purple for a hundred — the same colours as the
+    // digits, so the flight and the numbers teach the same thing.
+    var glow = amount === 100 ? 'glow-hun' : amount === 10 ? 'glow-ten' : 'glow-one';
+    var nodes = $all('.obj', grid);
+    // Same picks as selectedObjects: a whole top row for a ten, the whole
+    // top ten rows for a hundred, the last single object for a one.
+    var picked = amount === 1 ? nodes.slice(-1) : nodes.slice(0, amount);
+    if (!picked.length) return null;
+    var rects = picked.map(function (n) { return n.getBoundingClientRect(); });
+    var left = Math.min.apply(null, rects.map(function (r) { return r.left; }));
+    var top = Math.min.apply(null, rects.map(function (r) { return r.top; }));
+    var right = Math.max.apply(null, rects.map(function (r) { return r.right; }));
+    var bottom = Math.max.apply(null, rects.map(function (r) { return r.bottom; }));
+    var wrap = el('div', 'flying ' + glow);
+    wrap.style.left = left + 'px';
+    wrap.style.top = top + 'px';
+    wrap.style.width = (right - left) + 'px';
+    wrap.style.height = (bottom - top) + 'px';
+    picked.forEach(function (n, i) {
+      var r = rects[i];
+      n.style.position = 'absolute';
+      n.style.left = (r.left - left) + 'px';
+      n.style.top = (r.top - top) + 'px';
+      n.style.width = r.width + 'px';
+      n.style.height = r.height + 'px';
+      n.style.transform = 'none';
+      var svg = n.querySelector('svg');
+      if (svg) { svg.style.width = '100%'; svg.style.height = '100%'; }
+      wrap.appendChild(n);
+    });
+    document.body.appendChild(wrap);
+    return wrap;
+  }
+
+  /* Fly one whole group to the pressed landmark. Both sides start at the
+   * same moment with the same timing, so they arrive together and smash
+   * into each other — never one after the other. */
+  function flyTo(wrapper, targetRect, delay) {
+    if (!wrapper) return Promise.resolve();
+    var r = wrapper.getBoundingClientRect();
+    var dx = targetRect.left + targetRect.width / 2 - (r.left + r.width / 2);
+    var dy = targetRect.top + targetRect.height / 2 - (r.top + r.height / 2);
+    var dur = reducedMotion() ? 180 : 620;
+    if (!wrapper.animate) { wrapper.remove(); return Promise.resolve(); }
+    var anim = wrapper.animate([
+      { transform: 'translate(0px, 0px) scale(1)', opacity: 1 },
+      { transform: 'translate(' + dx * 0.5 + 'px,' + (dy * 0.5 - 64) + 'px) scale(1.06) rotate(-3deg)', opacity: 1, offset: 0.55 },
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.3)', opacity: 0.85 }
+    ], { duration: dur, delay: delay, easing: 'ease-in-out', fill: 'forwards' });
+    return anim.finished.catch(function () {}).then(function () { wrapper.remove(); });
+  }
+
+  /* A few sparkles trail behind a flying group, so the flight reads as
    * magic in motion — only for the big moves; ones stay quiet. */
   function trailSparkles(wrappers) {
     [0, 160, 320].forEach(function (delay) {
       setTimeout(function () {
         wrappers.forEach(function (w) {
-          if (!w.isConnected) return;
+          if (!w || !w.isConnected) return;
           var r = w.getBoundingClientRect();
           var s = el('span', 'trail', '✨');
           s.style.left = (r.left + Math.random() * r.width) + 'px';
@@ -613,55 +686,54 @@
     });
   }
 
-  /* A tiny buzz when the rows collide — phones only, harmless elsewhere. */
-  function vibrate(amount) {
-    try { if (navigator.vibrate) navigator.vibrate(amount >= 10 ? 30 : 12); } catch (e) {}
-  }
-
   /* ---------- one cancellation tap ---------- */
-  function onLandmark(btn, lm) {
+  async function onLandmark(btn, lm) {
     if (animating || solved || stepIndex >= solution.moves.length) return;
-    stopSpeech();
-    animating = true;
-    updateLandmarkState();
+    ensureAudioCtx();
+    setPhase('narrating');
     var amount = solution.moves[stepIndex];
-    var target = btn.getBoundingClientRect();
-    var leftWraps = liftObjects(leftGrid, amount);
-    var rightWraps = liftObjects(rightGrid, amount);
-    var flights = [];
-    // Whole rows meet at the landmark: both rows leave at once and arrive
-    // together, so they smash into each other and explode. Single objects
-    // keep the gentle stagger they already had. Every flight waits a
-    // beat (the telegraph) so the glowing row is seen before it goes.
-    var TELEGRAPH = 260;
-    leftWraps.forEach(function (w) { flights.push(flyTo(w, target, TELEGRAPH)); });
-    rightWraps.forEach(function (w) { flights.push(flyTo(w, target, TELEGRAPH + (amount >= 10 ? 0 : 90))); });
-    whooshSound();
-    if (amount >= 10) trailSparkles(leftWraps.concat(rightWraps));
-    btn.classList.add('busy');
-    setTimeout(function () { btn.classList.remove('busy'); }, 950);
-    Promise.all(flights).then(function () {
+    try {
+      await playPhrases([{kind: 'girl', frags: [amount === 100 ? 'hundreds-1' : amount === 10 ? 'tens-1' : 'ones-1'], amount: amount}]);
+      setPhase('moving');
+      // The matching objects were highlighted in place while the amount
+      // was narrated; now the real objects lift off together and fly down
+      // to the button the kid pressed, arriving together to collide there.
+      var target = btn.getBoundingClientRect();
+      var leftWrap = liftObjects(leftGrid, amount);
+      var rightWrap = liftObjects(rightGrid, amount);
+      var flights = [flyTo(leftWrap, target, 0), flyTo(rightWrap, target, 0)];
+      whooshSound();
+      if (amount >= 10) trailSparkles([leftWrap, rightWrap]);
+      await Promise.all(flights);
       if (amount >= 10) { bigBurst(btn, lm, amount); boomSound(); }
       else { burst(btn, lm.fx); popSound(); }
       vibrate(amount);
       stepIndex++;
       var st = solution.states[stepIndex];
-      renderSide('left', st.left, true);
-      renderSide('right', st.right, true);
-      animating = false;
+      renderSide('left', st.left, true); renderSide('right', st.right, true);
+      // First compact both pools upward, then let the gold ones descend.
+      var transition = amount >= 10 && st.right > 0 && st.right < 10;
+      await layoutPools(true, transition);
+      if (transition) await layoutPools(true, false);
       renderNextMove();
       if (E.isSolved(st)) {
         solved = true;
-        celebrate();
+        setPhase('celebrating');
+        await celebrate();
       } else {
-        sayCounts(amount);
+        setPhase('narrating');
+        // Regrouping changes two digits; name the full value in that case.
+        var prev = solution.states[stepIndex - 1];
+        await sayCounts(amount === 1 && Math.floor(prev.left / 10) !== Math.floor(st.left / 10) ? undefined : amount);
       }
-      updateLandmarkState();
-    });
+    } finally {
+      clearEmphasis();
+      setPhase(solved ? 'complete' : 'ready');
+    }
   }
 
   /* ---------- celebration ---------- */
-  function celebrate() {
+  async function celebrate() {
     renderEquation();
     leftSide.classList.add('done');
     var answer = solution.answer;
@@ -689,15 +761,15 @@
       { transform: 'translate(' + dx * 0.5 + 'px,' + (dy * 0.5 - 80) + 'px) scale(1.25)', opacity: 1, offset: 0.6 },
       { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(1)', opacity: 1 }
     ], { duration: dur, easing: 'ease-in-out', fill: 'forwards' });
-    anim.finished.catch(function () {}).then(function () {
+    await anim.finished.catch(function () {});
+    {
       flyer.remove();
       renderEquation(); // swaps "?" for the answer with a pop
       starBurst();
-      cheerSound();
-      newMysteryBtn.classList.add('show');
-      newMysteryBtn.focus();
-    });
-    speakAnswer(answer);
+    }
+    await speakAnswer(answer);
+    cheerSound();
+    newMysteryBtn.classList.add('show');
   }
 
   function starBurst() {
@@ -721,6 +793,7 @@
   }
 
   function newProblem(a, b, opts) {
+    if (animating) return;
     opts = opts || {};
     stopSpeech();
     solution = E.solve(a, b);
@@ -738,6 +811,8 @@
     renderEquation();
     renderSide('left', solution.a, false);
     renderSide('right', solution.b, false);
+    layoutPools(false);
+    setPhase('ready');
     renderNextMove();
     updateLandmarkState();
     syncUrl();
@@ -745,11 +820,13 @@
       // e.g. 7 − 0: nothing to cancel; the answer is already there.
       solved = true;
       setCaption([{ cls: 'note', text: 'Nothing to cancel — the answer was there all along!' }]);
-      celebrate();
+      setPhase('celebrating');
+      celebrate().finally(function () { setPhase('complete'); });
       return;
     }
     if (opts.announce) {
-      sayCounts();
+      setPhase('narrating');
+      sayCounts().finally(function () { setPhase('ready'); });
     } else {
       setCaption([
         { cls: 'note', text: 'Tap a place below to cancel ' + E.describeMove(solution.moves[0]) + ' from each side.' },
@@ -778,12 +855,19 @@
       var st = solution.states[stepIndex];
       renderSide('left', st.left, false);
       renderSide('right', st.right, false);
+      // Recreate surviving identities when changing the theme.
+      [leftGrid, rightGrid].forEach(function (grid, side) {
+        var poses = window.CancellationLayout.plan(solution, stepIndex)[side ? 'right' : 'left'];
+        $all('.obj', grid).forEach(function (n, i) { n.dataset.id = poses[i].id; });
+      });
+      layoutPools(false);
     }
     store('theme', theme);
     if (solution) syncUrl();
   }
 
   function setLevel(l, startNew) {
+    if (animating) return;
     level = E.LEVELS[l] ? l : 'easy';
     $all('.level-pill').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.level === level));
@@ -801,7 +885,8 @@
     var l = q.get('level');
     level = E.LEVELS[l] ? l : read('level', 'easy');
     if (!E.LEVELS[level]) level = 'easy';
-    var a = parseInt(q.get('a'), 10), b = parseInt(q.get('b'), 10);
+    var a = q.has('a') && q.get('a').trim() !== '' ? Number(q.get('a')) : NaN;
+    var b = q.has('b') && q.get('b').trim() !== '' ? Number(q.get('b')) : NaN;
     var specific = null;
     if (Number.isFinite(a) && Number.isFinite(b)) {
       try { E.validate(a, b); specific = { a: a, b: b }; } catch (e) { specific = null; }
@@ -848,7 +933,9 @@
         newProblem(parseInt(b.dataset.a, 10), parseInt(b.dataset.b, 10), { announce: false });
       });
     });
-    newMysteryBtn.addEventListener('click', function () { newRandomProblem(false); });
+    newMysteryBtn.addEventListener('click', function () { if (!animating && solved) newRandomProblem(false); });
+    window.addEventListener('resize', function () { if (!animating) layoutPools(false); });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) stopSpeech(); });
 
     document.body.dataset.theme = theme;
     $all('.theme-pill').forEach(function (b) {
