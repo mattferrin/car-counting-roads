@@ -67,11 +67,6 @@ body[data-theme="mermaids"] .pill[aria-pressed="true"] { background: #0e7d8c; bo
 .pill.sound { min-width: 46px; }
 .pill:disabled { opacity: .45; cursor: default; }
 
-/* Progress to zero (inside the sticky equation bar) */
-.progress { position: relative; height: 10px; margin: 8px 4px 0; border-radius: 999px; background: #e6eef7; overflow: hidden; }
-.progress-fill { height: 100%; width: 100%; border-radius: 999px; background: var(--right); transition: width .5s ease; }
-.progress-ticks span { position: absolute; top: 0; bottom: 0; width: 2px; background: #94a6b8; opacity: .7; }
-
 /* ---- Quantity panels ---- */
 .quantities { display: flex; gap: 10px; align-items: stretch; margin-top: 12px; position: relative; }
 .side {

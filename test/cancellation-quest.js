@@ -69,7 +69,7 @@
 
   var eqA, eqB, eqQ, leftNum, rightNum, leftCap, rightCap, leftGrid, rightGrid,
       leftSide, rightSide, captionBar, nextChip, newMysteryBtn, cheerEl, landscapeEl,
-      progressFill, progressTicks, cancelledTally;
+      cancelledTally;
 
   /* ---------- voices: pre-recorded clips, two distinct voices ---------- */
   /* Counts are spoken from short recorded clips — one male voice for the
@@ -382,7 +382,6 @@
   }
 
   function renderNextMove() {
-    renderProgress();
     renderCancelled();
     if (solved || stepIndex >= solution.moves.length) {
       nextChip.innerHTML = 'All cancelled! 🎉';
@@ -390,25 +389,6 @@
     }
     var amt = solution.moves[stepIndex];
     nextChip.innerHTML = 'Next: <span class="amt">' + E.describeMove(amt) + '</span> from each side — tap a place!';
-  }
-
-  /* The journey to zero: how much is still left to cancel, with a tick
-   * for every ten still standing. The whole game is "cancel until the
-   * second side is zero", and this bar is that idea in one picture. */
-  var progressB = null;
-  function renderProgress() {
-    var b = solution.b;
-    var right = solution.states[stepIndex].right;
-    progressFill.style.width = (b > 0 ? (right / b * 100) : 0) + '%';
-    if (progressB !== b) {
-      progressB = b;
-      progressTicks.innerHTML = '';
-      for (var t = 10; t < b; t += 10) {
-        var tick = el('span');
-        tick.style.left = (t / b * 100) + '%';
-        progressTicks.appendChild(tick);
-      }
-    }
   }
 
   /* What has been cancelled so far, in place-value words — the moves
@@ -840,8 +820,6 @@
     newMysteryBtn = $('#new-mystery');
     cheerEl = $('#cheer');
     landscapeEl = $('#landscape');
-    progressFill = $('#progress-fill');
-    progressTicks = $('#progress-ticks');
     cancelledTally = $('#cancelled-tally');
 
     var specific = parseParams();
