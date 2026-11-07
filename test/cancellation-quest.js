@@ -43,6 +43,7 @@
       label: "Aliya's Mermaid World", thing: 'mermaid', things: 'mermaids',
       leftName: 'Ayan', rightName: 'Aliya',
       leftSym: 'mermaid-teal', rightSym: 'mermaid-pink',
+      emoji: '🧜‍♀️', // the same mermaid emoji as on Aliya's theme button
       leftColor: 'Teal', rightColor: 'Pink',
       landmarks: [
         { id: 'reef', art: '🪸', name: 'Coral Reef', hint: 'bubbles bloom!', fx: ['🫧', '🪸', '✨'] },
@@ -193,11 +194,30 @@
   function clearEmphasis() {
     $all('.speaking').forEach(function (n) { n.classList.remove('speaking'); });
   }
+  /* Which objects a fragment names: N tens are the first N rows of ten in
+   * that side's pool, N ones are the last N single objects, N hundreds
+   * are the first N hundreds. A "zero tens" names no objects. */
+  function objectsForFrag(grid, frag) {
+    var m = frag.match(/^(hundreds|tens|ones)-(\d)$/);
+    if (!m) return [];
+    var n = Number(m[2]);
+    if (n === 0) return [];
+    var nodes = $all('.obj', grid);
+    if (m[1] === 'ones') return nodes.slice(-n);
+    return nodes.slice(0, n * (m[1] === 'hundreds' ? 100 : 10));
+  }
+
   function emphasize(p, frag) {
     clearEmphasis();
-    if (p.amount) {
-      selectedObjects(p.amount).forEach(function (n) { n.classList.add('speaking'); });
-      nextChip.classList.add('speaking');
+    var side = p.answer ? 'left' : p.kind === 'boy' ? 'left' : 'right';
+    var grid = side === 'left' ? leftGrid : rightGrid;
+    if (frag === 'answer') {
+      // The whole answer first: the full number, and every object left in
+      // the pool — then its tens, then its ones, in that order.
+      eqQ.classList.add('speaking');
+      $all('.obj', grid).forEach(function (n) { n.classList.add('speaking'); });
+      var answerLine = $('.left-voice', captionBar);
+      if (answerLine) answerLine.classList.add('speaking');
       return;
     }
     var num = p.answer ? eqQ : p.kind === 'boy' ? leftNum : rightNum;
@@ -205,8 +225,10 @@
     var cap = p.kind === 'boy' ? leftCap : rightCap;
     var digit = $(cls, num) || (frag === 'tens-0' ? $('.t', cap) : null) || num;
     digit.classList.add('speaking');
-    var line = $(p.kind === 'boy' ? '.left-voice' : '.right-voice', captionBar);
+    var line = $((p.kind === 'girl' && !p.answer) ? '.right-voice' : '.left-voice', captionBar);
     if (line) line.classList.add('speaking');
+    // And the actual objects this place names, in that side's pool.
+    objectsForFrag(grid, frag).forEach(function (n) { n.classList.add('speaking'); });
   }
 
   // Each short recorded fragment completes via onended. Synthesized
@@ -355,12 +377,13 @@
     return parts.join(' · ');
   }
 
-  function buildGrid(grid, count, sym) {
+  function buildGrid(grid, count, sym, emoji) {
     // Created only at problem/theme initialization. Survivors retain DOM identity.
     grid.innerHTML = '';
     for (var i = 0; i < count; i++) {
       var obj = el('span', 'obj'); obj.dataset.id = i;
-      obj.innerHTML = '<svg viewBox="' + (sym.indexOf('mermaid') === 0 ? '0 0 30 44' : '0 0 44 26') + '" aria-hidden="true"><use href="#' + sym + '"></use></svg>';
+      if (emoji) { obj.classList.add('emoji'); obj.textContent = emoji; }
+      else obj.innerHTML = '<svg viewBox="' + (sym.indexOf('mermaid') === 0 ? '0 0 30 44' : '0 0 44 26') + '" aria-hidden="true"><use href="#' + sym + '"></use></svg>';
       grid.appendChild(obj);
     }
   }
@@ -380,6 +403,7 @@
         var old = n.style.transform;
         var target = 'translate(' + (pos.x * width) + 'px,' + (pos.y * rowHeight) + 'px)';
         n.style.width = width + 'px'; n.style.height = (rowHeight - 8) + 'px';
+        if (n.classList.contains('emoji')) n.style.fontSize = Math.max(10, Math.round(Math.min(width, rowHeight - 8) * 0.9)) + 'px';
         n.dataset.x = pos.x; n.dataset.y = pos.y;
         n.style.transform = target;
         if (animate && old && old !== target && n.animate) {
@@ -431,7 +455,7 @@
       num.classList.add('changed');
     }
     cap.innerHTML = captionHtml(value);
-    if (!flash) buildGrid(grid, value, sym);
+    if (!flash) buildGrid(grid, value, sym, T.emoji);
   }
 
   function renderEquation() {
@@ -629,7 +653,7 @@
     var top = Math.min.apply(null, rects.map(function (r) { return r.top; }));
     var right = Math.max.apply(null, rects.map(function (r) { return r.right; }));
     var bottom = Math.max.apply(null, rects.map(function (r) { return r.bottom; }));
-    var wrap = el('div', 'flying ' + glow);
+    var wrap = el('div', 'flying telegraph ' + glow);
     wrap.style.left = left + 'px';
     wrap.style.top = top + 'px';
     wrap.style.width = (right - left) + 'px';
@@ -690,18 +714,19 @@
   async function onLandmark(btn, lm) {
     if (animating || solved || stepIndex >= solution.moves.length) return;
     ensureAudioCtx();
-    setPhase('narrating');
+    setPhase('moving');
     var amount = solution.moves[stepIndex];
+    // No announcement of the amount: the matching objects just light up in
+    // place for a beat (the telegraph), then fly to the button. The counting
+    // afterwards still names the new totals, tens then ones.
+    var TELEGRAPH = 260;
     try {
-      await playPhrases([{kind: 'girl', frags: [amount === 100 ? 'hundreds-1' : amount === 10 ? 'tens-1' : 'ones-1'], amount: amount}]);
-      setPhase('moving');
-      // The matching objects were highlighted in place while the amount
-      // was narrated; now the real objects lift off together and fly down
-      // to the button the kid pressed, arriving together to collide there.
+      selectedObjects(amount).forEach(function (n) { n.classList.add('speaking'); });
+      nextChip.classList.add('speaking');
       var target = btn.getBoundingClientRect();
       var leftWrap = liftObjects(leftGrid, amount);
       var rightWrap = liftObjects(rightGrid, amount);
-      var flights = [flyTo(leftWrap, target, 0), flyTo(rightWrap, target, 0)];
+      var flights = [flyTo(leftWrap, target, TELEGRAPH), flyTo(rightWrap, target, TELEGRAPH)];
       whooshSound();
       if (amount >= 10) trailSparkles([leftWrap, rightWrap]);
       await Promise.all(flights);

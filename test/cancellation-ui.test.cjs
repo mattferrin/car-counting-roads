@@ -38,7 +38,7 @@ async function settle(t, errors=false){
    const button=d.querySelector('.landmark');
    const survivor=d.querySelectorAll('#left-grid .obj')[sol.moves[i]===1?0:sol.moves[i]];
    button.click(); button.click(); d.querySelector('.test-problem').click(); d.querySelector('#new-mystery').click();
-   assert.equal(d.body.dataset.phase,'narrating');
+   assert.equal(d.body.dataset.phase,'moving');
    assert(button.disabled);assert(d.querySelector('.level-pill').disabled);assert(d.querySelector('.theme-pill').disabled);
    assert.equal(d.querySelectorAll('.obj.speaking').length,sol.moves[i]*2);
    assert(!d.querySelector('#new-mystery').classList.contains('show'));
@@ -64,8 +64,10 @@ async function settle(t, errors=false){
   t.close(); checks++;
  }
  // Count highlights follow speech start/end, and controls stay locked throughout.
+ // (No amount is announced before the move: the rows just light up and fly,
+ // so the first spoken fragment after a tap is the new count itself.)
  const t=boot(78,35),d=t.w.document;
- d.querySelector('.landmark').click(); t.pending.shift().onend(); await flush();
+ d.querySelector('.landmark').click(); await flush();
  assert.equal(t.pending[0].text,'six tens');assert(d.querySelector('#left-num .d-tens.speaking'));
  t.pending.shift().onend();await flush();
  assert.equal(t.pending[0].text,'two tens');assert(d.querySelector('#right-num .d-tens.speaking'));assert(d.querySelector('.landmark').disabled);
