@@ -61,6 +61,17 @@
     }
   };
 
+
+  /* Storybook scene (A★), one per theme, painted INSIDE each panel
+   * behind the grid: a winding dirt path through a meadow for cars,
+   * a sandy sea floor with shells, starfish and bubbles for mermaids.
+   * Verbatim from the Phase 3 refined concept pages. The SVG stretches
+   * with the grid (preserveAspectRatio="none") so it fits R rows. */
+  var SCENE_SVG = {
+    cars: '<svg class="scene" viewBox="0 0 162 220" preserveAspectRatio="none" aria-hidden="true"><path d="M81 0 C 30 45 140 80 81 120 C 30 155 120 185 81 220" fill="none" stroke="#e8c98a" stroke-width="14" stroke-linecap="round" opacity="0.55"/><path d="M81 0 C 30 45 140 80 81 120 C 30 155 120 185 81 220" fill="none" stroke="#d9b36c" stroke-width="2" stroke-dasharray="7 9" opacity="0.7"/><g fill="#ff8fb3"><circle cx="12" cy="96" r="3"/><circle cx="150" cy="70" r="3"/><circle cx="140" cy="150" r="3"/></g><g fill="#fff"><circle cx="12" cy="96" r="1.2"/><circle cx="150" cy="70" r="1.2"/><circle cx="140" cy="150" r="1.2"/></g><g fill="#7fc96b"><circle cx="24" cy="130" r="3"/><circle cx="138" cy="104" r="3"/></g></svg>',
+    mermaids: '<svg class="scene" viewBox="0 0 162 220" preserveAspectRatio="none" aria-hidden="true"><g stroke="#d9bd7a" stroke-width="2" fill="none" opacity="0.8"><path d="M0 190 Q 40 182 81 190 T 162 190"/><path d="M0 200 Q 40 192 81 200 T 162 200"/><path d="M0 210 Q 40 202 81 210 T 162 210"/></g><g fill="#ffb3c8"><path d="M18 92 l3 6 6 1 -4 5 1 6 -6 -3 -6 3 1 -6 -4 -5 6 -1z"/><path d="M142 128 l3 6 6 1 -4 5 1 6 -6 -3 -6 3 1 -6 -4 -5 6 -1z"/></g><g fill="#fff" opacity="0.85"><circle cx="130" cy="60" r="3.5"/><circle cx="140" cy="78" r="2.5"/><circle cx="26" cy="150" r="3"/><circle cx="36" cy="166" r="2.2"/></g><g fill="#ff9a3d"><path d="M148 88 l2.5 5 5 1 -3.5 4 1 5 -5 -2.5 -5 2.5 1 -5 -3.5 -4 5 -1z"/></g><g fill="#e85a9b"><circle cx="14" cy="60" r="4"/><circle cx="14" cy="60" r="1.6" fill="#fff"/></g></svg>'
+  };
+
   /* ---------- state ---------- */
   var theme = 'cars';
   var level = 'easy';
@@ -389,7 +400,7 @@
     for (var i = 0; i < count; i++) {
       var obj = el('span', 'obj'); obj.dataset.id = i;
       if (emoji) { obj.classList.add('emoji'); obj.textContent = emoji; }
-      else obj.innerHTML = '<svg viewBox="' + (sym.indexOf('mermaid') === 0 ? '0 0 30 44' : '0 0 44 26') + '" aria-hidden="true"><use href="#' + sym + '"></use></svg>';
+      else obj.innerHTML = '<svg viewBox="' + (sym.indexOf('mermaid') === 0 ? '0 0 44 30' : '0 0 44 26') + '" aria-hidden="true"><use href="#' + sym + '"></use></svg>';
       grid.appendChild(obj);
     }
   }
@@ -401,9 +412,26 @@
       var byId = new Map($all('.obj', grid).map(function (n) { return [Number(n.dataset.id), n]; }));
       var positions = layout[side];
       var width = grid.clientWidth / 10;
-      var rowHeight = theme === 'mermaids' ? width * 1.6 + 8 : Math.max(22, width * .65 + 10);
+      var rowHeight = theme === 'mermaids' ? Math.max(20, width * 30 / 44 + 8) : Math.max(22, width * .65 + 10);
       grid.style.height = (layout.rows * rowHeight) + 'px';
       grid.classList.toggle('empty', positions.length === 0);
+      // Storybook scene (A★): repaint the backdrop + one band per row
+      // from the current plan, behind the objects. A row holding ten
+      // objects is a ten band, a row holding a few is the ones band,
+      // an empty row is unpainted so the scene shows through. Rebuilt
+      // on every layout so the bands track the rows and counts at
+      // every step. These are <div>/<svg> decoration, never .obj.
+      var deco = grid.querySelectorAll('.scene, .rowband');
+      for (var di = 0; di < deco.length; di++) deco[di].remove();
+      var perRow = {};
+      positions.forEach(function (p) { perRow[p.y] = (perRow[p.y] || 0) + 1; });
+      var decoHtml = SCENE_SVG[theme];
+      for (var ry = 0; ry < layout.rows; ry++) {
+        var bandCls = perRow[ry] === 10 ? 'ten' : perRow[ry] ? 'one' : 'empty';
+        decoHtml += '<div class="rowband ' + bandCls + '" style="top:' + (ry * rowHeight) + 'px;height:' + rowHeight + 'px"></div>';
+      }
+      grid.insertAdjacentHTML('afterbegin', decoHtml);
+
       positions.forEach(function (pos) {
         var n = byId.get(pos.id);
         var old = n.style.transform;
@@ -461,7 +489,9 @@
       num.classList.add('changed');
     }
     cap.innerHTML = captionHtml(value);
-    if (!flash) buildGrid(grid, value, sym, T.emoji);
+    // Mermaid objects are the M1 SVG now, not the picker emoji —
+    // the emoji field stays for Aliya's theme BUTTON only.
+    if (!flash) buildGrid(grid, value, sym, theme === 'mermaids' ? null : T.emoji);
   }
 
   function renderEquation() {

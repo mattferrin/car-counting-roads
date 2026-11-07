@@ -2,8 +2,9 @@
  * Per-fragment highlights: when the voice says "two tens" the two tens
  * themselves glow; "seven ones" glows the seven ones. The answer is
  * highlighted whole first, then its tens, then its ones — never ones
- * before tens. Mermaid objects are the mermaid emoji from the theme
- * picker (the one next to Aliya's name), not the SVG mermaids.
+ * before tens. Mermaid objects are the M1 Blob swimmer SVG symbols
+ * (viewBox 44x30), not the picker emoji: the 🧜‍♀️ emoji survives only
+ * on Aliya's theme button, which is UI chrome, not an object.
  */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -120,16 +121,22 @@ async function playMove(t) {
   checks++;
   t.close();
 
-  // 3. Mermaids are the picker emoji, cars are still SVG cars.
+  // 3. Mermaids are the M1 SVG symbol, cars are still SVG cars; the
+  //    picker emoji lives only on Aliya's theme button, not in a grid.
   t = boot('theme=mermaids&a=84&b=27');
   await settle(t);
   d = t.w.document;
   const pickerEmoji = d.querySelector('.theme-pill[data-theme="mermaids"]').textContent.replace(' Aliya', '');
+  assert.equal(pickerEmoji, '🧜‍♀️', 'the theme button still shows the mermaid emoji');
   const mermaids = [...d.querySelectorAll('#left-grid .obj, #right-grid .obj')];
   assert(mermaids.length > 0);
-  assert(mermaids.every(n => n.textContent === pickerEmoji), 'every mermaid is the picker emoji');
-  assert(mermaids.every(n => !n.querySelector('svg')), 'no SVG mermaids left');
-  assert(mermaids.every(n => n.classList.contains('emoji') && n.style.fontSize), 'emoji nodes sized');
+  assert(mermaids.every(n => !n.classList.contains('emoji') && n.textContent === ''), 'no emoji mermaid objects');
+  assert(mermaids.every(n => {
+    const svg = n.querySelector('svg');
+    const use = svg && svg.querySelector('use');
+    return svg && svg.getAttribute('viewBox') === '0 0 44 30' &&
+      use && (use.getAttribute('href') === '#mermaid-teal' || use.getAttribute('href') === '#mermaid-pink');
+  }), 'every mermaid is the M1 SVG symbol (44x30, teal/pink)');
   t.close();
   t = boot('a=84&b=27');
   await settle(t);
@@ -139,5 +146,5 @@ async function playMove(t) {
   assert(cars.every(n => n.querySelector('svg') && n.textContent === ''), 'cars are still SVG cars');
   t.close();
 
-  console.log(`Highlight: ${checks} fragment cases + mermaid emoji passed; spoken places glow their objects, answer glows whole then tens then ones.`);
+  console.log(`Highlight: ${checks} fragment cases + mermaid M1 SVG passed; spoken places glow their objects, answer glows whole then tens then ones.`);
 })().catch(e => { console.error(e); process.exitCode = 1; });
