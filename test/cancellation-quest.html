@@ -10,8 +10,8 @@
      never mix a cached old file with a new one. Audio files are
      intentionally unversioned (63 shared clips; re-downloading them
      every deploy would be wasteful). -->
-<link rel="stylesheet" href="cancellation-quest.css?v=11">
-<link rel="stylesheet" href="storybook.css?v=11">
+<link rel="stylesheet" href="cancellation-quest.css?v=12">
+<link rel="stylesheet" href="storybook.css?v=12">
 </head>
 <body data-theme="cars">
 <!-- Inline SVG symbols: every car is one car, every mermaid is one mermaid.
@@ -44,8 +44,8 @@
       <span id="eq-a">84</span><span class="op">−</span><span id="eq-b">27</span><span class="op">=</span><span class="q" id="eq-q">?</span>
     </div>
     <div class="toggles">
-      <button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true"><svg viewBox="0 0 44 26" width="22" height="13" style="vertical-align:-2px" aria-hidden="true"><use href="#car-blue"/></svg> Ayan</button>
-      <button type="button" class="pill theme-pill" data-theme="mermaids" aria-pressed="false"><img src="art/mermaid-selector-M.svg" width="20" height="14" style="width:20px;height:14px;vertical-align:-2px" alt="" aria-hidden="true"> Aliya</button>
+      <div class="theme-switch" role="group" aria-label="Choose a world"><button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true"><svg viewBox="0 0 44 26" width="22" height="13" style="vertical-align:-2px" aria-hidden="true"><use href="#car-blue"/></svg> Ayan</button>
+      <button type="button" class="pill theme-pill" data-theme="mermaids" aria-pressed="false"><img src="art/mermaid-selector-M.svg" width="20" height="14" style="width:20px;height:14px;vertical-align:-2px" alt="" aria-hidden="true"> Aliya</button></div>
       <button type="button" class="pill sound" id="sound-toggle" aria-pressed="true">🔊 Sound on</button>
     </div>
   </header>
@@ -103,10 +103,10 @@
   </footer>
 </div>
 
-<!-- ?v=11 on every script — bump together with the stylesheet on every deploy (see the cache-busting note in <head>). -->
-<script src="cancellation-engine.js?v=11"></script>
-<script src="cancellation-layout.js?v=11"></script>
-<script src="cancellation-quest.js?v=11"></script>
+<!-- ?v=12 on every script — bump together with the stylesheet on every deploy (see the cache-busting note in <head>). -->
+<script src="cancellation-engine.js?v=12"></script>
+<script src="cancellation-layout.js?v=12"></script>
+<script src="cancellation-quest.js?v=12"></script>
 </body>
 </html>
 

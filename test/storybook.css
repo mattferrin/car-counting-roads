@@ -31,6 +31,19 @@ body[data-theme="mermaids"] {
 body[data-theme="mermaids"] .landmark { background: #f6fcf5;
   box-shadow: 0 3px 0 #8cbabc, 0 5px 12px #193f4920; }
 .landmark:focus-visible { outline: 3px solid #294b58; outline-offset: 3px; }
+/* Landmarks carry the home bubble theme: overlapping bubbles in the
+ * lightest pink/blue, divided by solid white lines. The strip has no gap;
+ * each landmark after the first slides 12px left over its neighbour, and
+ * its solid white border is the dividing line. */
+.landmark-strip { gap: 0; }
+.landmark-strip .landmark + .landmark { margin-left: -12px; }
+.landmark-strip .landmark { border: 3px solid #fff; border-radius: 22px; }
+.landmark-strip .landmark:nth-child(odd) { background: #eff3f9; }
+.landmark-strip .landmark:nth-child(even) { background: #faf0e9; }
+/* Quest games: a little more air between the header block and the landmarks
+ * and panels below it. Not at solved — the world-line is hidden then and
+ * the caption must stay inside the fold. */
+.page:has(.landmark-strip):not(:has(#celebrate-banner.show)) .eqbar { margin-bottom: 8px; }
 @media (prefers-reduced-motion: reduce) { .landmark.nudge { animation: none; } }
 
 /* ---- Theme toggle: one segmented control bar ----
@@ -38,13 +51,17 @@ body[data-theme="mermaids"] .landmark { background: #f6fcf5;
  * selected, quiet when not — so the selected pill never clashes with
  * its neighbour the way a solid fill did, and the icons are never
  * inverted to white silhouettes. */
-.eqbar .toggles { display: inline-flex; gap: 2px; justify-content: center; flex-wrap: wrap; background: rgba(255,255,255,.65); border: 1px solid #eadfc8; border-radius: 999px; padding: 2px; }
+/* The header controls are two separate things, not one bar: the theme
+ * switch (cars/mermaids) is its own segmented bar, and sound is a
+ * standalone button beside it with a clear gap between them. */
+.eqbar .toggles { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.eqbar .theme-switch { display: inline-flex; gap: 2px; background: rgba(255,255,255,.65); border: 1px solid #eadfc8; border-radius: 999px; padding: 2px; }
 .pill.theme-pill { background: transparent; border: 2px solid transparent; color: #6b7a80; }
 .pill.theme-pill svg { filter: none; opacity: .65; }
 .pill.theme-pill[data-theme="cars"][aria-pressed="true"] { background: #dbeafe; border-color: #1668d6; color: #1668d6; }
 .pill.theme-pill[data-theme="mermaids"][aria-pressed="true"] { background: #d2f2f2; border-color: #0e7d8c; color: #0e7d8c; }
 .pill.theme-pill[aria-pressed="true"] svg { filter: none; opacity: 1; }
-.pill.sound { background: transparent; border: 2px solid transparent; color: #6b7a80; }
+.pill.sound { background: #f2f7fc; border: 2px solid #d7e3ef; color: #22303c; }
 
 /* Quiet game navigation, below the play area and clear of every touch target. */
 .game-announcements {
