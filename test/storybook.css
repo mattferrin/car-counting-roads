@@ -57,10 +57,10 @@ body[data-theme="mermaids"] .landmark { background: #f6fcf5;
 .quest-footer {
   position: fixed; z-index: 40; left: 50%;
   bottom: calc(12px + env(safe-area-inset-bottom)); transform: translateX(-50%);
-  width: min(360px, calc(100vw - 24px)); margin: 0; padding: 0;
+  width: min(180px, calc(100vw - 24px)); margin: 0; padding: 0;
 }
 .footer-nav {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  display: grid; grid-template-columns: 1fr; gap: 8px;
   padding: 8px; border: 1px solid #ffffff35; border-radius: 27px;
   background: #234b60;
   box-shadow: 0 8px 0 #18394c24, 0 12px 32px #153a4b40;
@@ -76,15 +76,10 @@ body[data-theme="mermaids"] .landmark { background: #f6fcf5;
   background: linear-gradient(145deg, #287bd2, #1556a1); color: #fff;
   box-shadow: inset 0 1px 0 #ffffff35;
 }
-.footer-nav .footer-stable {
-  background: linear-gradient(145deg, #ffd582, #ffb64e); color: #58330e;
-  box-shadow: inset 0 1px 0 #ffffff70;
-}
 .footer-nav svg {
   order: -1; flex: none; width: 38px; height: 38px; padding: 6px;
   border-radius: 11px; background: #ffffff18; border: 1px solid #ffffff30;
 }
-.footer-nav .footer-stable svg { background: #ffffff30; border-color: #8c531e25; }
 .footer-nav a:hover { filter: brightness(1.08); }
 .footer-nav a:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .footer-nav a:active { transform: scale(.97); }
@@ -113,3 +108,4 @@ body[data-theme="mermaids"] .footer-home { background: linear-gradient(145deg, #
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.015); }
 }
+
