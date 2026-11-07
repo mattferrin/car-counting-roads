@@ -89,11 +89,19 @@
       </div>
     </section>
 
+    <div class="landmark-strip below-strip" id="landmarks-below" aria-label="Places below the numbers — tap one to move"></div>
+
+    <!-- The status lines live BELOW the bottom strip, never between the
+         panels and a strip: the total badge, the moved tally and the
+         progress status used to sit between the panels and the below
+         strip and pushed it ~72px down the page (round 5). Cancellation
+         Quest puts its below strip immediately under the panels, and
+         Addition now matches it — the gap is just the strip's 10px
+         margin. Nothing is removed: the total is still shown, and the
+         progress line still reports each move. -->
     <p class="total-badge" id="total-badge">Total stays 73</p>
     <p class="moved" id="moved-tally" hidden></p>
     <p id="progress-status" role="status"></p>
-
-    <div class="landmark-strip below-strip" id="landmarks-below" aria-label="Places below the numbers — tap one to move"></div>
 
     <div class="caption-bar" id="captions" aria-live="polite">
       <p class="line note">Tap a place on the map to move!</p>

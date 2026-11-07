@@ -35,6 +35,11 @@
  *     arithmetic is checked from the stylesheet at iPhone portrait
  *     (390px): four cards fit side by side with room to read their
  *     names, and each strip stays short. No sky strip, no top nav.
+ *     Compact stack (round 5): nothing sits between the panels and
+ *     the below strip — the below strip follows the panels directly,
+ *     exactly as in Cancellation Quest — and the total badge, moved
+ *     tally and progress status live below the below strip, before
+ *     the caption bar, so the stack matches CQ's compactness.
  *  6. New Mystery banner: hidden until solved, then the big banner
  *     directly under the sticky equation bar holds the only New Mystery
  *     button, in both directions and both themes.
@@ -337,6 +342,12 @@ function flyingAnims(t) {
     assert.equal(tenNodes.length, 10, 'ten moving nodes before the first move');
     t.anims.length = 0;
     volc.click();
+    // Checked before the flush: once the (stubbed, instantly-resolved)
+    // flight ends the phase advances to narrating and the status
+    // becomes 'Listen to the count…'. During the flight the status
+    // names the tapped landmark.
+    assert.equal(d.querySelector('#progress-status').textContent, 'Flying around the Volcano…',
+      'progress status reports the move while it flies');
     await flush();
     const flyAnims = flyingAnims(t);
     assert.equal(flyAnims.length, 1, 'ten-move: ONE flight animation, not three phases');
@@ -437,6 +448,20 @@ function flyingAnims(t) {
           : n.classList.contains('eqbar') ? 'eqbar' : 'quantities');
       assert.deepEqual(order, ['eqbar', 'banner', 'above', 'quantities', 'below', 'caption-bar'],
         `${theme}: strips hug the panels in order`);
+      // Compact stack (round 5): the below strip follows the panels
+      // directly — nothing between them — and the status lines live
+      // below the below strip, before the caption bar.
+      assert.equal(dd.querySelector('.quantities').nextElementSibling.id, 'landmarks-below',
+        `${theme}: below strip immediately follows the panels`);
+      const statusOrder = Array.from(dd.querySelectorAll('#landmarks-below, #total-badge, #moved-tally, #progress-status, #captions'))
+        .map(n => n.id);
+      assert.deepEqual(statusOrder, ['landmarks-below', 'total-badge', 'moved-tally', 'progress-status', 'captions'],
+        `${theme}: total badge, moved tally and progress status live below the below strip`);
+      assert.equal(dd.querySelector('#total-badge').textContent, 'Total stays 73',
+        `${theme}: total badge still shows the conserved total`);
+      const stripMargin = /\.landmark-strip\s*\{[^}]*?margin-top:\s*([\d.]+)px/.exec(CSS);
+      assert(stripMargin && +stripMargin[1] <= 12,
+        `below strip hugs the panels: margin-top ${stripMargin && stripMargin[1]}px`);
       // The back link lives in the footer now.
       assert.equal(dd.querySelector('.foot a[href="index.html"]').textContent, '← Back to test games');
       t.close();
@@ -455,5 +480,5 @@ function flyingAnims(t) {
       `same ${same[1]}px sits between smaller ${smaller[1]}px and bigger ${bigger[1]}px`);
     checks++;
   }
-  console.log(`Rendered: ${checks} cases passed; rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on .obj and no .movable left, one continuous spline flight per move (no jumps, genuine loop, fx burst at the loop, flatter one-move arc), eight landmarks in two compact strips hugging the panels, banner placement, badge sizes.`);
+  console.log(`Rendered: ${checks} cases passed; rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on .obj and no .movable left, one continuous spline flight per move (no jumps, genuine loop, fx burst at the loop, flatter one-move arc), eight landmarks in two compact strips hugging the panels, below strip immediately under the panels with the status lines below it, banner placement, badge sizes.`);
 })().catch(e => { console.error(e); process.exitCode = 1; });
