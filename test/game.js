@@ -33,6 +33,37 @@
   if(!params.has('theme')&&!params.has('max')){$('home').hidden=false;return;}
   $('game').hidden=false;
   let theme=params.get('theme')==='mermaids'?'mermaids':'cars',state=initial(),busy=false,generation=0,serial=0,animation=0;
+  /* Spoken narration (CountingVoice): the digit being counted glows
+   * in the equation and the matching garage caption glows with it.
+   * The stored preference lives under 'cp-sound'; stop() silences
+   * the current speech without touching it. */
+  let soundOn=true;try{soundOn=root.localStorage.getItem('cp-sound')!=='off';}catch(e){}
+  function highlightVoice(side,place,count){
+    clearVoiceHighlight();
+    const numEl=side==='blue'?$('left'):$('right');
+    const cls=place==='tens'?'.d-tens':'.d-ones';
+    const digit=numEl.querySelector(cls);
+    (digit||numEl).classList.add('speaking');
+    const caps=doc.querySelectorAll('.garage-caption'),cap=caps[side==='blue'?0:1];
+    if(cap)cap.classList.add('speaking');
+    const garages=doc.querySelectorAll('#garages > g'),garage=garages[side==='blue'?0:1];
+    if(garage&&count>0){
+      if(place==='tens'){
+        garage.querySelectorAll('.count-band').forEach((b,i)=>{if(i<count)b.classList.add('speaking');});
+        garage.querySelectorAll('.parked-unit').forEach((u,i)=>{if(i<count*10)u.classList.add('speaking');});
+      }else{
+        const band=garage.querySelector('.ones-band');if(band)band.classList.add('speaking');
+        const units=garage.querySelectorAll('.parked-unit');
+        units.forEach((u,i)=>{if(i>=units.length-count)u.classList.add('speaking');});
+      }
+    }
+  }
+  function clearVoiceHighlight(){doc.querySelectorAll('#game .speaking').forEach(n=>n.classList.remove('speaking'));}
+  const narrator=root.CountingVoice?root.CountingVoice.createNarrator({root,soundOn,highlight:p=>highlightVoice(p.side,p.place,p.count),clear:clearVoiceHighlight,onSoundChange:(on,retry)=>{if(!on&&retry){const b=$('sound-toggle');if(b){b.textContent='🔇 Tap to retry sound';b.setAttribute('aria-pressed','false');}}}}):null;
+  function paintSoundButton(){const b=$('sound-toggle');if(!b)return;const on=narrator?narrator.isOn():soundOn;b.textContent=on?'🔊 Sound on':'🔇 Muted';b.setAttribute('aria-pressed',String(on));}
+  $('sound-toggle').addEventListener('click',()=>{const on=narrator?narrator.setSound(!narrator.isOn()):!soundOn;soundOn=on;try{root.localStorage.setItem('cp-sound',on?'on':'off');}catch(e){}paintSoundButton();if(on&&narrator)narrator.preload();});
+  doc.addEventListener('visibilitychange',()=>{if(doc.hidden&&narrator)narrator.stop();});
+  paintSoundButton();if(narrator&&narrator.isOn())narrator.preload();
   let ids={blue:Array.from({length:10},()=>++serial),gold:[]},currentPositions=new Map();
   const names=()=>theme==='mermaids'?['Teal','Pink','mermaids']:['Blue','Gold','cars'];
   const sym=side=>theme==='mermaids'?'mermaid-'+(side==='blue'?'teal':'pink'):'car-'+(side==='blue'?'blue':'gold');
@@ -44,10 +75,10 @@
   const routeNodes=[];
   function routeGeometry(kind,n,g){
     const y=g.bottom-4;
-    if(kind==='top')return n===10?{d:'M 108 214 V 84 Q 108 54 138 54 H 282 Q 312 54 312 84 V 214',start:{x:108,y:214},end:{x:312,y:214},plate:{x:135,y:27,w:150,h:54}}:{d:'M 170 214 V 152 Q 170 128 194 128 H 226 Q 250 128 250 152 V 214',start:{x:170,y:214},end:{x:250,y:214},plate:{x:178,y:101,w:64,h:54}};
-    if(kind==='bottom')return n===10?{d:`M 312 ${y} V ${y+94} Q 312 ${y+124} 282 ${y+124} H 138 Q 108 ${y+124} 108 ${y+94} V ${y}`,start:{x:312,y},end:{x:108,y},plate:{x:135,y:y+97,w:150,h:54}}:{d:`M 250 ${y} V ${y+34} Q 250 ${y+58} 226 ${y+58} H 194 Q 170 ${y+58} 170 ${y+34} V ${y}`,start:{x:250,y},end:{x:170,y},plate:{x:178,y:y+31,w:64,h:54}};
-    const laneY=n===10?258:342;
-    return kind==='entry'?{d:`M -18 ${laneY} H 70`,start:{x:-18,y:laneY},end:{x:70,y:laneY},plate:{x:0,y:laneY-27,w:62,h:54}}:{d:`M 350 ${laneY} H 438`,start:{x:350,y:laneY},end:{x:438,y:laneY},plate:{x:358,y:laneY-27,w:62,h:54}};
+    if(kind==='top')return n===10?{d:'M 108 214 V 130 Q 108 100 138 100 H 282 Q 312 100 312 130 V 214',start:{x:108,y:214},end:{x:312,y:214},plate:{x:135,y:73,w:150,h:54}}:{d:'M 170 214 V 188 Q 170 168 190 168 H 230 Q 250 168 250 188 V 214',start:{x:170,y:214},end:{x:250,y:214},plate:{x:178,y:141,w:64,h:54}};
+    if(kind==='bottom')return n===10?{d:`M 312 ${y} V ${y+64} Q 312 ${y+94} 282 ${y+94} H 138 Q 108 ${y+94} 108 ${y+64} V ${y}`,start:{x:312,y},end:{x:108,y},plate:{x:135,y:y+67,w:150,h:54}}:{d:`M 250 ${y} V ${y+16} Q 250 ${y+36} 230 ${y+36} H 190 Q 170 ${y+36} 170 ${y+16} V ${y}`,start:{x:250,y},end:{x:170,y},plate:{x:178,y:y+9,w:64,h:54}};
+    if(kind==='entry')return n===10?{d:'M 31 102 V 258 H 70',start:{x:31,y:102},end:{x:70,y:258},plate:{x:0,y:48,w:62,h:54}}:{d:`M 31 ${g.bottom+14} V 342 H 70`,start:{x:31,y:g.bottom+14},end:{x:70,y:342},plate:{x:0,y:g.bottom+14,w:62,h:54}};
+    return n===10?{d:'M 350 258 H 389 V 102',start:{x:350,y:258},end:{x:389,y:102},plate:{x:358,y:48,w:62,h:54}}:{d:`M 350 342 H 389 V ${g.bottom+14}`,start:{x:350,y:342},end:{x:389,y:g.bottom+14},plate:{x:358,y:g.bottom+14,w:62,h:54}};
   }
   function buildTracks(){
     $('tracks').replaceChildren();routeNodes.length=0;
@@ -79,7 +110,7 @@
   function render(){
     const g=layout(state),[left,right,thing]=names(),sea=theme==='mermaids';
     $('left').innerHTML=numberMarkup(state.blue);$('right').innerHTML=numberMarkup(state.gold);$('total').innerHTML=numberMarkup(state.blue+state.gold);
-    $('map').setAttribute('viewBox','0 0 420 '+(g.bottom+158));$('map').setAttribute('aria-busy',String(busy));
+    $('map').setAttribute('viewBox','0 0 420 '+(g.bottom+128));$('map').setAttribute('aria-busy',String(busy));
     $('map').setAttribute('aria-label','Eight connected '+(sea?'tunnels':'roads')+': add, move, and take away ten or one');
     drawRoutes(g);$('garages').replaceChildren();currentPositions=new Map();
     for(const [side,x,label]of[['blue',66,left],['gold',218,right]]){
@@ -103,7 +134,7 @@
     }
     doc.querySelectorAll('.theme-pill').forEach(b=>{b.disabled=busy;b.setAttribute('aria-pressed',String(b.dataset.theme===theme));});
   }
-  function finish(next,nextIds,oldPositions,movingSet,token){
+  function finish(next,nextIds,oldPositions,movingSet,token,moveDesc){
     if(token!==generation)return;
     state=next;ids=nextIds;$('traffic').replaceChildren();$('motion-paths').replaceChildren();render();
     const tweens=[];
@@ -117,24 +148,27 @@
       doc.querySelectorAll('.theme-pill').forEach(b=>{b.disabled=false;});$('map').setAttribute('aria-busy','false');
       const [left,right]=names();$('feedback').textContent=left+' '+state.blue+', '+right+' '+state.gold+'. '+(state.blue+state.gold)+' altogether.';
     };
-    if(!tweens.length||root.matchMedia('(prefers-reduced-motion: reduce)').matches){ready();return;}
+    /* Buttons stay locked until the post-move narration ends: ready()
+     * only runs after the narrator finishes (or at once when muted). */
+    const narrate=()=>{if(!narrator||!moveDesc){ready();return;}narrator.speakMove(next,moveDesc.kind,moveDesc.amount).then(ready,ready);};
+    if(!tweens.length||root.matchMedia('(prefers-reduced-motion: reduce)').matches){narrate();return;}
     const started=performance.now();
     function settle(now){
       if(token!==generation)return;
       const t=Math.min(1,(now-started)/320),ease=1-Math.pow(1-t,3);
       for(const {obj,from,to}of tweens)obj.setAttribute('transform','translate('+(from.x+(to.x-from.x)*ease)+' '+(from.y+(to.y-from.y)*ease)+')');
-      if(t<1)animation=root.requestAnimationFrame(settle);else ready();
+      if(t<1)animation=root.requestAnimationFrame(settle);else narrate();
     }
     animation=root.requestAnimationFrame(settle);
   }
   function drive(route){
     const kind=route.dataset.kind,n=Number(route.dataset.amount);
     if(busy||!canMove(state,kind,n))return;
-    const next=move(state,kind,n),source=kind==='entry'?null:kind==='top'?'blue':'gold',dest=kind==='exit'?null:kind==='top'?'gold':'blue';
+    const next=move(state,kind,n),moveDesc={kind,amount:n},source=kind==='entry'?null:kind==='top'?'blue':'gold',dest=kind==='exit'?null:kind==='top'?'gold':'blue';
     const movingIds=source?(n===10?ids[source].slice(0,n):ids[source].slice(-n)):Array.from({length:n},()=>++serial),movingSet=new Set(movingIds);
     const nextIds={blue:ids.blue.filter(id=>!movingSet.has(id)),gold:ids.gold.filter(id=>!movingSet.has(id))};if(dest)nextIds[dest].push(...movingIds);
     const oldPositions=new Map(currentPositions),token=++generation;busy=true;render();
-    if(root.matchMedia('(prefers-reduced-motion: reduce)').matches){finish(next,nextIds,oldPositions,movingSet,token);return;}
+    if(root.matchMedia('(prefers-reduced-motion: reduce)').matches){finish(next,nextIds,oldPositions,movingSet,token,moveDesc);return;}
     const geo=routeGeometry(kind,n,layout(state)),nextLayout=layout(next),flights=[];
     movingIds.forEach((id,i)=>{
       const from=source?oldPositions.get(id):geo.start;
@@ -154,7 +188,7 @@
         f.sprite.style.visibility=raw<0?'hidden':'visible';f.sprite.setAttribute('transform','translate('+p.x+' '+p.y+')');
         if(kind==='exit')f.sprite.style.opacity=String(Math.min(1,(1-t)*6));
       }
-      if(now-started<duration+(n-1)*60)animation=root.requestAnimationFrame(frame);else finish(next,nextIds,oldPositions,movingSet,token);
+      if(now-started<duration+(n-1)*60)animation=root.requestAnimationFrame(frame);else finish(next,nextIds,oldPositions,movingSet,token,moveDesc);
     }
     animation=root.requestAnimationFrame(frame);
   }
@@ -168,6 +202,5 @@
     buildTracks();render();
   }
   doc.querySelectorAll('.theme-pill').forEach(b=>b.addEventListener('click',()=>{if(!busy)setTheme(b.dataset.theme);}));
-  $('reset').addEventListener('click',()=>{++generation;root.cancelAnimationFrame(animation);busy=false;state=initial();ids={blue:Array.from({length:10},()=>++serial),gold:[]};$('traffic').replaceChildren();$('motion-paths').replaceChildren();render();$('feedback').textContent='Reset. Ten on the left, zero on the right.';});
   $('capacity').textContent=LIMIT;setTheme(theme);
 })(typeof window==='undefined'?globalThis:window);
