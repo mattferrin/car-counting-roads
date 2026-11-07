@@ -72,6 +72,7 @@ button:focus-visible, summary:focus-visible { outline: 3px solid #ffbf47; outlin
   min-height: 34px;
 }
 .pill[aria-pressed="true"] { background: var(--left); border-color: var(--left); color: #fff; }
+.pill[aria-pressed="true"] svg { filter: brightness(0) invert(1); }
 body[data-theme="mermaids"] .pill[aria-pressed="true"] { background: #0e7d8c; border-color: #0e7d8c; }
 .pill.sound { min-width: 46px; }
 .pill:disabled { opacity: .45; cursor: default; }

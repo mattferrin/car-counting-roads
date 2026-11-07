@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cancellation Quest — Ayan &amp; Aliya's Counting Worlds (Test)</title>
 <meta name="description" content="A subtraction game for kids: cancel the same amount from both sides, count in tens and ones, and watch what is left become the answer.">
-<link rel="stylesheet" href="cancellation-quest.css">
+<!-- Asset cache-busting: every local CSS/JS URL below carries ?v=N.
+     Bump N on ALL of them together on every deploy, so a phone can
+     never mix a cached old file with a new one. Audio files are
+     intentionally unversioned (63 shared clips; re-downloading them
+     every deploy would be wasteful). -->
+<link rel="stylesheet" href="cancellation-quest.css?v=1">
 </head>
 <body data-theme="cars">
 <nav aria-label="Test version" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 18px;padding:10px 12px;background:#fff0bd;color:#403000;font:700 14px system-ui;text-align:center"><span>🧪 Test version · Daddy’s workshop</span><a href="../" style="display:inline-block;padding:10px 12px;border-radius:12px;background:white;color:#174b79">Play the stable games →</a></nav>
@@ -57,8 +62,8 @@
       <span id="eq-a">84</span><span class="op">−</span><span id="eq-b">27</span><span class="op">=</span><span class="q" id="eq-q">?</span>
     </div>
     <div class="toggles">
-      <button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true">🚗 Ayan</button>
-      <button type="button" class="pill theme-pill" data-theme="mermaids" aria-pressed="false">🧜‍♀️ Aliya</button>
+      <button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true"><svg viewBox="0 0 44 26" width="22" height="13" style="vertical-align:-2px" aria-hidden="true"><use href="#car-blue"/></svg> Ayan</button>
+      <button type="button" class="pill theme-pill" data-theme="mermaids" aria-pressed="false"><svg viewBox="0 0 44 30" width="20" height="14" style="vertical-align:-2px" aria-hidden="true"><use href="#mermaid-teal"/></svg> Aliya</button>
       <button type="button" class="pill sound" id="sound-toggle" aria-pressed="true">🔊 Sound on</button>
     </div>
   </header>
@@ -143,8 +148,9 @@
   </footer>
 </div>
 
-<script src="cancellation-engine.js"></script>
-<script src="cancellation-layout.js"></script>
-<script src="cancellation-quest.js"></script>
+<!-- ?v=1 on every script — bump together with the stylesheet on every deploy (see the cache-busting note in <head>). -->
+<script src="cancellation-engine.js?v=1"></script>
+<script src="cancellation-layout.js?v=1"></script>
+<script src="cancellation-quest.js?v=1"></script>
 </body>
 </html>

@@ -3,8 +3,8 @@
  * themselves glow; "seven ones" glows the seven ones. The answer is
  * highlighted whole first, then its tens, then its ones — never ones
  * before tens. Mermaid objects are the M1 Blob swimmer SVG symbols
- * (viewBox 44x30), not the picker emoji: the 🧜‍♀️ emoji survives only
- * on Aliya's theme button, which is UI chrome, not an object.
+ * (viewBox 44x30), not emoji: the theme buttons show the same SVG
+ * icons (M1 mermaid on Aliya's, C1 beetle on Ayan's), not emoji.
  */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -122,12 +122,18 @@ async function playMove(t) {
   t.close();
 
   // 3. Mermaids are the M1 SVG symbol, cars are still SVG cars; the
-  //    picker emoji lives only on Aliya's theme button, not in a grid.
+  //    theme buttons show the new SVG icons, not emoji.
   t = boot('theme=mermaids&a=84&b=27');
   await settle(t);
   d = t.w.document;
-  const pickerEmoji = d.querySelector('.theme-pill[data-theme="mermaids"]').textContent.replace(' Aliya', '');
-  assert.equal(pickerEmoji, '🧜‍♀️', 'the theme button still shows the mermaid emoji');
+  const aliyaBtn = d.querySelector('.theme-pill[data-theme="mermaids"]');
+  const aliyaUse = aliyaBtn.querySelector('svg use');
+  assert(aliyaUse && aliyaUse.getAttribute('href') === '#mermaid-teal', 'Aliya theme button shows the M1 mermaid SVG');
+  assert(!/🧜/.test(aliyaBtn.textContent), 'no mermaid emoji on the theme button');
+  const ayanBtn = d.querySelector('.theme-pill[data-theme="cars"]');
+  const ayanUse = ayanBtn.querySelector('svg use');
+  assert(ayanUse && ayanUse.getAttribute('href') === '#car-blue', 'Ayan theme button shows the C1 car SVG');
+  assert(!/🚗/.test(ayanBtn.textContent), 'no car emoji on the theme button');
   const mermaids = [...d.querySelectorAll('#left-grid .obj, #right-grid .obj')];
   assert(mermaids.length > 0);
   assert(mermaids.every(n => !n.classList.contains('emoji') && n.textContent === ''), 'no emoji mermaid objects');
