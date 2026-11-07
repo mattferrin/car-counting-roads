@@ -2,8 +2,9 @@
  * Run:  NODE_PATH=~/workspace/cancellation-quest/node_modules node addition-ui.test.cjs
  * Covers the full playthrough in both directions, the exact 47+26 trace,
  * rapid-tap locking, New Mystery gating, theme switching, the equal and
- * zero cases, regrouping in both directions, tapping the glowing source
- * group, captions in tens/ones words only, no pre-move amount
+ * zero cases, regrouping in both directions, tapping the source group
+ * NOT moving (only a landmark tap moves — there is no Move button and
+ * no source tap), captions in tens/ones words only, no pre-move amount
  * announcement, and speech-failure recovery. Also the map: tapping a
  * landmark performs the move, landmarks lock while a move is in flight,
  * the bigger/smaller badge size classes follow the numbers, the
@@ -46,7 +47,11 @@ const E=require('./addition-engine');
   await settle(t);
   const sol=E.solve(47,26);
   assert.equal(d.querySelector('#total-badge').textContent,'Total stays 73');
-  assert(d.querySelector('#move-btn').textContent.startsWith('←'),'47+26 arrow points left (source is right)');
+  // No Move button anywhere: landmarks are the only move trigger.
+  assert(!d.querySelector('#move-btn'), 'Move button removed from the DOM');
+  assert(!d.querySelector('.move-row'), 'move row removed');
+  assert.equal(d.querySelectorAll('.obj.movable').length,0, 'objects carry no tap invite');
+  assert(d.querySelector('#captions').textContent.includes('Tap a place on the map'), 'step-0 caption directs the child to a landmark');
   assert.equal(d.querySelector('#left-size').textContent,'bigger');
   assert.equal(d.querySelector('#right-size').textContent,'smaller');
   // The word matches what it says: "bigger" is big, "smaller" is small.
@@ -69,16 +74,16 @@ const E=require('./addition-engine');
   assert.equal(d.querySelector('.foot a[href="../"]').textContent,'Stable games');
   assert.equal(d.querySelectorAll('.eqbar .theme-pill').length,2);
   assert(d.querySelector('.eqbar #sound-toggle'), 'sound toggle in the equation bar');
-  // The map: four landmarks, cars theme.
+  // The map: four landmarks, cars theme, in page order — sky, mid, ground.
   const lms=[...d.querySelectorAll('.landmark')];
   assert.equal(lms.length,4);
-  assert.deepEqual(lms.map(b=>b.querySelector('.name').textContent),['Volcano','Castle','Magic Tree','Car Wash']);
+  assert.deepEqual(lms.map(b=>b.querySelector('.name').textContent),['Castle','Magic Tree','Volcano','Car Wash']);
   for(let i=0;i<sol.moves.length;i++) {
-   const btn=d.querySelector('#move-btn');
-   btn.click(); btn.click(); btn.click(); // rapid triple-tap must equal one move
+   const lm=d.querySelector('[data-landmark="volcano"]');
+   lm.click(); lm.click(); lm.click(); // rapid triple-tap must equal one move
    d.querySelector('.test-problem').click(); d.querySelector('#new-mystery').click();
    assert.equal(d.body.dataset.phase,'moving');
-   assert(btn.disabled);assert(d.querySelector('.level-pill').disabled);assert(d.querySelector('.theme-pill').disabled);
+   assert(lm.disabled);assert(d.querySelector('.level-pill').disabled);assert(d.querySelector('.theme-pill').disabled);
    assert(d.querySelector('.landmark').disabled, 'landmarks locked while a move is in flight');
    assert.equal(d.querySelectorAll('.obj.speaking').length,sol.moves[i]);
    // No pre-move amount announcement: nothing is spoken at the moment of
@@ -143,18 +148,17 @@ const E=require('./addition-engine');
   assert.equal(+d.querySelector('#right-num').textContent,6);
   checks++; t.close();
  }
- // --- 26+47: the other direction — source left, arrow points right -------
+ // --- 26+47: the other direction — source left, dest right ---------------
  {
   const t=boot(26,47),d=t.w.document;
   await settle(t);
   const sol=E.solve(26,47);
-  assert(d.querySelector('#move-btn').textContent.endsWith('→'),'26+47 arrow points right (source is left)');
   assert.equal(d.querySelector('#left-size').textContent,'smaller');
   assert.equal(d.querySelector('#right-size').textContent,'bigger');
   assert(d.querySelector('#left-size').classList.contains('smaller'));
   assert(d.querySelector('#right-size').classList.contains('bigger'));
   for(let i=0;i<sol.moves.length;i++) {
-   d.querySelector('#move-btn').click();
+   d.querySelector('[data-landmark="volcano"]').click();
    await settle(t);
    assert.equal(+d.querySelector('#left-num').textContent,sol.states[i+1].left);
    assert.equal(+d.querySelector('#right-num').textContent,sol.states[i+1].right);
@@ -173,8 +177,7 @@ const E=require('./addition-engine');
   assert.equal(d.querySelector('#right-size').textContent,'same size');
   assert(d.querySelector('#left-size').classList.contains('same'));
   assert(d.querySelector('#right-size').classList.contains('same'));
-  assert(d.querySelector('#move-btn').textContent.startsWith('←'));
-  for(let i=0;i<3;i++){d.querySelector('#move-btn').click();await settle(t);}
+  for(let i=0;i<3;i++){d.querySelector('[data-landmark="volcano"]').click();await settle(t);}
   assert.equal(d.querySelector('#eq-q').textContent,'60');
   assert.equal(d.querySelectorAll('#right-grid .obj').length,0);
   assert.equal(d.querySelectorAll('#left-grid .obj').length,60);
@@ -194,7 +197,7 @@ const E=require('./addition-engine');
   const t=boot(a,b),d=t.w.document;
   await settle(t);
   const sol=E.solve(a,b);
-  d.querySelector('#move-btn').click(); await flush();
+  d.querySelector('[data-landmark="volcano"]').click(); await flush();
   // The regrouping move names the destination's full new value (first
   // for 69+4 where the destination is left, second for 4+69 — the second
   // phrase only queues once the first finishes, so drive it).
@@ -204,53 +207,61 @@ const E=require('./addition-engine');
   seen.push(...t.pending.map(u=>u.text));
   assert(seen.includes('seven tens'), 'regroup names seven tens, heard: '+seen.join(', '));
   await settle(t);
-  for(let i=1;i<sol.moves.length;i++){d.querySelector('#move-btn').click();await settle(t);}
+  for(let i=1;i<sol.moves.length;i++){d.querySelector('[data-landmark="volcano"]').click();await settle(t);}
   assert.equal(d.querySelector('#eq-q').textContent,'73');
   checks++; t.close();
  }
- // --- Tapping the glowing source group performs the move --------------------
+ // --- Tapping the source group does NOT move; only a landmark moves -------
  {
   const t=boot(47,26),d=t.w.document;
   await settle(t);
-  const movable=d.querySelector('#right-grid .obj.movable');
-  assert(movable, 'a glowing movable object exists in the source pool');
-  movable.click(); await settle(t);
+  // No tap invite on the objects at all — the landmarks carry it.
+  assert.equal(d.querySelectorAll('.obj.movable').length,0);
+  const srcObj=d.querySelector('#right-grid .obj');
+  assert(srcObj, 'a source object exists to tap');
+  srcObj.click(); await flush();
+  assert.equal(+d.querySelector('#left-num').textContent,47);
+  assert.equal(+d.querySelector('#right-num').textContent,26);
+  assert.equal(d.body.dataset.phase,'ready');
+  // Tapping a non-moving object in the destination does nothing either.
+  const plain=d.querySelector('#left-grid .obj');
+  plain.click(); await flush();
+  assert.equal(d.querySelector('#left-num').textContent,'47');
+  assert.equal(d.body.dataset.phase,'ready');
+  // Only a landmark tap moves.
+  d.querySelector('[data-landmark="volcano"]').click(); await settle(t);
   assert.equal(+d.querySelector('#left-num').textContent,57);
   assert.equal(+d.querySelector('#right-num').textContent,16);
-  // Tapping a non-moving object does nothing.
-  const before=d.querySelector('#left-num').textContent;
-  const plain=d.querySelector('#left-grid .obj:not(.movable)');
-  plain.click(); await flush();
-  assert.equal(d.querySelector('#left-num').textContent,before);
-  assert.equal(d.body.dataset.phase,'ready');
   checks++; t.close();
  }
  // --- Theme switch keeps counts ---------------------------------------------
  {
   const t=boot(47,26),d=t.w.document;
   await settle(t);
-  d.querySelector('#move-btn').click(); await settle(t);
+  d.querySelector('[data-landmark="volcano"]').click(); await settle(t);
   d.querySelector('[data-theme="mermaids"]').click(); await flush();
   assert.equal(+d.querySelector('#left-num').textContent,57);
   assert.equal(+d.querySelector('#right-num').textContent,16);
   assert.equal(d.querySelectorAll('#left-grid .obj').length,57);
   assert.equal(d.querySelectorAll('#right-grid .obj').length,16);
-  assert.equal(d.querySelectorAll('#right-grid .obj.movable').length,10);
-  // Mermaid map: same four places, mermaid names.
+  // The next move is still a whole ten, found from the layout — the
+  // objects no longer carry a .movable marker.
+  assert.equal(t.w.AdditionLayout.movingIds(E.solve(47,26),1).length,10);
+  // Mermaid map: same four places, mermaid names, same page order.
   const mlms=[...d.querySelectorAll('.landmark')];
   assert.equal(mlms.length,4);
-  assert.deepEqual(mlms.map(b=>b.querySelector('.name').textContent),['Coral Reef','Palace','Whirlpool','Giant Shell']);
+  assert.deepEqual(mlms.map(b=>b.querySelector('.name').textContent),['Palace','Whirlpool','Coral Reef','Giant Shell']);
   checks++; t.close();
  }
  // --- Speech-failure recovery (mirror of Cancellation Quest) -----------------
  for(const failure of ['error','mute','timeout','unsupported']) {
   const t=boot(9,5,failure),d=t.w.document;
-  d.querySelector('#move-btn').click();await flush();
+  d.querySelector('.landmark').click();await flush();
   if(failure==='mute')d.querySelector('#sound-toggle').click();
   if(failure==='timeout') { t.watchdogs[0](); await flush(); }
   await settle(t,failure==='error');
-  assert.equal(d.querySelector('#left-num').textContent,'10');assert(!d.querySelector('#move-btn').disabled);
+  assert.equal(d.querySelector('#left-num').textContent,'10');assert(!d.querySelector('.landmark').disabled);
   t.close(); checks++;
  }
- console.log(`UI: ${checks} move/recovery cases passed; both directions, exact traces, rapid taps, gating, theme, equal/zero/regroup cases, source-tap, captions and failures verified.`);
+ console.log(`UI: ${checks} move/recovery cases passed; both directions, exact traces, rapid taps, gating, theme, equal/zero/regroup cases, landmark-only moves, source-tap does nothing, captions and failures verified.`);
 })().catch(e=>{console.error(e);process.exitCode=1});

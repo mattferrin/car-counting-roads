@@ -17,18 +17,22 @@
  *     each object, so every movable object collapsed to the grid origin
  *     and stacked as one car — 26 rendered as 17, 6 as 5 — while the
  *     destination panel stayed exact. jsdom cannot run the animation,
- *     so this audit reads the stylesheet directly.)
- *  4. Flight: the flying wrapper never scales below 1 and never fades,
- *     the one-move's arc lift is smaller than the ten-move's, and the
- *     arriving nodes keep their DOM identity in the destination grid.
- *     Every move now has a waypoint (the tapped landmark or the Move
- *     button): phase 1 flies to the top of a loop, phase 2 is one full
- *     orbit around the waypoint (~400ms, 9 keyframes), the waypoint
- *     bursts with its own fx, and phase 3 flies on to the destination
- *     slots at full size.
- *  5. Map spread: the four landmark positions span at least three
- *     x-quartiles and both y-halves of the map — genuinely spread, not
- *     a row — and four landmarks render in both themes.
+ *     so this audit reads the stylesheet directly.) Round 3 removed the
+ *     .movable invite entirely — the landmarks carry it now — so the
+ *     audit also asserts no `.movable` selector survives in the CSS and
+ *     the landmark nudge is still there.
+ *  4. Flight: ONE continuous spline — a single animation, sampled at
+ *     equal arclength, from the source slots around the tapped landmark
+ *     in a genuine loop and on into the destination slots at full size.
+ *     No jumps between consecutive samples, the path passes all four
+ *     sides of the landmark, and the arrivals keep their DOM identity
+ *     in the destination grid. A ten arcs higher on the approach than
+ *     a one. The landmark's fx burst / shockwave fire as the group
+ *     reaches the loop, and the landmark booms.
+ *  5. Map spread: the four landmarks circle the page in three strips —
+ *     one above the equation bar (sky), one above the panels (mid),
+ *     two below the panels (ground) — spanning at least three
+ *     x-quartiles and three vertical zones, not a row and not one band.
  *  6. New Mystery banner: hidden until solved, then the big banner
  *     directly under the sticky equation bar holds the only New Mystery
  *     button, in both directions and both themes.
@@ -44,7 +48,10 @@ const E = require('./addition-engine');
 const flush = async()=>{for(let i=0;i<12;i++)await new Promise(setImmediate)};
 
 /* ---------- CSS audit ---------- */
-const CSS = fs.readFileSync(path.join(__dirname,'addition-quest.css'),'utf8');
+const CSS = fs.readFileSync(path.join(__dirname,'addition-quest.css'),'utf8')
+  // Strip comments first: a comment mentioning .obj must not count as
+  // a rule selecting .obj (it sits directly above .arrival-burst).
+  .replace(/\/\*[\s\S]*?\*\//g, '');
 function keyframesBody(css, name) {
   const start = css.indexOf('@keyframes ' + name);
   if (start < 0) return null;
@@ -75,23 +82,26 @@ function animationNames(decls) {
       for (const name of animationNames(m[2])) objAnimations.push({ sel: m[1].trim(), name });
     }
   }
-  assert(objAnimations.length > 0, 'expected at least one animated .obj rule (the movable pulse)');
-  for (const { sel, name } of objAnimations) {
-    const body = keyframesBody(CSS, name);
-    assert(body !== null, `${sel} animates with unknown keyframes ${name}`);
-    assert(!/transform\s*:/.test(body),
-      `${sel} uses keyframes ${name} which animate transform — a CSS animation overrides the inline translate() positioning, so movable objects collapse to the grid origin (live defect 2026-11-06)`);
-  }
+  assert(objAnimations.length === 0,
+    `no .obj rule may animate at all now — the movable invite moved to the landmarks, found: ${objAnimations.map(a => a.sel + ' ' + a.name).join(', ')}`);
+  // The movable invite is gone entirely: no .movable selector survives.
+  assert(!/\.movable/.test(CSS), 'no .movable selector in the stylesheet (landmarks carry the invite now)');
+  // ...and the landmarks do carry it: the nudge still animates them.
+  assert(/\.landmark\.nudge\s*\{[^}]*animation:\s*nudge/.test(CSS), 'landmarks still nudge on the first move');
 }
 
 /* ---------- jsdom boot (stubbed clientWidth so transforms are real) ---------- */
-function boot(a, b, theme) {
+function boot(a, b, theme, reduced = true) {
   const q = `?a=${a}&b=${b}` + (theme ? `&theme=${theme}` : '');
   const dom = new JSDOM(fs.readFileSync(path.join(__dirname,'addition-quest.html'),'utf8'),
     { url: `https://example.org/${q}`, runScripts: 'outside-only' });
   const w = dom.window, pending = [], watchdogs = [], anims = [];
   Object.defineProperty(w.document, 'readyState', { value: 'complete' });
-  w.matchMedia = () => ({ matches: true });
+  // iPhone portrait: the loop-radius clamp and the flight geometry are
+  // viewport-aware, so the tests run in the real viewport.
+  Object.defineProperty(w, 'innerWidth', { value: 390, configurable: true });
+  Object.defineProperty(w, 'innerHeight', { value: 844, configurable: true });
+  w.matchMedia = () => ({ matches: reduced });
   w.HTMLElement.prototype.animate = function (kf, opts) {
     anims.push({ el: this, kf, opts });
     return { finished: Promise.resolve() };
@@ -159,34 +169,64 @@ function translateOf(frame) {
   const m = /translate\(\s*(-?[\d.]+)px\s*,\s*(-?[\d.]+)px\s*\)/.exec(frame.transform || '');
   return m ? [parseFloat(m[1]), parseFloat(m[2])] : [0, 0];
 }
-function liftOf(frames) {
-  const [, midY] = translateOf(frames[1]);
-  const [, endY] = translateOf(frames[2]);
-  return endY * 0.5 - midY; // the arc lift subtracted in the middle keyframe
+function stepSizes(frames) {
+  const pts = frames.map(translateOf);
+  const steps = [];
+  for (let i = 1; i < pts.length; i++) steps.push(Math.hypot(pts[i][0] - pts[i-1][0], pts[i][1] - pts[i-1][1]));
+  return steps;
 }
-function assertFullSizeFlight(frames, what) {
-  assert.equal(frames.length, 3, `${what}: flight has 3 keyframes`);
+/* One continuous spline: many evenly spaced keyframes, full size,
+ * never fading, no jump between consecutive samples, passing all four
+ * sides of the landmark's centre (the loop is required for the two
+ * far sides — the source and destination sit on the near side), and
+ * ending in the destination slots. In jsdom the wrapper starts at
+ * (0,0) — every rect is zero — so the keyframe translates are absolute
+ * page coords and the first keyframe must be (0,0). */
+function assertSpline(frames, cx, cy, end, what) {
+  assert(frames.length >= 20, `${what}: spline sampled into ${frames.length} keyframes`);
   const scales = frames.map(f => {
     const m = /scale\(([\d.]+)\)/.exec(f.transform || '');
     return m ? parseFloat(m[1]) : 1;
   });
-  assert(scales.every(s => s >= 1), `${what}: flight never scales below 1, got ${scales}`);
-  assert(frames.every(f => f.opacity === 1 || f.opacity === undefined),
-    `${what}: flight never fades`);
-}
-/* An orbit: 9 keyframes whose wrapper-centre points all sit on one
- * circle of radius R around the waypoint centre, covering all four
- * quadrants — a real visible loop, not a pass-through. */
-function assertOrbit(frames, cx, cy, R, what) {
-  assert.equal(frames.length, 9, `${what}: orbit has 9 keyframes`);
+  assert(scales.every(s => s === 1), `${what}: flight stays full size, got ${[...new Set(scales)]}`);
+  assert(frames.every(f => f.opacity === 1), `${what}: flight never fades`);
+  const steps = stepSizes(frames);
+  const sorted = [...steps].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const max = Math.max(...steps);
+  assert(max <= 2 * median, `${what}: no jump between samples (max step ${max.toFixed(1)} vs median ${median.toFixed(1)})`);
   const pts = frames.map(translateOf);
-  pts.forEach(([x, y]) => {
-    const dist = Math.hypot(x - cx, y - cy);
-    assert(Math.abs(dist - R) < 1.5,
-      `${what}: orbit point (${x},${y}) is ${dist.toFixed(1)} from centre (${cx},${cy}), expected radius ${R}`);
-  });
   const quads = new Set(pts.map(([x, y]) => (x >= cx ? 1 : 0) + (y >= cy ? 2 : 0)));
-  assert.equal(quads.size, 4, `${what}: orbit visits all four quadrants`);
+  assert.equal(quads.size, 4, `${what}: path visits all four sides of the landmark centre`);
+  const first = pts[0];
+  assert(Math.abs(first[0]) < 1.5 && Math.abs(first[1]) < 1.5, `${what}: spline starts at the source slots`);
+  const last = pts[pts.length - 1];
+  assert(Math.abs(last[0] - end[0]) < 1.5 && Math.abs(last[1] - end[1]) < 1.5,
+    `${what}: spline ends in the destination slots (${last.map(v => v.toFixed(1))} vs ${end})`);
+}
+/* The centre of the destination slots for move `step` (the layout
+ * plan's slots, in the stubbed 250px-wide grid), so the spline's end
+ * can be checked against the real slots. */
+function destCentre(t, sol, step, side) {
+  const L = t.w.AdditionLayout;
+  const moving = Array.from(L.movingIds(sol, step));
+  const plan = L.plan(sol, step + 1);
+  const slots = plan[side].filter(p => moving.includes(p.id));
+  const cellW = 250 / 10, rowH = Math.max(22, cellW * 0.65 + 10);
+  const xs = slots.map(p => p.x), ys = slots.map(p => p.y);
+  return [((Math.min(...xs) + Math.max(...xs) + 1) / 2) * cellW,
+    ((Math.min(...ys) + Math.max(...ys)) / 2) * rowH + (rowH - 8) / 2];
+}
+/* The waypoint burst fires mid-flight (on a timer at the loop's
+ * arclength fraction), so poll for it in real time — then the boom
+ * class must still be present (it is removed 550ms later). */
+async function waitForBurst(t, ms = 2500) {
+  const d = t.w.document;
+  for (let i = 0; i < ms / 100; i++) {
+    if (d.querySelector('.page .burst')) return true;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  return !!d.querySelector('.page .burst');
 }
 function flyingAnims(t) {
   return t.anims.filter(a => a.el.classList && a.el.classList.contains('flying'));
@@ -205,7 +245,7 @@ function flyingAnims(t) {
     assert(d.querySelector('#celebrate-banner').hidden, 'banner hidden before completion');
     assert(d.querySelector('#new-mystery').hidden, 'New Mystery hidden before completion');
     for (let i = 0; i < sol.moves.length; i++) {
-      d.querySelector('#move-btn').click();
+      d.querySelector('.landmark').click();
       await settle(t);
       assertRendered(t, sol, i + 1); checks++;
       assert.equal(+d.querySelector('#left-num').textContent, sol.states[i + 1].left);
@@ -223,7 +263,7 @@ function flyingAnims(t) {
     await settle(t);
     const sol = E.solve(47, 26), L = t.w.AdditionLayout;
     const R = Math.floor(sol.total / 10) + 1;
-    for (let i = 0; i < 2; i++) { d.querySelector('#move-btn').click(); await settle(t); }
+    for (let i = 0; i < 2; i++) { d.querySelector('.landmark').click(); await settle(t); }
     const moving = Array.from(L.movingIds(sol, 2));
     assert.deepEqual(moving, [72]);
     const before = L.plan(sol, 2), after = L.plan(sol, 3);
@@ -233,90 +273,83 @@ function flyingAnims(t) {
     assert.equal(to.x, 7, 'one-move lands in the next free ones square');
     checks++; t.close();
   }
-  // Flight: full-size, no fade; one-move arc flatter than ten-move arc;
-  // arrivals keep their DOM nodes. Every move is three phases now:
-  // phase 1 to the waypoint, the orbit loop, phase 2 to the slots.
+  // Spline builder, unit level: the same geometry for a ten and a one.
+  // Both are one continuous curve that loops the landmark once and
+  // ends in the destination slots; the ten arcs higher on the approach.
   {
     const t = boot(47, 26), d = t.w.document;
     await settle(t);
-    const tenNodes = Array.from(d.querySelectorAll('#right-grid .obj.movable'));
-    assert.equal(tenNodes.length, 10, 'ten movable nodes before the first move');
-    t.anims.length = 0;
-    d.querySelector('#move-btn').click();
-    await flush();
-    const flyTenAnims = flyingAnims(t);
-    assert.equal(flyTenAnims.length, 3, 'ten-move via Move button: phase 1, orbit, phase 2');
-    assertFullSizeFlight(flyTenAnims[0].kf, 'ten-move phase 1');
-    // The Move button's rect is all-zero in jsdom, so its orbit is a
-    // 22px circle around the origin — still a real full loop.
-    assertOrbit(flyTenAnims[1].kf, 0, 0, 22, 'move-button orbit');
-    const p1end = translateOf(flyTenAnims[0].kf[2]);
-    const oStart = translateOf(flyTenAnims[1].kf[0]);
-    assert(Math.abs(p1end[0] - oStart[0]) < 1 && Math.abs(p1end[1] - oStart[1]) < 1,
-      'phase 1 flows into the orbit without a jump');
-    const flyTen = flyTenAnims[2];
-    assertFullSizeFlight(flyTen.kf, 'ten-move phase 2');
-    const liftTen = liftOf(flyTen.kf);
-    assert(liftTen > 0, 'ten-move flight arcs');
-    // The Move-button waypoint bursts sparkles into the move row.
-    const btnBursts = Array.from(d.querySelectorAll('.move-row .burst'));
-    assert(btnBursts.length === 14, 'Move-button waypoint bursts 14 sparkles');
-    assert(btnBursts.some(s => s.textContent === '✨'), 'Move-button burst is sparkles');
-    assert(d.querySelector('.move-row .shockwave'), 'Move-button waypoint has a shockwave ring');
-    await settle(t);
-    tenNodes.forEach(n => assert.equal(n.parentElement.id, 'left-grid',
-      'arrived ten node kept its identity in the dest grid'));
-    // Second ten, then the first one-move.
-    d.querySelector('#move-btn').click(); await settle(t);
-    const oneNode = d.querySelector('#right-grid .obj.movable');
-    assert(oneNode, 'a movable one exists for the ones phase');
-    t.anims.length = 0;
-    d.querySelector('#move-btn').click();
-    await flush();
-    const flyOneAnims = flyingAnims(t);
-    assert.equal(flyOneAnims.length, 3, 'one-move via Move button: phase 1, orbit, phase 2');
-    assertOrbit(flyOneAnims[1].kf, 0, 0, 22, 'one-move move-button orbit');
-    const flyOne = flyOneAnims[2];
-    assertFullSizeFlight(flyOne.kf, 'one-move phase 2');
-    const liftOne = liftOf(flyOne.kf);
-    assert(liftOne > 0 && liftOne < liftTen,
-      `one-move arc (${liftOne}) is flatter than ten-move arc (${liftTen})`);
-    await settle(t);
-    assert.equal(oneNode.parentElement.id, 'left-grid', 'arrived one kept its identity in the dest grid');
-    assert.equal(+d.querySelector('#left-num').textContent, 68);
+    const S = t.w.AdditionQuestSpline;
+    assert(S, 'spline builder exposed for tests');
+    const start = [100, 400];
+    const rect = { left: 250, top: 350, width: 95, height: 104 };
+    const dest = [500, 400];
+    const cx = 297.5, cy = 402; // the landmark's centre
+    const R = S.loopRadius(rect);
+    function checkPath(path, amount) {
+      const samples = Array.from(path.samples);
+      assert(samples.length >= 20, `spline(${amount}): ${samples.length} samples`);
+      assert(Math.abs(samples[0][0] - start[0]) < 0.5 && Math.abs(samples[0][1] - start[1]) < 0.5,
+        `spline(${amount}): starts at the source`);
+      const last = samples[samples.length - 1];
+      assert(Math.abs(last[0] - dest[0]) < 0.5 && Math.abs(last[1] - dest[1]) < 0.5,
+        `spline(${amount}): ends at the destination`);
+      const steps = [];
+      for (let i = 1; i < samples.length; i++) steps.push(Math.hypot(samples[i][0] - samples[i-1][0], samples[i][1] - samples[i-1][1]));
+      const sorted = [...steps].sort((a, b) => a - b);
+      assert(Math.max(...steps) <= 2 * sorted[Math.floor(sorted.length / 2)],
+        `spline(${amount}): no jump between samples`);
+      // The loop region: samples near the landmark cover all four sides.
+      const loopPts = samples.filter(p => Math.hypot(p[0] - cx, p[1] - cy) <= R + 6);
+      const quads = new Set(loopPts.map(([x, y]) => (x >= cx ? 1 : 0) + (y >= cy ? 2 : 0)));
+      assert.equal(quads.size, 4, `spline(${amount}): loop visits all four sides of the landmark`);
+      assert(path.loopFraction > 0.15 && path.loopFraction < 0.65,
+        `spline(${amount}): loop starts ${path.loopFraction.toFixed(2)} of the way along`);
+      // Approach lift: the highest point before the first loop sample.
+      const firstLoop = samples.findIndex(p => Math.hypot(p[0] - cx, p[1] - cy) <= R + 6);
+      return Math.min(...samples.slice(0, firstLoop).map(p => p[1]));
+    }
+    const tenMinY = checkPath(S.buildSplinePath(start, rect, dest, 10), 10);
+    const oneMinY = checkPath(S.buildSplinePath(start, rect, dest, 1), 1);
+    assert(tenMinY < 350, `ten approach arcs high (min y ${tenMinY.toFixed(1)})`);
+    assert(oneMinY > 370, `one approach stays flat (min y ${oneMinY.toFixed(1)})`);
+    assert(oneMinY - tenMinY > 20, `ten arcs ${Math.round(oneMinY - tenMinY)}px higher than one on the approach`);
     checks++; t.close();
   }
-  // Ten-move via a tapped landmark (Volcano): the flight visits the
-  // landmark, loops around it, bursts with its fx, then lands full-size.
+  // Flight: ONE continuous spline — a single animation, no jumps, a
+  // genuine loop around the tapped landmark, landing full-size in the
+  // destination slots. Ten-move via the Volcano.
   {
-    const t = boot(47, 26), d = t.w.document;
+    const t = boot(47, 26, undefined, false), d = t.w.document;
     await settle(t);
+    const sol = E.solve(47, 26);
     const volc = d.querySelector('[data-landmark="volcano"]');
     assert(volc, 'Volcano landmark renders');
     volc.getBoundingClientRect = () => ({
-      left: 300, top: 600, width: 92, height: 104,
-      right: 392, bottom: 704, x: 300, y: 600, toJSON: () => ({}),
+      left: 40, top: 500, width: 95, height: 104,
+      right: 135, bottom: 604, x: 40, y: 500, toJSON: () => ({}),
     });
-    const tenNodes = Array.from(d.querySelectorAll('#right-grid .obj.movable'));
+    const tenIds = Array.from(t.w.AdditionLayout.movingIds(sol, 0));
+    const tenNodes = Array.from(d.querySelectorAll('#right-grid .obj'))
+      .filter(n => tenIds.includes(Number(n.dataset.id)));
+    assert.equal(tenNodes.length, 10, 'ten moving nodes before the first move');
     t.anims.length = 0;
     volc.click();
     await flush();
     const flyAnims = flyingAnims(t);
-    assert.equal(flyAnims.length, 3, 'landmark ten-move: phase 1, orbit, phase 2');
-    assertFullSizeFlight(flyAnims[0].kf, 'landmark ten-move phase 1');
-    assertFullSizeFlight(flyAnims[2].kf, 'landmark ten-move phase 2');
-    // The orbit circles the Volcano's centre (346, 652) at radius
-    // 104/2 + 22 = 74 — the flight really visits the tapped place.
-    assertOrbit(flyAnims[1].kf, 346, 652, 74, 'volcano orbit');
-    const p1end = translateOf(flyAnims[0].kf[2]);
-    const oStart = translateOf(flyAnims[1].kf[0]);
-    assert(Math.abs(p1end[0] - oStart[0]) < 1 && Math.abs(p1end[1] - oStart[1]) < 1,
-      'phase 1 flows into the Volcano orbit without a jump');
-    // The waypoint bursts with the Volcano's own fx and the landmark booms.
-    const bursts = Array.from(d.querySelectorAll('#landscape .burst'));
+    assert.equal(flyAnims.length, 1, 'ten-move: ONE flight animation, not three phases');
+    assert.equal(flyAnims[0].opts.duration, 1300, 'spline runs 1300ms');
+    assert.equal(flyAnims[0].opts.delay, 260, '260ms telegraph before the spline');
+    assert.equal(flyAnims[0].opts.easing, 'linear', 'steady speed along the spline');
+    // The Volcano's centre is (87, 552) in the mocked iPhone-portrait
+    // rect; the spline must loop it and end in the destination slots.
+    assertSpline(flyAnims[0].kf, 87, 552, destCentre(t, sol, 0, 'left'), 'volcano ten-move spline');
+    // The burst fires as the group reaches the loop, mid-flight.
+    assert(await waitForBurst(t), 'Volcano waypoint bursts mid-flight');
+    const bursts = Array.from(d.querySelectorAll('.page .burst'));
     assert(bursts.length === 14, 'Volcano waypoint bursts 14 sparks');
     assert(bursts.some(s => s.textContent === '🔥'), 'Volcano burst carries fire');
-    assert(d.querySelector('#landscape .shockwave'), 'Volcano waypoint has a shockwave ring');
+    assert(d.querySelector('.page .shockwave'), 'Volcano waypoint has a shockwave ring');
     assert(volc.classList.contains('boom'), 'Volcano booms at the waypoint');
     await settle(t);
     tenNodes.forEach(n => assert.equal(n.parentElement.id, 'left-grid',
@@ -325,53 +358,70 @@ function flyingAnims(t) {
     assert.equal(+d.querySelector('#right-num').textContent, 16);
     checks++; t.close();
   }
-  // One-move via a tapped landmark (Car Wash): same three phases, and
-  // the one still lands in the next free ones square.
+  // One-move via a tapped landmark (Car Wash): the same single spline,
+  // and the one still lands in the next free ones square.
   {
-    const t = boot(47, 26), d = t.w.document;
+    const t = boot(47, 26, undefined, false), d = t.w.document;
     await settle(t);
-    for (let i = 0; i < 2; i++) { d.querySelector('#move-btn').click(); await settle(t); }
+    const sol = E.solve(47, 26);
+    for (let i = 0; i < 2; i++) { d.querySelector('[data-landmark="volcano"]').click(); await settle(t); }
     const wash = d.querySelector('[data-landmark="wash"]');
     wash.getBoundingClientRect = () => ({
-      left: 440, top: 700, width: 84, height: 100,
-      right: 524, bottom: 800, x: 440, y: 700, toJSON: () => ({}),
+      left: 250, top: 600, width: 80, height: 100,
+      right: 330, bottom: 700, x: 250, y: 600, toJSON: () => ({}),
     });
-    const oneNode = d.querySelector('#right-grid .obj.movable');
-    assert(oneNode, 'a movable one exists');
+    const oneIds = Array.from(t.w.AdditionLayout.movingIds(sol, 2));
+    assert.deepEqual(oneIds, [72]);
+    const oneNode = Array.from(d.querySelectorAll('#right-grid .obj'))
+      .find(n => Number(n.dataset.id) === 72);
+    assert(oneNode, 'a moving one exists');
     t.anims.length = 0;
     wash.click();
     await flush();
     const flyAnims = flyingAnims(t);
-    assert.equal(flyAnims.length, 3, 'landmark one-move: phase 1, orbit, phase 2');
-    assertFullSizeFlight(flyAnims[2].kf, 'landmark one-move phase 2');
-    assertOrbit(flyAnims[1].kf, 482, 750, 72, 'car wash orbit');
-    const bursts = Array.from(d.querySelectorAll('#landscape .burst'));
+    assert.equal(flyAnims.length, 1, 'one-move: ONE flight animation');
+    assert.equal(flyAnims[0].opts.duration, 1300, 'one-move spline runs 1300ms');
+    // The Car Wash centre is (290, 650); the spline loops it and ends
+    // in the next free ones square.
+    assertSpline(flyAnims[0].kf, 290, 650, destCentre(t, sol, 2, 'left'), 'car wash one-move spline');
+    assert(await waitForBurst(t), 'Car Wash waypoint bursts mid-flight');
+    const bursts = Array.from(d.querySelectorAll('.page .burst'));
     assert(bursts.some(s => s.textContent === '🫧'), 'Car Wash burst carries bubbles');
     await settle(t);
     assert.equal(oneNode.parentElement.id, 'left-grid', 'landmark one-move arrival kept its identity');
     assert.equal(+d.querySelector('#left-num').textContent, 68);
     checks++; t.close();
   }
-  // Map spread: the four landmark positions span at least three
-  // x-quartiles and both y-halves of the map — genuinely spread, not a
-  // row. Positions are declared in the stylesheet, so parse them there.
+  // Map spread: the four landmarks circle the page in three strips —
+  // one above the equation bar (sky), one above the panels (mid), two
+  // below the panels (ground). Positions are declared in the stylesheet,
+  // so parse them there; zones are checked in the DOM.
   {
-    const posRe = /\.landmark\.pos-(\d)\s*\{[^}]*?left:\s*([\d.]+)%[^}]*?top:\s*([\d.]+)px[^}]*\}/g;
+    const posRe = /\.(sky-strip|mid-strip|ground-strip)\s+\.landmark(?:\.pos-(\d))?\s*\{[^}]*?left:\s*([\d.]+)%[^}]*?top:\s*([\d.]+)px[^}]*\}/g;
     const positions = [];
     let m;
-    while ((m = posRe.exec(CSS))) positions.push({ n: +m[1], left: +m[2], top: +m[3] });
+    while ((m = posRe.exec(CSS))) positions.push({ strip: m[1], pos: m[2] ? +m[2] : null, left: +m[3], top: +m[4] });
     assert.equal(positions.length, 4, 'four landmark positions declared');
-    const mapH = /\.landscape\s*\{[^}]*?min-height:\s*([\d.]+)px/.exec(CSS);
-    assert(mapH, 'landscape min-height declared');
-    const H = +mapH[1];
+    assert.equal(positions.filter(p => p.strip === 'sky-strip').length, 1, 'one landmark in the sky strip');
+    assert.equal(positions.filter(p => p.strip === 'mid-strip').length, 1, 'one landmark in the mid strip');
+    assert.equal(positions.filter(p => p.strip === 'ground-strip').length, 2, 'two landmarks on the ground');
     const xQs = new Set(positions.map(p => Math.min(3, Math.floor(p.left / 25))));
-    const yHs = new Set(positions.map(p => ((p.top + 56) / H) < 0.5 ? 0 : 1));
     assert(xQs.size >= 3, `landmarks span ${xQs.size} x-quartiles, expected >= 3`);
-    assert(yHs.size >= 2, 'landmarks span both y-halves');
+    const groundH = /\.ground-strip\s*\{[^}]*?min-height:\s*([\d.]+)px/.exec(CSS);
+    assert(groundH && +groundH[1] >= 220, `ground strip is tall (${groundH && groundH[1]}px), room for a staggered pair`);
     for (const theme of ['cars', 'mermaids']) {
       const t = boot(47, 26, theme), dd = t.w.document;
       await settle(t);
       assert.equal(dd.querySelectorAll('.landmark').length, 4, `${theme}: four landmarks render`);
+      assert.equal(dd.querySelectorAll('#sky .landmark').length, 1, `${theme}: one landmark above the equation bar`);
+      assert.equal(dd.querySelectorAll('#mid-map .landmark').length, 1, `${theme}: one landmark above the panels`);
+      assert.equal(dd.querySelectorAll('#ground-map .landmark').length, 2, `${theme}: two landmarks below the panels`);
+      // DOM order: sky, equation bar, mid, panels, ground, captions.
+      const order = Array.from(dd.querySelectorAll('#sky, .eqbar, #mid-map, .quantities, #ground-map, .caption-bar'))
+        .map(n => n.id === 'sky' ? 'sky' : n.id === 'mid-map' ? 'mid-map' : n.id === 'ground-map' ? 'ground-map'
+          : n.id === 'captions' ? 'caption-bar' : n.classList.contains('eqbar') ? 'eqbar' : 'quantities');
+      assert.deepEqual(order, ['sky', 'eqbar', 'mid-map', 'quantities', 'ground-map', 'caption-bar'],
+        `${theme}: strips circle the page in order`);
       t.close();
     }
     checks++;
@@ -388,5 +438,5 @@ function flyingAnims(t) {
       `same ${same[1]}px sits between smaller ${smaller[1]}px and bigger ${bigger[1]}px`);
     checks++;
   }
-  console.log(`Rendered: ${checks} cases passed; rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on .obj, full-size three-phase flights (waypoint visit, full orbit, fx burst) with flatter one-move arcs, map spread, banner placement, badge sizes.`);
+  console.log(`Rendered: ${checks} cases passed; rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on .obj and no .movable left, one continuous spline flight per move (no jumps, genuine loop, fx burst at the loop, flatter one-move arc), landmarks circling the page in three strips, banner placement, badge sizes.`);
 })().catch(e => { console.error(e); process.exitCode = 1; });

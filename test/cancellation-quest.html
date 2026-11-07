@@ -49,6 +49,11 @@
 </svg>
 
 <div class="page">
+  <!-- The map circles the page now, not one band: a landmark rises
+       above the equation bar (sky), one hovers above the panels (mid),
+       and two sit on the ground below the panels — each where it fits,
+       never overlapping a panel, caption, or control. -->
+  <div class="map-strip sky-strip" id="sky" aria-label="A place above the game"></div>
   <header class="eqbar">
     <p class="world-line">Ayan's Car World · Cancellation Quest</p>
     <div class="equation" role="heading" aria-label="Subtraction problem">
@@ -61,8 +66,17 @@
     </div>
   </header>
 
+  <!-- The celebration banner: big cheer + big New Mystery button, right
+       under the sticky equation bar — impossible to miss when solved.
+       The only New Mystery button on the page. -->
+  <div class="celebrate-banner" id="celebrate-banner" hidden>
+    <p class="cheer" id="cheer" hidden></p>
+    <button type="button" class="new-mystery" id="new-mystery" hidden disabled>✨ New Mystery</button>
+  </div>
+
   <main>
     <nav class="game-nav"><a href="index.html">← Back to test games</a></nav>
+    <div class="map-strip mid-strip" id="mid-map" aria-label="A place above the numbers"></div>
     <section class="quantities" aria-label="The two quantities">
       <div class="side left" id="side-left">
         <div class="who"><span class="dot"></span><span class="who-label">Blue cars</span></div>
@@ -79,7 +93,7 @@
       </div>
     </section>
 
-    <section class="landscape" id="landscape" aria-label="Cancellation places — tap one to cancel"></section>
+    <div class="map-strip ground-strip" id="ground-map" aria-label="Cancellation places — tap one to cancel"></div>
 
     <p class="nextmove"><span class="chip" id="next-chip">Next: one ten from each side — tap a place!</span></p>
     <p id="progress-status" role="status"></p>
@@ -87,11 +101,6 @@
 
     <div class="caption-bar" id="captions" aria-live="polite">
       <p class="line note">Tap a place below to cancel from each side.</p>
-    </div>
-
-    <div class="celebrate">
-      <p class="cheer" id="cheer" hidden></p>
-      <button type="button" class="new-mystery" id="new-mystery">✨ New Mystery</button>
     </div>
 
     <details class="parents">

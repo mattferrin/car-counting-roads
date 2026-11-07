@@ -63,6 +63,27 @@ async function settle(t, errors=false){
   assert.equal(d.querySelector('#left-num').textContent,'8');assert(!d.querySelector('.landmark').disabled);
   t.close(); checks++;
  }
+ // --- New Mystery banner: directly under the equation bar, the only
+ // New Mystery button, hidden until solved, shown after — both themes.
+ for (const theme of ['cars','mermaids']) {
+  const t=boot(78,35),d=t.w.document;
+  await settle(t);
+  if (theme==='mermaids') { d.querySelector('[data-theme="mermaids"]').click(); await flush(); }
+  const E=require('./cancellation-engine');const sol=E.solve(78,35);
+  assert(d.querySelector('.eqbar + #celebrate-banner'), 'celebration banner directly under the equation bar');
+  assert(d.querySelector('#celebrate-banner').contains(d.querySelector('#new-mystery')));
+  assert.equal(d.querySelectorAll('#new-mystery').length,1);
+  assert(!d.querySelector('.celebrate'), 'old bottom celebrate div removed');
+  assert(d.querySelector('#celebrate-banner').hidden);
+  assert(d.querySelector('#new-mystery').hidden && d.querySelector('#new-mystery').disabled);
+  for(let i=0;i<sol.moves.length;i++){ d.querySelector('.landmark').click(); await settle(t); }
+  assert.equal(d.querySelector('#eq-q').textContent,'43');
+  assert.equal(d.querySelector('#celebrate-banner').hidden,false);
+  assert(d.querySelector('#celebrate-banner').classList.contains('show'));
+  assert(!d.querySelector('#new-mystery').hidden && !d.querySelector('#new-mystery').disabled);
+  assert(d.querySelector('#new-mystery').classList.contains('show'));
+  t.close(); checks++;
+ }
  // Count highlights follow speech start/end, and controls stay locked throughout.
  // (No amount is announced before the move: the rows just light up and fly,
  // so the first spoken fragment after a tap is the new count itself.)
@@ -72,5 +93,5 @@ async function settle(t, errors=false){
  t.pending.shift().onend();await flush();
  assert.equal(t.pending[0].text,'two tens');assert(d.querySelector('#right-num .d-tens.speaking'));assert(d.querySelector('.landmark').disabled);
  await settle(t);assert.equal(d.querySelectorAll('.speaking').length,0);t.close();
- console.log(`UI: ${checks} move/recovery cases passed; duplicate taps, identity, speech highlights, locks, completion and failures verified.`);
+ console.log(`UI: ${checks} move/recovery cases passed; duplicate taps, identity, speech highlights, locks, completion, banner placement and failures verified.`);
 })().catch(e=>{console.error(e);process.exitCode=1});

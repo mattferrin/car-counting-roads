@@ -37,7 +37,9 @@
         { id: 'tree', art: '🌳', name: 'Magic Tree', hint: 'swirling leaves!', fx: ['🍃', '🍂', '🌿'] },
         { id: 'wash', art: '🫧', name: 'Car Wash', hint: 'bubbles pop!', fx: ['🫧', '💧', '✨'] }
       ],
-      scenery: [['☀️', '6%', '8%'], ['☁️', '38%', '4%'], ['☁️', '68%', '10%'], ['🌼', '88%', '30%'], ['🚗', '12%', '62%']]
+      scenerySky: [['☀️', '80%', '6%'], ['☁️', '55%', '40%']],
+      sceneryMid: [['☁️', '8%', '18%'], ['🌼', '84%', '26%']],
+      sceneryGround: [['🚗', '44%', '55%']]
     },
     mermaids: {
       label: "Aliya's Mermaid World", thing: 'mermaid', things: 'mermaids',
@@ -51,7 +53,9 @@
         { id: 'whirlpool', art: '🌀', name: 'Whirlpool', hint: 'round and round!', fx: ['🌀', '💧', '🫧'] },
         { id: 'shell', art: '🐚', name: 'Giant Shell', hint: 'a pearl pops out!', fx: ['🤍', '✨', '⭐'] }
       ],
-      scenery: [['🐠', '8%', '12%'], ['🫧', '40%', '6%'], ['🐢', '62%', '16%'], ['⭐', '86%', '26%'], ['🐟', '22%', '58%']]
+      scenerySky: [['🐠', '80%', '8%'], ['🫧', '52%', '42%']],
+      sceneryMid: [['⭐', '8%', '20%'], ['🐢', '84%', '26%']],
+      sceneryGround: [['🐟', '44%', '55%']]
     }
   };
 
@@ -71,8 +75,8 @@
   var prevLeftTens = null, prevRightTens = null;
 
   var eqA, eqB, eqQ, leftNum, rightNum, leftCap, rightCap, leftGrid, rightGrid,
-      leftSide, rightSide, captionBar, nextChip, newMysteryBtn, cheerEl, landscapeEl,
-      cancelledTally;
+      leftSide, rightSide, captionBar, nextChip, newMysteryBtn, cheerEl, celebrateBanner,
+      pageEl, skyEl, midEl, groundEl, cancelledTally;
 
   /* ---------- voices: pre-recorded clips, two distinct voices ---------- */
   /* Counts are spoken from short recorded clips — one male voice for the
@@ -538,35 +542,51 @@
     return playPhrases([{ kind: 'girl', answer: true, frags: ['answer'].concat(fragmentsFor(answer, false)), text: 'The answer is ' + phrase + '!' }]);
   }
 
-  /* ---------- landmarks ---------- */
+  /* ---------- landmarks ----------
+   * The landmarks circle the page, one per open space: the Castle /
+   * Palace rises in the sky above the equation bar, the Magic Tree /
+   * Whirlpool hovers above the panels, off-centre, and the Volcano /
+   * Coral Reef and the Car Wash / Giant Shell sit on the ground below
+   * the panels — big and low on the left, low on the right. */
   function buildLandmarks() {
     var T = THEMES[theme];
-    landscapeEl.innerHTML = '';
-    var scenery = el('div', 'scenery');
-    T.scenery.forEach(function (s) {
-      var sp = el('span', null, s[0]);
-      sp.style.left = s[1]; sp.style.top = s[2];
-      scenery.appendChild(sp);
+    // [strip, landmarks by index into T.landmarks, scenery]
+    var zones = [
+      { el: skyEl, landmarks: [T.landmarks[1]], scenery: T.scenerySky },
+      { el: midEl, landmarks: [T.landmarks[2]], scenery: T.sceneryMid },
+      { el: groundEl, landmarks: [T.landmarks[0], T.landmarks[3]], scenery: T.sceneryGround }
+    ];
+    zones.forEach(function (zone) {
+      if (!zone.el) return;
+      zone.el.innerHTML = '';
+      var scenery = el('div', 'scenery');
+      zone.scenery.forEach(function (s) {
+        var sp = el('span', null, s[0]);
+        sp.style.left = s[1]; sp.style.top = s[2];
+        scenery.appendChild(sp);
+      });
+      zone.el.appendChild(scenery);
+      zone.landmarks.forEach(function (lm) {
+        var b = el('button', 'landmark pos-' + (T.landmarks.indexOf(lm) + 1));
+        b.type = 'button';
+        b.dataset.landmark = lm.id;
+        b.setAttribute('aria-label', lm.name + ' — tap here to cancel ' + THEMES[theme].things);
+        b.innerHTML = '<span class="art" aria-hidden="true">' + lm.art + '</span>' +
+          '<span class="name">' + lm.name + '</span>' +
+          '<span class="hint">' + lm.hint + '</span>';
+        b.addEventListener('click', function () { onLandmark(b, lm); });
+        zone.el.appendChild(b);
+      });
     });
-    landscapeEl.appendChild(scenery);
-    T.landmarks.forEach(function (lm, i) {
-      var b = el('button', 'landmark pos-' + (i + 1));
-      b.type = 'button';
-      b.dataset.landmark = lm.id;
-      b.setAttribute('aria-label', lm.name + ' — tap here to cancel ' + THEMES[theme].things);
-      b.innerHTML = '<span class="art" aria-hidden="true">' + lm.art + '</span>' +
-        '<span class="name">' + lm.name + '</span>' +
-        '<span class="hint">' + lm.hint + '</span>';
-      b.addEventListener('click', function () { onLandmark(b, lm); });
-      landscapeEl.appendChild(b);
-    });
-    var gl = el('div', 'ground-label', T.label + ' — tap a place to cancel!');
-    landscapeEl.appendChild(gl);
+    if (groundEl) {
+      var gl = el('div', 'ground-label', T.label + ' — tap a place to cancel!');
+      groundEl.appendChild(gl);
+    }
     updateLandmarkState();
   }
 
   function updateLandmarkState() {
-    $all('.landmark', landscapeEl).forEach(function (b) {
+    $all('.landmark').forEach(function (b) {
       b.disabled = animating || solved;
       b.classList.toggle('nudge', !animating && !solved && stepIndex === 0);
     });
@@ -575,7 +595,9 @@
   }
 
   function burst(landmarkEl, chars) {
-    var host = landscapeEl;
+    // Collision bursts are hosted by the page (landmarks live in three
+    // different strips now), so they are positioned against the page.
+    var host = pageEl;
     var r = landmarkEl.getBoundingClientRect();
     var hr = host.getBoundingClientRect();
     var cx = r.left - hr.left + r.width / 2;
@@ -615,7 +637,7 @@
 
   /* An expanding ring at the collision point — the smash, drawn. */
   function shockwave(landmarkEl) {
-    var host = landscapeEl;
+    var host = pageEl;
     var r = landmarkEl.getBoundingClientRect();
     var hr = host.getBoundingClientRect();
     var s = el('span', 'shockwave');
@@ -794,6 +816,12 @@
     }
     await speakAnswer(answer);
     cheerSound();
+    // The banner sits right under the sticky equation bar, in their
+    // face: big cheer plus a big pulsing New Mystery button — the same
+    // treatment Addition Quest has.
+    if (celebrateBanner) { celebrateBanner.hidden = false; celebrateBanner.classList.add('show'); }
+    newMysteryBtn.hidden = false;
+    newMysteryBtn.disabled = false;
     newMysteryBtn.classList.add('show');
   }
 
@@ -831,6 +859,9 @@
     prevLeftTens = E.placeValue(a).tens; prevRightTens = E.placeValue(b).tens;
     leftSide.classList.remove('done');
     newMysteryBtn.classList.remove('show');
+    newMysteryBtn.hidden = true;
+    newMysteryBtn.disabled = true;
+    if (celebrateBanner) { celebrateBanner.classList.remove('show'); celebrateBanner.hidden = true; }
     cheerEl.hidden = true;
     cheerEl.textContent = '';
     renderEquation();
@@ -929,7 +960,11 @@
     nextChip = $('#next-chip');
     newMysteryBtn = $('#new-mystery');
     cheerEl = $('#cheer');
-    landscapeEl = $('#landscape');
+    celebrateBanner = $('#celebrate-banner');
+    pageEl = $('.page');
+    skyEl = $('#sky');
+    midEl = $('#mid-map');
+    groundEl = $('#ground-map');
     cancelledTally = $('#cancelled-tally');
 
     var specific = parseParams();

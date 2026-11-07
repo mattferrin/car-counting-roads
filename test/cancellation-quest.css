@@ -34,7 +34,10 @@ body[data-theme="mermaids"] { background: #2e8fb5; --right: #d63384; }
 button { font-family: inherit; }
 button:focus-visible, summary:focus-visible { outline: 3px solid #ffbf47; outline-offset: 2px; }
 
-.page { max-width: 600px; margin: 0 auto; padding: 10px 12px 40px; }
+/* The page is the burst host: collision bursts can fire at a landmark
+ * in any of the three map strips, so they are positioned against the
+ * page, not one strip. */
+.page { max-width: 600px; margin: 0 auto; padding: 10px 12px 40px; position: relative; }
 
 /* ---- Equation bar (sticky, always visible) ---- */
 .eqbar {
@@ -126,35 +129,50 @@ body[data-theme="mermaids"] .side.right .ten-row { border-color: rgba(214, 51, 1
 .flying.glow-one { box-shadow: 0 0 0 3px var(--ones), 0 0 22px rgba(232, 113, 10, .55); }
 .flying.glow-hun { box-shadow: 0 0 0 3px var(--huns), 0 0 22px rgba(124, 77, 255, .55); }
 
-/* ---- Landscape + landmarks: a map, not a strip ----
- * The map is tall (300px) so the four places can sit staggered in the
- * open space — not a row, not four neat corners — each where it fits:
- * the Volcano low on the left, the Castle up top, the Magic Tree low
- * in the middle, the Car Wash up on the right. Dashed paths wind
- * between them. On iPhone portrait the map sits below the panels (it
- * never crowds them); the page just grows ~90px taller. Mechanics are
+/* ---- The map circles the page, not one band ----
+ * Three strips where landmarks rise out of the page: one above the
+ * equation bar (sky), one above the panels (mid), two on the ground
+ * below the panels. Each strip is its own in-flow block, so a landmark
+ * can never overlap a panel, a caption, or a control — and the sticky
+ * equation bar only ever slides over the sky strip as it scrolls off,
+ * the way any content above a sticky header does. Mechanics are
  * untouched: the flight code reads each landmark's rect at tap time,
- * so it is position-agnostic. */
-.landscape {
+ * so it is position-agnostic.
+ * Sky: the Castle / Palace rises at the very top. Mid: the Magic Tree /
+ * Whirlpool hovers above the numbers, off-centre. Ground: the Volcano /
+ * Coral Reef sits big and low on the left, the Car Wash / Giant Shell
+ * low on the right. Dashed paths wind between the two ground places. */
+.map-strip {
   position: relative; margin-top: 14px; border-radius: var(--radius);
-  box-shadow: var(--shadow); overflow: hidden; min-height: 300px;
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.sky-strip {
+  min-height: 124px;
+  background: linear-gradient(#7ec8f7 0%, #bfe6ff 100%);
+}
+body[data-theme="mermaids"] .sky-strip {
+  background: linear-gradient(#0a6d99 0%, #1a8fb8 100%);
+}
+.mid-strip {
+  min-height: 124px;
+  background: linear-gradient(#cfeeff 0%, #a5d68a 100%);
+}
+body[data-theme="mermaids"] .mid-strip {
+  background: linear-gradient(#3fb6d6 0%, #e8d29a 100%);
+}
+.ground-strip {
+  min-height: 256px;
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'%3E%3Cpath d='M36 62 C 170 150, 330 24, 566 96' fill='none' stroke='%23ffffff' stroke-opacity='.5' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3Cpath d='M44 262 C 210 182, 380 282, 564 204' fill='none' stroke='%23ffffff' stroke-opacity='.5' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat,
-    linear-gradient(#7ec8f7 0%, #bfe6ff 55%, #8fce6e 55%, #6db95a 100%);
+    linear-gradient(#8fce6e 0%, #6db95a 100%);
 }
-body[data-theme="mermaids"] .landscape {
+body[data-theme="mermaids"] .ground-strip {
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'%3E%3Cpath d='M36 62 C 170 150, 330 24, 566 96' fill='none' stroke='%23ffffff' stroke-opacity='.45' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3Cpath d='M44 262 C 210 182, 380 282, 564 204' fill='none' stroke='%23ffffff' stroke-opacity='.45' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat,
-    linear-gradient(#0a6d99 0%, #1a8fb8 55%, #e8d29a 55%, #d9bd7a 100%);
+    linear-gradient(#1a8fb8 0%, #e8d29a 55%, #d9bd7a 100%);
 }
-/* Scenery sits in the map's open gaps, not behind the landmarks.
- * (The scenery positions are set inline by the JS, so these rules
- * override them — CSS-only, no JS change.) */
-.scenery span:nth-child(1) { left: 26% !important; top: 2% !important; }
-.scenery span:nth-child(2) { left: 47% !important; top: 52% !important; }
-.scenery span:nth-child(3) { left: 68% !important; top: 8% !important; }
-.scenery span:nth-child(4) { left: 10% !important; top: 78% !important; }
-.scenery span:nth-child(5) { left: 88% !important; top: 78% !important; }
+/* Scenery sits in each strip's open gaps (positions are set inline by
+ * the JS, per strip). */
 .scenery { position: absolute; inset: 0; pointer-events: none; font-size: 26px; }
 .scenery span { position: absolute; animation: bob 5s ease-in-out infinite; }
 body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infinite; }
@@ -173,14 +191,14 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
 .landmark.nudge { animation: nudge 1.2s ease-in-out infinite; }
 .landmark.busy { animation: landmark-joy .6s ease; }
 .landmark.boom { animation: landmark-boom .5s ease; }
-/* Staggered in the open space: Volcano low-left, Castle up top,
- * Magic Tree low in the middle, Car Wash up on the right. Different
- * sizes too — the Volcano is the biggest, the Car Wash the smallest. */
-.landmark.pos-1 { left: 2%; top: 108px; width: 24%; }
-.landmark.pos-2 { left: 31%; top: 8px; width: 21%; }
-.landmark.pos-3 { left: 54%; top: 136px; width: 22%; }
-.landmark.pos-4 { left: 78%; top: 18px; width: 20%; }
-.landscape .ground-label {
+/* One landmark per strip up top, two on the ground — staggered
+ * across the page, not a row: sky left, mid off-centre, ground
+ * low-left and low-right. The Volcano / Coral Reef is the biggest. */
+.sky-strip .landmark { left: 4%; top: 8px; width: 24%; }
+.mid-strip .landmark { left: 38%; top: 8px; width: 22%; }
+.ground-strip .landmark.pos-1 { left: 8%; top: 8px; width: 26%; }
+.ground-strip .landmark.pos-4 { left: 70%; top: 118px; width: 22%; }
+.ground-strip .ground-label {
   position: absolute; left: 0; right: 0; bottom: 6px; text-align: center;
   font-weight: 800; color: rgba(255, 255, 255, .95); text-shadow: 0 1px 3px rgba(0,0,0,.35);
   font-size: 15px; pointer-events: none;
@@ -209,8 +227,19 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
 }
 .caption-bar .right-voice .who-tag { background: var(--right); }
 
-/* ---- Celebration + New Mystery ---- */
-.celebrate { text-align: center; margin-top: 14px; }
+/* ---- Celebration banner: right under the sticky equation bar ----
+ * Big cheer plus a big pulsing New Mystery button, full-width on
+ * mobile. Shown only when the problem is solved; exactly one New
+ * Mystery button on the page (the old small bottom one is gone).
+ * Same treatment as Addition Quest, so the two games stay consistent. */
+.celebrate-banner {
+  display: none; margin-top: 12px; text-align: center;
+  background: linear-gradient(135deg, #fff7d6, #ffe9a8);
+  border: 3px solid #ffbf47; border-radius: 22px; box-shadow: 0 10px 26px rgba(20, 40, 70, .2);
+  padding: 16px 14px 18px;
+}
+.celebrate-banner.show { display: block; animation: banner-in .5s ease; }
+.celebrate-banner .cheer { font-size: 22px; font-weight: 800; color: var(--good); margin: 0 0 12px; }
 .new-mystery {
   display: none; font-size: 22px; font-weight: 800; color: #fff; cursor: pointer;
   background: linear-gradient(135deg, #ff5d8f, #ff9a3d); border: none; border-radius: 999px;
@@ -218,7 +247,15 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
   animation: answer-pop .6s ease;
 }
 .new-mystery.show { display: inline-block; }
-.celebrate .cheer { font-size: 18px; font-weight: 800; color: var(--good); margin: 0 0 10px; }
+.celebrate-banner .new-mystery {
+  width: 100%; font-size: 26px; padding: 18px 20px;
+  animation: banner-pulse 1.4s ease-in-out infinite;
+}
+@keyframes banner-pulse {
+  0%, 100% { box-shadow: 0 8px 22px rgba(255, 93, 143, .45); }
+  50% { box-shadow: 0 8px 34px rgba(255, 93, 143, .85), 0 0 0 6px rgba(255, 191, 71, .5); }
+}
+@keyframes banner-in { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .stars { position: fixed; inset: 0; pointer-events: none; z-index: 70; overflow: hidden; }
 .stars span { position: absolute; font-size: 26px; animation: star-fall 1.6s ease-in forwards; }
 .answer-flyer {

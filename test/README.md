@@ -54,18 +54,23 @@ Checks:
 - `node test/cancellation-layout.test.cjs`
 - `node test/cancellation-quest.test.cjs`
 - `npm install --prefix /tmp/cq-test-deps jsdom`
-- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/cancellation-ui.test.cjs`
+- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/cancellation-ui.test.cjs` (41 cases: duplicate taps, identity, speech highlights, locks, completion, banner placement, failures)
 - `NODE_PATH=/tmp/cq-test-deps/node_modules node test/cancellation-flight.test.cjs`
 - `NODE_PATH=/tmp/cq-test-deps/node_modules node test/cancellation-highlight.test.cjs`
 - `NODE_PATH=/tmp/cq-test-deps/node_modules node test/cancellation-map.test.cjs` (3 cases: map spread, nav, mechanics)
 
-Map layout (2026-11-06): the four landmarks are pins on a map now, not
-a staggered row — Volcano low on the left, Castle up top, Magic Tree low
-in the middle, Car Wash up on the right, on a taller 300px map with
-dashed paths winding between them. Only the positions changed (CSS) and
-the scenery moved into the open gaps; the mechanics are untouched — the
-flight code reads each landmark's rect at tap time, so it is
-position-agnostic, and the map test proves a tap still cancels there.
+Map layout (2026-11-06, round 3): the four landmarks circle the page
+now, not a staggered row and not one band — the Castle / Palace rises
+in the sky above the equation bar, the Magic Tree / Whirlpool hovers
+above the panels, and the Volcano / Coral Reef and the Car Wash / Giant
+Shell sit on the ground below the panels, with dashed paths winding
+between the two ground places. Only the positions changed (CSS + which
+strip each landmark is built into) and the scenery moved into each
+strip's open gaps; the mechanics are untouched — the flight code reads
+each landmark's rect at tap time, so it is position-agnostic, and the
+map test proves a tap still cancels there. Cancellation Quest's
+celebration is the same big banner Addition Quest has: directly under
+the sticky equation bar, the only New Mystery button on the page.
 
 The UI suite simulates completion/error events; actual iOS voice/output latency
 still needs a device check. Both original game suites must also pass in root and
@@ -86,14 +91,15 @@ the next free square. A ten-move inserts a whole new row at the top of
 the destination (y = 0) and the rows below slide down to make room; a
 one-move that fills the ones row regroups it into a new ten just above
 the ones row. Flights stay full-size into their slots — no shrinking
-or fading. The tap target is a place on the map — Volcano, Castle,
-Magic Tree, Car Wash (mermaids: Coral Reef, Palace, Whirlpool, Giant
-Shell), staggered in the open space of a taller 300px map with dashed
-paths between them — or the central Move button (its arrow flips with
-the direction) or the glowing group in the smaller pool. Whichever is
-tapped, the moving group flies there, loops once all the way around it
-(~400ms), bursts with that place's fx, then carries on to the bigger
-side. No new voice clips: it reuses the Cancellation Quest recordings in
+or fading. The tap target is a place on the map — Castle, Magic Tree,
+Volcano, Car Wash (mermaids: Palace, Whirlpool, Coral Reef, Giant
+Shell) — circling the page: one above the equation bar, one above the
+panels, two on the ground below the panels. There is no Move button and
+no source tap — landmarks are the only move trigger. Whichever place is
+tapped, the moving group flies there in one smooth continuous swoop — a
+single spline that loops once around the place as part of the same curve
+and flows on into the bigger side, bursting with that place's fx as it
+reaches the loop. No new voice clips: it reuses the Cancellation Quest recordings in
 `audio/`, with the same changed-place-only counting, per-fragment glow,
 and no pre-move amount announcement. The answer flies from the larger
 panel into the "?" and a big celebration banner — large cheer plus a
@@ -109,7 +115,10 @@ group a `nudge` animation whose keyframes set `transform: scale(...)`;
 a running CSS animation overrides the inline `translate()` that
 positions each object, so every movable object collapsed to the grid
 origin and a whole ten rendered as one car (26 showed as 17, 6 as 5).
-The movable pulse now animates `filter` (brightness + glow) only.
+The movable invite is gone entirely in round 3 — the landmarks carry
+the only tap invite now, with their nudge — so no transform-animating
+keyframes may ever apply to a positioned `.obj` again, and no
+`.movable` selector may reappear.
 
 - Play: `addition-quest.html` (cars) or `addition-quest.html?theme=mermaids`
 - Try one: `addition-quest.html?a=47&b=26` (and `?a=26&b=47` for the mirror)
@@ -119,7 +128,7 @@ Checks:
 - `node test/addition-quest.test.cjs` (576,631 checks, exhaustive 0..100)
 - `node test/addition-layout.test.cjs` (83,861 states)
 - `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-ui.test.cjs` (27 cases)
-- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-rendered.test.cjs` (59 cases: rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on `.obj`, full-size three-phase flights with waypoint orbits and fx bursts, map spread, banner placement, badge sizes)
+- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-rendered.test.cjs` (59 cases: rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on `.obj` and no `.movable` left, one continuous spline flight per move with a genuine loop and an fx burst at the loop, landmarks circling the page in three strips, banner placement, badge sizes)
 
 Only Addition Quest files, `test/index.html` (one home-page card and the
 game-nav wording), and this README are changed. Production files are
@@ -157,14 +166,14 @@ the two stylesheets' `:root` tokens are identical:
   the old dark `#0e4d6e` was a dark slab next to the light sky, so it
   was lightened to match the cars page in visual weight while staying
   clearly sea); left `--left #1668d6`, right `--right #d63384`; same
-  tens/ones/hundreds, ink and card as cars. The mermaid landscape keeps
-  its deeper sea gradient for depth.
+  tens/ones/hundreds, ink and card as cars. The mermaid strips keep
+  their deeper sea gradient for depth.
 
 The two themes are distinctive (sky vs sea, gold vs pink) but balanced:
 same white cards, same digit colours, same button and banner styles, no
 theme drastically darker or louder than the other. One-off colours that
 only existed on one page were removed; the remaining page-specific
-colours are the landscape gradients and the page backgrounds above.
+colours are the map-strip gradients and the page backgrounds above.
 
 Left open for a follow-up (deliberately not done here): the original
 counting game's palette (`#1264a0` blue / `#885500` gold, light grass

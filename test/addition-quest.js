@@ -42,7 +42,9 @@
         { id: 'tree', art: '🌳', name: 'Magic Tree', hint: 'swirling leaves!', fx: ['🍃', '🍂', '🌿'] },
         { id: 'wash', art: '🫧', name: 'Car Wash', hint: 'bubbles pop!', fx: ['🫧', '💧', '✨'] }
       ],
-      scenery: [['☀️', '26%', '2%'], ['☁️', '56%', '52%'], ['☁️', '86%', '8%'], ['🌼', '10%', '46%'], ['🚗', '63%', '80%']]
+      scenerySky: [['☀️', '78%', '6%'], ['☁️', '52%', '40%']],
+      sceneryMid: [['☁️', '8%', '18%'], ['🌼', '82%', '30%']],
+      sceneryGround: [['🚗', '44%', '52%']]
     },
     mermaids: {
       label: "Aliya's Mermaid World", thing: 'mermaid', things: 'mermaids',
@@ -55,7 +57,9 @@
         { id: 'whirlpool', art: '🌀', name: 'Whirlpool', hint: 'round and round!', fx: ['🌀', '💧', '🫧'] },
         { id: 'shell', art: '🐚', name: 'Giant Shell', hint: 'a pearl pops out!', fx: ['🤍', '✨', '⭐'] }
       ],
-      scenery: [['🐠', '26%', '6%'], ['🫧', '56%', '52%'], ['🐢', '86%', '10%'], ['⭐', '10%', '46%'], ['🐟', '63%', '80%']]
+      scenerySky: [['🐠', '78%', '8%'], ['🫧', '52%', '42%']],
+      sceneryMid: [['⭐', '8%', '20%'], ['🐢', '82%', '28%']],
+      sceneryGround: [['🐟', '44%', '52%']]
     }
   };
 
@@ -75,8 +79,10 @@
   var prevLeftTens = null, prevRightTens = null;
 
   var eqA, eqB, eqQ, leftNum, rightNum, leftCap, rightCap, leftGrid, rightGrid,
-      leftSide, rightSide, captionBar, moveBtn, newMysteryBtn, cheerEl, celebrateBanner, landscapeEl,
-      movedTally, totalBadge, leftSize, rightSize;
+      leftSide, rightSide, captionBar, newMysteryBtn, cheerEl, celebrateBanner, pageEl,
+      skyEl, midEl, groundEl, movedTally, totalBadge, leftSize, rightSize;
+  var flightToken = 0;  // each move takes a token; a stale burst (from a
+  // previous move's timer) checks it and stands down.
 
   /* ---------- voices: pre-recorded clips, two distinct voices ---------- */
   /* Counts are spoken from short recorded clips — one male voice for the
@@ -467,12 +473,12 @@
   }
 
   function updateControls() {
-    if (moveBtn) moveBtn.disabled = animating || solved;
     $all('.theme-pill, .level-pill, .test-problem').forEach(function (b) { b.disabled = animating; });
     if (newMysteryBtn) newMysteryBtn.disabled = animating || !solved;
-    // Landmarks are move triggers too: locked while a move is in flight
-    // or the problem is solved, and they nudge on the first move only.
-    $all('.landmark', landscapeEl).forEach(function (b) {
+    // Landmarks are the ONLY move trigger: locked while a move is in
+    // flight or the problem is solved, and they nudge on the first
+    // move only.
+    $all('.landmark').forEach(function (b) {
       b.disabled = animating || solved;
       b.classList.toggle('nudge', !animating && !solved && stepIndex === 0);
     });
@@ -543,17 +549,6 @@
     }
   }
 
-  function renderMoveButton() {
-    if (solved || stepIndex >= solution.moves.length) {
-      moveBtn.textContent = 'All moved over! 🎉';
-      return;
-    }
-    var amt = solution.moves[stepIndex];
-    var label = 'Move ' + E.describeMove(amt) + ' over';
-    moveBtn.textContent = solution.sourceIsLeft ? label + ' →' : '← ' + label;
-    moveBtn.setAttribute('aria-label', label + (solution.sourceIsLeft ? ' from the left side to the right side' : ' from the right side to the left side'));
-  }
-
   /* How much has moved over so far, in place-value words. */
   function renderMoved() {
     var moved = solution.small - solution.states[stepIndex][solution.sourceSide];
@@ -567,17 +562,6 @@
 
   function renderTotal() {
     totalBadge.textContent = 'Total stays ' + solution.total;
-  }
-
-  /* The moving group glows so the child can tap it — or the Move button. */
-  function updateMovable() {
-    $all('.obj.movable').forEach(function (n) { n.classList.remove('movable'); });
-    if (solved || !solution || stepIndex >= solution.moves.length) return;
-    var moving = window.AdditionLayout.movingIds(solution, stepIndex);
-    var srcGrid = solution.sourceSide === 'left' ? leftGrid : rightGrid;
-    $all('.obj', srcGrid).forEach(function (n) {
-      if (moving.indexOf(Number(n.dataset.id)) !== -1) n.classList.add('movable');
-    });
   }
 
   function setCaption(lines) {
@@ -626,36 +610,50 @@
   }
 
   /* ---------- the map: scenery plus the four tappable places ----------
-   * The landmarks sit staggered in the open space of the map — not a
-   * row, not four neat corners — each where it fits: the Volcano up on
-   * the left, the Castle tucked down in the middle, the Magic Tree up
-   * top, the Car Wash low on the right. Tapping one IS the move: the
-   * cars fly there, loop around it, then carry on to the bigger side. */
+   * The landmarks circle the page, one per open space: the Castle /
+   * Palace rises in the sky above the equation bar, the Magic Tree /
+   * Whirlpool hovers above the panels, off-centre, and the Volcano /
+   * Coral Reef and the Car Wash / Giant Shell sit on the ground below
+   * the panels — big and low on the left, low on the right. Tapping
+   * one IS the move: the cars fly there in one smooth swoop, loop
+   * around it, then carry on to the bigger side. Landmarks are the
+   * ONLY move trigger — there is no button and no source tap. */
   function buildLandmarks() {
     var T = THEMES[theme];
-    landscapeEl.innerHTML = '';
-    var scenery = el('div', 'scenery');
-    T.scenery.forEach(function (s) {
-      var sp = el('span', null, s[0]);
-      sp.style.left = s[1]; sp.style.top = s[2];
-      scenery.appendChild(sp);
-    });
-    landscapeEl.appendChild(scenery);
-    T.landmarks.forEach(function (lm, i) {
-      var b = el('button', 'landmark pos-' + (i + 1));
-      b.type = 'button';
-      b.dataset.landmark = lm.id;
-      b.setAttribute('aria-label', lm.name + ' — tap here to send the ' + T.things + ' around!');
-      b.innerHTML = '<span class="art" aria-hidden="true">' + lm.art + '</span>' +
-        '<span class="name">' + lm.name + '</span>' +
-        '<span class="hint">' + lm.hint + '</span>';
-      b.addEventListener('click', function () {
-        doMove({ kind: 'landmark', el: b, lm: lm, name: lm.name, fx: lm.fx, rect: b.getBoundingClientRect() });
+    // [strip, landmarks by index into T.landmarks, scenery]
+    var zones = [
+      { el: skyEl, landmarks: [T.landmarks[1]], scenery: T.scenerySky },
+      { el: midEl, landmarks: [T.landmarks[2]], scenery: T.sceneryMid },
+      { el: groundEl, landmarks: [T.landmarks[0], T.landmarks[3]], scenery: T.sceneryGround }
+    ];
+    zones.forEach(function (zone) {
+      if (!zone.el) return;
+      zone.el.innerHTML = '';
+      var scenery = el('div', 'scenery');
+      zone.scenery.forEach(function (s) {
+        var sp = el('span', null, s[0]);
+        sp.style.left = s[1]; sp.style.top = s[2];
+        scenery.appendChild(sp);
       });
-      landscapeEl.appendChild(b);
+      zone.el.appendChild(scenery);
+      zone.landmarks.forEach(function (lm) {
+        var b = el('button', 'landmark pos-' + (T.landmarks.indexOf(lm) + 1));
+        b.type = 'button';
+        b.dataset.landmark = lm.id;
+        b.setAttribute('aria-label', lm.name + ' — tap here to send the ' + T.things + ' around!');
+        b.innerHTML = '<span class="art" aria-hidden="true">' + lm.art + '</span>' +
+          '<span class="name">' + lm.name + '</span>' +
+          '<span class="hint">' + lm.hint + '</span>';
+        b.addEventListener('click', function () {
+          doMove({ kind: 'landmark', el: b, lm: lm, name: lm.name, fx: lm.fx, rect: b.getBoundingClientRect() });
+        });
+        zone.el.appendChild(b);
+      });
     });
-    var gl = el('div', 'ground-label', T.label + ' — tap a place to send them over!');
-    landscapeEl.appendChild(gl);
+    if (groundEl) {
+      var gl = el('div', 'ground-label', T.label + ' — tap a place to send them over!');
+      groundEl.appendChild(gl);
+    }
     updateControls();
   }
 
@@ -726,34 +724,118 @@
     return wrap;
   }
 
-  /* Fly one whole group to its destination slots in the bigger pool.
-   * A ten arcs up over the pools; a one slides almost flat along the
-   * bottom row, underneath the tens. Either way the group travels at
-   * full size and full opacity into its slots and stays there — the
-   * wrapper is left in place (still holding its final transform) so the
-   * caller can land the real objects from exactly where the flight
-   * left them. */
-  function flyTo(wrapper, targetRect, delay, amount) {
-    if (!wrapper) return Promise.resolve();
-    var r = wrapper.getBoundingClientRect();
-    var dx = targetRect.left + targetRect.width / 2 - (r.left + r.width / 2);
-    var dy = targetRect.top + targetRect.height / 2 - (r.top + r.height / 2);
-    var dur = reducedMotion() ? 180 : 620;
-    if (!wrapper.animate) { wrapper.remove(); return Promise.resolve(); }
+  /* ---------- the spline: one continuous curve, source -> landmark loop -> destination ----------
+   * A move is ONE curve, not three phases: a Catmull-Rom spline from
+   * the source slots, sweeping around the tapped landmark in a loop
+   * that is PART of the same curve, and flowing on into the destination
+   * slots — like one continuous interstate loop road. No stops, no
+   * jumps, no separate orbit phase, no teleporting between phases.
+   * The spline is sampled at equal arclength (~14px between keyframes)
+   * and animated with a SINGLE WAAPI animation at a steady speed, so
+   * consecutive keyframes are evenly spaced. The loop is a genuine
+   * loop: control points circle the landmark once (entry angle ->
+   * entry angle + 360), entered from the source side and left toward
+   * the destination. Tens arc higher on the approach than ones. The
+   * whole spline runs 1300ms (180ms with reduced motion), after the
+   * 260ms telegraph. The landmark's burst fires as the group reaches
+   * the loop, at the loop's arclength fraction of the path. */
+  function loopRadius(waypointRect) {
+    var cx = waypointRect.left + waypointRect.width / 2;
+    var cy = waypointRect.top + waypointRect.height / 2;
+    var vw = typeof window !== 'undefined' && window.innerWidth ? window.innerWidth : 1024;
+    var vh = typeof window !== 'undefined' && window.innerHeight ? window.innerHeight : 768;
+    // Clear the landmark itself, and stay on screen: the loop must
+    // never swing off the viewport edge.
+    return Math.max(44, Math.min(waypointRect.height / 2 + 22,
+      cx - 16, vw - cx - 16, cy - 16, vh - cy - 16));
+  }
+  function catmullRom(p0, p1, p2, p3, t) {
+    var t2 = t * t, t3 = t2 * t;
+    return [
+      0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3),
+      0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)
+    ];
+  }
+  /* Returns { samples: [[x, y], ...] (absolute coords, start ->
+   * destination), loopFraction: 0..1 (arclength share at the first
+   * loop point — when the group reaches the loop). */
+  function buildSplinePath(start, waypointRect, dest, amount) {
+    var cx = waypointRect.left + waypointRect.width / 2;
+    var cy = waypointRect.top + waypointRect.height / 2;
+    var R = loopRadius(waypointRect);
     var lift = amount === 1 ? 16 : 64;
-    var rot = amount === 1 ? 0 : (solution.sourceIsLeft ? 3 : -3);
-    var anim = wrapper.animate([
-      { transform: 'translate(0px, 0px) scale(1)', opacity: 1 },
-      { transform: 'translate(' + dx * 0.5 + 'px,' + (dy * 0.5 - lift) + 'px) scale(1.04) rotate(' + rot + 'deg)', opacity: 1, offset: 0.55 },
-      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(1)', opacity: 1 }
-    ], { duration: dur, delay: delay, easing: 'ease-in-out', fill: 'forwards' });
-    return anim.finished.catch(function () {});
+    // Enter the loop from the source side: the loop starts at the
+    // angle the group arrives from, and runs a full 360 from there.
+    var entry = Math.atan2(start[1] - cy, start[0] - cx);
+    var approach = [start[0] + (cx - start[0]) * 0.45, start[1] + (cy - start[1]) * 0.45 - lift];
+    var ctrl = [start, approach];
+    for (var k = 0; k <= 6; k++) {
+      var th = entry + k * Math.PI / 3;
+      ctrl.push([cx + R * Math.cos(th), cy + R * Math.sin(th)]);
+    }
+    var exit = [cx + (dest[0] - cx) * 0.5, cy + (dest[1] - cy) * 0.5 - lift * 0.5];
+    ctrl.push(exit, dest);
+    // Dense Catmull-Rom samples (16 per segment), then resample at
+    // equal arclength so the group moves at a steady speed.
+    var dense = [];
+    for (var i = 0; i < ctrl.length - 1; i++) {
+      var p0 = ctrl[Math.max(0, i - 1)], p1 = ctrl[i], p2 = ctrl[i + 1], p3 = ctrl[Math.min(ctrl.length - 1, i + 2)];
+      for (var s = 0; s < 16; s++) dense.push(catmullRom(p0, p1, p2, p3, s / 16));
+    }
+    dense.push(dest);
+    var cum = [0];
+    for (var j = 1; j < dense.length; j++) {
+      cum.push(cum[j - 1] + Math.hypot(dense[j][0] - dense[j - 1][0], dense[j][1] - dense[j - 1][1]));
+    }
+    var total = cum[cum.length - 1] || 1;
+    // The first loop point is ctrl[2]: the end of segment 1, dense
+    // index 32 (16 samples per segment).
+    var loopFraction = cum[Math.min(32, cum.length - 1)] / total;
+    var step = 14; // px between keyframes
+    var count = Math.max(2, Math.round(total / step));
+    var samples = [], idx = 0;
+    for (var n = 0; n <= count; n++) {
+      var target = total * n / count;
+      while (idx < cum.length - 2 && cum[idx + 1] < target) idx++;
+      var segLen = cum[idx + 1] - cum[idx] || 1;
+      var f = (target - cum[idx]) / segLen;
+      samples.push([dense[idx][0] + (dense[idx + 1][0] - dense[idx][0]) * f,
+        dense[idx][1] + (dense[idx + 1][1] - dense[idx][1]) * f]);
+    }
+    return { samples: samples, loopFraction: loopFraction };
+  }
+
+  /* One continuous spline flight: a single WAAPI animation along the
+   * sampled path, at full size and full opacity throughout. Returns
+   * { finished, loopDelay, duration } — loopDelay is when the group
+   * reaches the loop, so the caller can fire the landmark's burst
+   * then. The wrapper is left in place (still holding its final
+   * transform) so the caller can land the real objects from exactly
+   * where the flight left them. */
+  function flySpline(wrapper, start, waypointRect, dest, amount) {
+    var path = buildSplinePath(start, waypointRect, dest, amount);
+    var dur = reducedMotion() ? 180 : 1300;
+    var delay = 260; // the telegraph: the group glows in place first
+    if (!wrapper || !wrapper.animate) {
+      if (wrapper) wrapper.remove();
+      return { finished: Promise.resolve(), loopDelay: 0, duration: dur };
+    }
+    var frames = path.samples.map(function (p) {
+      return {
+        transform: 'translate(' + (p[0] - start[0]).toFixed(1) + 'px,' + (p[1] - start[1]).toFixed(1) + 'px) scale(1)',
+        opacity: 1
+      };
+    });
+    var anim = wrapper.animate(frames, { duration: dur, delay: delay, easing: 'linear', fill: 'forwards' });
+    return { finished: anim.finished.catch(function () {}), loopDelay: delay + path.loopFraction * dur, duration: dur };
   }
 
   /* A few sparkles trail behind a flying group, so the flight reads as
-   * magic in motion — only for the big moves; ones stay quiet. */
+   * magic in motion — only for the big moves; ones stay quiet. The
+   * sparkles sample the wrapper's position as it travels the spline,
+   * so they fall along the whole curve, not just the start. */
   function trailSparkles(wrappers) {
-    [0, 160, 320].forEach(function (delay) {
+    [0, 180, 360, 540, 720, 900].forEach(function (delay) {
       setTimeout(function () {
         wrappers.forEach(function (w) {
           if (!w || !w.isConnected) return;
@@ -768,48 +850,6 @@
     });
   }
 
-  /* ---------- waypoints: every move goes via a place the finger tapped ----------
-   * A move has a waypoint: the landmark that was tapped, or the Move
-   * button itself when that is what was tapped. The group flies to the
-   * waypoint, loops once all the way around it (~400ms — a real orbit,
-   * not a pass-through), bursts with that place's fx, then flies on to
-   * its destination slots at full size. The orbit starts at the top of
-   * the circle, so phase 1 aims at the circle's top, not the centre. */
-  function buttonWaypoint() {
-    return {
-      kind: 'button', el: moveBtn, name: 'Move button',
-      fx: ['✨', '⭐', '💛'], rect: moveBtn.getBoundingClientRect()
-    };
-  }
-
-  function orbitRadius(waypointRect) {
-    return waypointRect.height / 2 + 22;
-  }
-
-  function orbitLoop(wrapper, waypointRect) {
-    if (!wrapper || !wrapper.animate) return Promise.resolve();
-    var dur = reducedMotion() ? 100 : 400;
-    var baseLeft = parseFloat(wrapper.style.left) || 0;
-    var baseTop = parseFloat(wrapper.style.top) || 0;
-    var baseW = parseFloat(wrapper.style.width) || 0;
-    var baseH = parseFloat(wrapper.style.height) || 0;
-    var cx = waypointRect.left + waypointRect.width / 2;
-    var cy = waypointRect.top + waypointRect.height / 2;
-    var R = orbitRadius(waypointRect);
-    var bcx = baseLeft + baseW / 2, bcy = baseTop + baseH / 2;
-    var frames = [];
-    for (var k = 0; k <= 8; k++) {
-      var th = (-90 + k * 45) * Math.PI / 180;
-      frames.push({
-        transform: 'translate(' + (cx + R * Math.cos(th) - bcx).toFixed(1) + 'px,' +
-          (cy + R * Math.sin(th) - bcy).toFixed(1) + 'px) scale(1)',
-        opacity: 1
-      });
-    }
-    var anim = wrapper.animate(frames, { duration: dur, easing: 'linear', fill: 'forwards' });
-    return anim.finished.catch(function () {});
-  }
-
   function shockwaveIn(host, clientX, clientY) {
     var hr = host.getBoundingClientRect();
     var s = el('span', 'shockwave');
@@ -819,15 +859,17 @@
     setTimeout(function () { s.remove(); }, 650);
   }
 
-  /* The burst at the waypoint: the landmark's own fx (or sparkles for
-   * the Move button), a shockwave ring, and the landmark itself booms. */
+  /* The burst at the waypoint: the landmark's own fx, a shockwave
+   * ring, and the landmark itself booms. Bursts are hosted by the page
+   * (landmarks live in three different strips now), so they are
+   * positioned against the page, not one strip. */
   function waypointBurst(waypoint) {
     var cx = waypoint.rect.left + waypoint.rect.width / 2;
     var cy = waypoint.rect.top + waypoint.rect.height / 2;
-    var host = waypoint.kind === 'landmark' ? landscapeEl : moveBtn.parentElement;
+    var host = pageEl;
     burstAt(host, cx, cy, waypoint.fx, 'burst');
     shockwaveIn(host, cx, cy);
-    if (waypoint.kind === 'landmark' && waypoint.el) {
+    if (waypoint.el) {
       waypoint.el.classList.add('boom');
       setTimeout(function () { waypoint.el.classList.remove('boom'); }, 550);
     }
@@ -835,10 +877,10 @@
 
   /* ---------- one move ---------- */
   async function doMove(waypoint) {
-    if (animating || solved || stepIndex >= solution.moves.length) return;
-    waypoint = waypoint || buttonWaypoint();
-    if (animating || solved || stepIndex >= solution.moves.length) return;
+    // Landmarks are the only trigger: no button, no source tap.
+    if (!waypoint || animating || solved || stepIndex >= solution.moves.length) return;
     ensureAudioCtx();
+    var moveToken = ++flightToken;
     setPhase('moving');
     var amount = solution.moves[stepIndex];
     var srcSide = solution.sourceSide, dstSide = solution.destSide;
@@ -849,12 +891,11 @@
     // No announcement of the amount: the moving objects just light up in
     // place for a beat (the telegraph), then fly over. The counting
     // afterwards still names the new totals, tens then ones.
-    var TELEGRAPH = 260;
     try {
       var srcById = new Map($all('.obj', srcGrid).map(function (n) { return [Number(n.dataset.id), n]; }));
       moving.forEach(function (id) { var n = srcById.get(id); if (n) n.classList.add('speaking'); });
-      // The trigger lights up too — the landmark or the button.
-      (waypoint.el || moveBtn).classList.add('speaking');
+      // The trigger lights up too — the tapped landmark.
+      waypoint.el.classList.add('speaking');
       var nextPlan = window.AdditionLayout.plan(solution, stepIndex + 1);
       var targetRect = destSlotsRect(dstGrid, nextPlan[dstSide], moving);
       var wrap = liftObjects(srcGrid, amount, moving);
@@ -864,31 +905,26 @@
       // source's survivors close up. The moving objects are in the
       // wrapper, so the preview lays out only the survivors.
       layoutPools(true, stepIndex + 1);
-      // Phase 1: fly to the top of the loop around the waypoint.
-      var wrapW = wrap ? parseFloat(wrap.style.width) || 0 : 0;
-      var wrapH = wrap ? parseFloat(wrap.style.height) || 0 : 0;
-      var wcx = waypoint.rect.left + waypoint.rect.width / 2;
-      var wcy = waypoint.rect.top + waypoint.rect.height / 2;
-      var orbitTop = {
-        left: wcx - wrapW / 2, top: wcy - orbitRadius(waypoint.rect) - wrapH / 2,
-        width: wrapW, height: wrapH
-      };
-      var flight1 = flyTo(wrap, orbitTop, TELEGRAPH, amount);
+      // One continuous spline: source slots -> loop around the tapped
+      // landmark -> destination slots, a single animation at full size.
+      var wr = wrap ? wrap.getBoundingClientRect() : { left: 0, top: 0, width: 0, height: 0 };
+      var start = [wr.left + wr.width / 2, wr.top + wr.height / 2];
+      var dest = [targetRect.left + targetRect.width / 2, targetRect.top + targetRect.height / 2];
+      var flight = flySpline(wrap, start, waypoint.rect, dest, amount);
       whooshSound();
       if (amount >= 10) trailSparkles([wrap]);
-      await flight1;
-      // The loop: one full orbit around the thing the finger tapped,
-      // with sparkles trailing, then the burst with that place's fx.
       var status = $('#progress-status');
-      if (status) status.textContent = 'Looping around the ' + waypoint.name + '…';
-      trailSparkles([wrap]);
-      await orbitLoop(wrap, waypoint.rect);
-      waypointBurst(waypoint);
-      if (amount >= 10) boomSound(); else popSound();
-      vibrate(amount);
-      // Phase 2: on to the destination slots, still at full size.
-      var flight2 = flyTo(wrap, targetRect, 0, amount);
-      await flight2;
+      if (status) status.textContent = 'Flying around the ' + waypoint.name + '…';
+      // The burst fires as the group reaches the loop — mid-flight, not
+      // before it and not after it. Guarded by the move token: a newer
+      // move cancels a stale burst.
+      setTimeout(function () {
+        if (moveToken !== flightToken) return;
+        waypointBurst(waypoint);
+        if (amount >= 10) boomSound(); else popSound();
+        vibrate(amount);
+      }, flight.loopDelay);
+      await flight.finished;
       // The real objects arrive: move them into the destination pool.
       // Read their flight-end positions first — the wrapper still holds
       // its final transform — so the reflow below animates each object
@@ -940,9 +976,7 @@
       // the last short step from where the flight left them, and any
       // survivors the preview did not already move reflow now.
       await layoutPools(true);
-      renderMoveButton();
       renderMoved();
-      updateMovable();
       if (E.isSolved(st, solution)) {
         solved = true;
         setPhase('celebrating');
@@ -1050,8 +1084,6 @@
     renderWho();
     renderTotal();
     renderMoved();
-    renderMoveButton();
-    updateMovable();
     setPhase('ready');
     syncUrl();
     if (solution.moves.length === 0) {
@@ -1066,11 +1098,11 @@
     if (solution.a === solution.b) {
       setCaption([
         { cls: 'note', text: 'Same size! The ' + T.rightColor.toLowerCase() + ' ' + T.things + ' move over to the ' + T.leftColor.toLowerCase() + ' ones.' },
-        { cls: 'note', text: 'Tap a place on the map — or Move — tens first, then ones, until the smaller side is empty.' }
+        { cls: 'note', text: 'Tap a place on the map to move — tens first, then ones, until the smaller side is empty.' }
       ]);
     } else {
       setCaption([
-        { cls: 'note', text: 'Tap a place on the map — or Move — to send ' + E.describeMove(solution.moves[0]) + ' from the smaller side to the bigger side.' },
+        { cls: 'note', text: 'Tap a place on the map to send ' + E.describeMove(solution.moves[0]) + ' from the smaller side to the bigger side!' },
         { cls: 'note', text: 'The total never changes — when the smaller side is empty, the bigger side is the answer.' }
       ]);
     }
@@ -1097,7 +1129,6 @@
       renderSide('left', st.left, false);
       renderSide('right', st.right, false);
       layoutPools(false);
-      updateMovable();
     }
     store('theme', theme);
     if (solution) syncUrl();
@@ -1138,11 +1169,13 @@
     leftGrid = $('#left-grid'); rightGrid = $('#right-grid');
     leftSide = $('#side-left'); rightSide = $('#side-right');
     captionBar = $('#captions');
-    moveBtn = $('#move-btn');
     newMysteryBtn = $('#new-mystery');
     celebrateBanner = $('#celebrate-banner');
     cheerEl = $('#cheer');
-    landscapeEl = $('#landscape');
+    pageEl = $('.page');
+    skyEl = $('#sky');
+    midEl = $('#mid-map');
+    groundEl = $('#ground-map');
     movedTally = $('#moved-tally');
     totalBadge = $('#total-badge');
     leftSize = $('#left-size'); rightSize = $('#right-size');
@@ -1173,13 +1206,6 @@
         newProblem(parseInt(b.dataset.a, 10), parseInt(b.dataset.b, 10));
       });
     });
-    moveBtn.addEventListener('click', function () { doMove(); });
-    [leftGrid, rightGrid].forEach(function (grid) {
-      grid.addEventListener('click', function (e) {
-        var obj = e.target && e.target.closest ? e.target.closest('.obj') : null;
-        if (obj && obj.classList.contains('movable')) doMove();
-      });
-    });
     newMysteryBtn.addEventListener('click', function () { if (!animating && solved) newRandomProblem(); });
     window.addEventListener('resize', function () { if (!animating) layoutPools(false); });
     document.addEventListener('visibilitychange', function () { if (document.hidden) stopSpeech(); });
@@ -1203,6 +1229,13 @@
       window.speechSynthesis.onvoiceschanged = function () {};
     }
     if (soundOn) preloadClips();
+  }
+
+  /* Test hook: the rendered suite unit-tests the spline builder
+   * directly (same geometry for a ten and a one, arc and loop), and
+   * reads the recorded flight animations for the live path. */
+  if (typeof window !== 'undefined') {
+    window.AdditionQuestSpline = { buildSplinePath: buildSplinePath, loopRadius: loopRadius };
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

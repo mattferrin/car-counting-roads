@@ -49,6 +49,11 @@
 </svg>
 
 <div class="page">
+  <!-- The map circles the page now, not one band: a landmark rises
+       above the equation bar (sky), one hovers above the panels (mid),
+       and two sit on the ground below the panels — each where it fits,
+       never overlapping a panel, caption, or control. -->
+  <div class="map-strip sky-strip" id="sky" aria-label="A place above the game"></div>
   <header class="eqbar">
     <p class="world-line">Ayan's Car World · Addition Quest</p>
     <div class="equation" role="heading" aria-label="Addition problem">
@@ -70,6 +75,7 @@
 
   <main>
     <nav class="game-nav"><a href="index.html">← Back to test games</a></nav>
+    <div class="map-strip mid-strip" id="mid-map" aria-label="A place above the numbers"></div>
     <section class="quantities" aria-label="The two quantities">
       <div class="side left" id="side-left">
         <div class="who"><span class="dot"></span><span class="who-label">Blue cars</span><span class="size-badge" id="left-size">bigger</span></div>
@@ -86,17 +92,14 @@
       </div>
     </section>
 
-    <div class="move-row">
-      <button type="button" class="move-btn" id="move-btn">← Move one ten over</button>
-    </div>
     <p class="total-badge" id="total-badge">Total stays 73</p>
     <p class="moved" id="moved-tally" hidden></p>
     <p id="progress-status" role="status"></p>
 
-    <section class="landscape" id="landscape" aria-label="Addition places — tap one to send them over"></section>
+    <div class="map-strip ground-strip" id="ground-map" aria-label="Addition places — tap one to send them over"></div>
 
     <div class="caption-bar" id="captions" aria-live="polite">
-      <p class="line note">Tap a place on the map — or Move — to send from the smaller side to the bigger side.</p>
+      <p class="line note">Tap a place on the map to move!</p>
     </div>
 
     <details class="parents">
@@ -119,8 +122,8 @@
       <p><strong>How it works:</strong> every move transfers from the
       smaller side to the bigger side — complete tens first, then ones,
       one unit at a time. Tap a place on the map and the moving cars fly
-      there, loop once around it, then carry on to the bigger side — or
-      tap Move and they loop around the button itself. A ten lands on
+      there in one smooth swoop, loop once around it, then carry on to
+      the bigger side. A ten lands on
       top of the bigger side and the rows below slide down to make room.
       The ones always sit on the bottom row of each side, lined up with
       each other, so each one slides straight across to the next free
