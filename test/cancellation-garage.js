@@ -30,13 +30,13 @@
   doc.addEventListener('visibilitychange',()=>{if(doc.hidden)narrator.stop();});
   function routeGeometry(kind,n,side,slot){
     const g=E.geometry(max),left=side==='left';
-    let x=left?38:382,y,d;
+    let x=left?40:380,y,d;
     // Two nested U roads per side. The outer lane ends beyond the inner
     // lane at both ends, so connectors never cross. Entry/exit sit outside
     // the U roads. Buttons stay on their own road, above every hit area.
     if(kind==='entry'){
       y=g.top+(n===10?4:76);
-      d=n===10?`M16 ${y} H58 Q86 ${y} 86 ${y+28} V${g.top+48}`:`M16 ${y} H86`;
+      d=n===10?`M24 ${y} H58 Q86 ${y} 86 ${y+28} V${g.top+48}`:`M24 ${y} H86`;
     }else if(kind==='exit'){
       y=g.bottom+(n===10?-60:12);
       d=n===10?`M334 ${y} H404`:`M334 ${g.bottom-12} H348 Q360 ${g.bottom-12} 360 ${g.bottom} Q360 ${y} 372 ${y} H404`;
