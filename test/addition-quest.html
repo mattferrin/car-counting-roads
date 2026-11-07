@@ -10,7 +10,8 @@
      never mix a cached old file with a new one. Audio files are
      intentionally unversioned (63 shared clips; re-downloading them
      every deploy would be wasteful). -->
-<link rel="stylesheet" href="addition-quest.css?v=2">
+<link rel="stylesheet" href="addition-quest.css?v=5">
+<link rel="stylesheet" href="storybook.css?v=5">
 </head>
 <body data-theme="cars">
 <nav aria-label="Test version" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 18px;padding:10px 12px;background:#fff0bd;color:#403000;font:700 14px system-ui;text-align:center"><span>🧪 Test version · Daddy’s workshop</span><a href="../" style="display:inline-block;padding:10px 12px;border-radius:12px;background:white;color:#174b79">Play the stable games →</a></nav>
@@ -51,7 +52,7 @@
   </header>
 
   <!-- The celebration banner: big cheer + big New Mystery button, right
-       under the sticky equation bar — impossible to miss when solved. -->
+       under the equation bar — impossible to miss when solved. -->
   <div class="celebrate-banner" id="celebrate-banner" hidden>
     <p class="cheer" id="cheer" hidden></p>
     <button type="button" class="new-mystery" id="new-mystery" hidden disabled>✨ New Mystery</button>
@@ -143,9 +144,9 @@
   </footer>
 </div>
 
-<!-- ?v=2 on every script — bump together with the stylesheet on every deploy (see the cache-busting note in <head>). -->
-<script src="addition-engine.js?v=2"></script>
-<script src="addition-layout.js?v=2"></script>
-<script src="addition-quest.js?v=2"></script>
+<!-- ?v=5 on every script — bump together with the stylesheet on every deploy (see the cache-busting note in <head>). -->
+<script src="addition-engine.js?v=5"></script>
+<script src="addition-layout.js?v=5"></script>
+<script src="addition-quest.js?v=5"></script>
 </body>
 </html>

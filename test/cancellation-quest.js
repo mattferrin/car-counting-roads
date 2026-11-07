@@ -594,7 +594,7 @@
         b.type = 'button';
         b.dataset.landmark = lm.id;
         b.setAttribute('aria-label', lm.name + ' — tap here to cancel ' + THEMES[theme].things);
-        b.innerHTML = '<span class="art" aria-hidden="true">' + lm.art + '</span>' +
+        b.innerHTML = '<span class="art" aria-hidden="true">' + '<img src="art/landmarks/' + lm.id + '.png?v=5" width="28" height="28" alt="" draggable="false">' + '</span>' +
           '<span class="name">' + lm.name + '</span>' +
           '<span class="hint">' + lm.hint + '</span>';
         b.addEventListener('click', function () { onLandmark(b, lm); });

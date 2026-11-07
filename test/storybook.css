@@ -1,0 +1,47 @@
+/* Counting Worlds: shared visual skin. No object positioning or motion rules here.
+   Both Quest pages load this AFTER their game-specific CSS. */
+:root {
+  --world-paper: #fff9ec;
+  --world-ink: #294b58;
+  --world-blue: #1668d6;
+  --world-gold: #c98a04;
+  --world-teal: #0e7d8c;
+  --world-pink: #d63384;
+}
+body {
+  background: radial-gradient(ellipse at 10% 0%, #fff4c7 0%, transparent 42%),
+    linear-gradient(180deg, #b5ddec 0%, #dcebd6 48%, #a2c68c 100%);
+  background-attachment: fixed;
+}
+body[data-theme="mermaids"] {
+  --left: var(--world-teal);
+  --right: var(--world-pink);
+  background: radial-gradient(ellipse at 12% 0%, #d5f6ee 0%, transparent 48%),
+    linear-gradient(180deg, #94d7dc 0%, #68b5c4 56%, #e5d4a6 100%);
+  background-attachment: fixed;
+}
+.eqbar { background: #fffaf0; border: 1px solid #ffffff; box-shadow: 0 4px 18px #294b5818; }
+.eqbar .world-line { color: #45616a; letter-spacing: .02em; }
+.side { box-shadow: 0 4px 16px #294b5818; }
+.landmark { background: var(--world-paper); border: 2px solid #fffdf5;
+  box-shadow: 0 3px 0 #c4a975, 0 5px 12px #193f4920; }
+.landmark .art { display: grid; place-items: center; height: 28px; width: 28px; }
+.landmark .art img { display: block; width: 28px; height: 28px; border-radius: 8px; pointer-events: none; }
+.landmark .name { color: var(--world-ink); }
+body[data-theme="mermaids"] .landmark { background: #f6fcf5;
+  box-shadow: 0 3px 0 #8cbabc, 0 5px 12px #193f4920; }
+.landmark:focus-visible { outline: 3px solid #294b58; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .landmark.nudge { animation: none; } }
+
+/* ---- Theme toggle: one segmented control bar ----
+ * Both children keep their own colour in both states — a soft tint when
+ * selected, quiet when not — so the selected pill never clashes with
+ * its neighbour the way a solid fill did, and the icons are never
+ * inverted to white silhouettes. */
+.eqbar .toggles { display: inline-flex; gap: 2px; justify-content: center; flex-wrap: wrap; background: rgba(255,255,255,.65); border: 1px solid #eadfc8; border-radius: 999px; padding: 2px; }
+.pill.theme-pill { background: transparent; border: 2px solid transparent; color: #6b7a80; }
+.pill.theme-pill svg { filter: none; opacity: .65; }
+.pill.theme-pill[data-theme="cars"][aria-pressed="true"] { background: #dbeafe; border-color: #1668d6; color: #1668d6; }
+.pill.theme-pill[data-theme="mermaids"][aria-pressed="true"] { background: #d2f2f2; border-color: #0e7d8c; color: #0e7d8c; }
+.pill.theme-pill[aria-pressed="true"] svg { filter: none; opacity: 1; }
+.pill.sound { background: transparent; border: 2px solid transparent; color: #6b7a80; }
