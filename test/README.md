@@ -61,3 +61,32 @@ Checks:
 The UI suite simulates completion/error events; actual iOS voice/output latency
 still needs a device check. Both original game suites must also pass in root and
 `test/`. Only Cancellation Quest files and this README are changed.
+
+## Addition Quest
+
+An addition game for Ayan and Aliya, the sibling of Cancellation Quest:
+move the smaller side over to the bigger side — tens first, then ones —
+until the smaller side reaches zero, and what is left is the answer.
+The total never changes. Panels keep the problem's own order (left =
+first addend, right = second), so the move goes right-to-left for
+47+26 and left-to-right for 26+47. Every object is one real car/mermaid
+in rows of ten; a ten-move inserts a whole new row just above the
+destination's ones, and a one-move that fills the ones row regroups it
+into a new ten. The tap target is the central Move button (its arrow
+flips with the direction) or the glowing group in the smaller pool.
+No new voice clips: it reuses the Cancellation Quest recordings in
+`audio/`, with the same changed-place-only counting, per-fragment glow,
+and no pre-move amount announcement. The answer flies from the larger
+panel into the "?" and New Mystery appears only after completion.
+
+- Play: `addition-quest.html` (cars) or `addition-quest.html?theme=mermaids`
+- Try one: `addition-quest.html?a=47&b=26` (and `?a=26&b=47` for the mirror)
+- Run `node test/addition-quest.test.cjs` from the repository root.
+
+Checks:
+- `node test/addition-quest.test.cjs` (576,631 checks, exhaustive 0..100)
+- `node test/addition-layout.test.cjs` (83,861 states)
+- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-ui.test.cjs` (26 cases)
+
+Only Addition Quest files, `test/index.html` (one home-page card), and
+this README are changed. Production files are untouched.

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Addition Quest — Ayan &amp; Aliya's Counting Worlds (Test)</title>
+<meta name="description" content="An addition game for kids: move everything from the smaller side to the bigger side, tens first then ones, and watch what is left become the answer.">
+<link rel="stylesheet" href="addition-quest.css">
+</head>
+<body data-theme="cars">
+<!-- Inline SVG symbols: every car is one car, every mermaid is one mermaid.
+     No x10 badges anywhere: a group of ten is ten separate symbols in a row. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="car-blue" viewBox="0 0 44 26">
+      <rect x="3" y="11" width="38" height="9" rx="4.5" fill="#2f7fe0"/>
+      <path d="M12 11 L15 5 Q16 3.5 18 3.5 L27 3.5 Q29 3.5 30 5 L33 11 Z" fill="#2f7fe0"/>
+      <rect x="16.5" y="5.5" width="5" height="5" rx="1" fill="#cfeaff"/>
+      <rect x="23.5" y="5.5" width="5" height="5" rx="1" fill="#cfeaff"/>
+      <circle cx="13" cy="20" r="4" fill="#22303c"/><circle cx="13" cy="20" r="1.8" fill="#d7e3ef"/>
+      <circle cx="31" cy="20" r="4" fill="#22303c"/><circle cx="31" cy="20" r="1.8" fill="#d7e3ef"/>
+    </symbol>
+    <symbol id="car-gold" viewBox="0 0 44 26">
+      <rect x="3" y="11" width="38" height="9" rx="4.5" fill="#f2b705"/>
+      <path d="M12 11 L15 5 Q16 3.5 18 3.5 L27 3.5 Q29 3.5 30 5 L33 11 Z" fill="#f2b705"/>
+      <rect x="16.5" y="5.5" width="5" height="5" rx="1" fill="#fff3c4"/>
+      <rect x="23.5" y="5.5" width="5" height="5" rx="1" fill="#fff3c4"/>
+      <circle cx="13" cy="20" r="4" fill="#22303c"/><circle cx="13" cy="20" r="1.8" fill="#d7e3ef"/>
+      <circle cx="31" cy="20" r="4" fill="#22303c"/><circle cx="31" cy="20" r="1.8" fill="#d7e3ef"/>
+    </symbol>
+    <symbol id="mermaid-teal" viewBox="0 0 30 44">
+      <path d="M15 44 C8 35 6 29 9 22 L21 22 C24 29 22 35 15 44 Z" fill="#0e9aa8"/>
+      <path d="M11 22 L19 22 L18 16 L12 16 Z" fill="#ff8fb3"/>
+      <circle cx="15" cy="9" r="6.5" fill="#ffd9b3"/>
+      <path d="M8.5 9 C8.5 3 12 1 15 1 C18 1 21.5 3 21.5 9 C21.5 6.5 19 5 15 5 C11 5 8.5 6.5 8.5 9 Z" fill="#5b3a1e"/>
+      <circle cx="12.8" cy="9" r="0.9" fill="#22303c"/><circle cx="17.2" cy="9" r="0.9" fill="#22303c"/>
+      <path d="M13.5 12 Q15 13.2 16.5 12" stroke="#22303c" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="mermaid-pink" viewBox="0 0 30 44">
+      <path d="M15 44 C8 35 6 29 9 22 L21 22 C24 29 22 35 15 44 Z" fill="#e85a9b"/>
+      <path d="M11 22 L19 22 L18 16 L12 16 Z" fill="#7fe3d0"/>
+      <circle cx="15" cy="9" r="6.5" fill="#ffd9b3"/>
+      <path d="M8.5 9 C8.5 3 12 1 15 1 C18 1 21.5 3 21.5 9 C21.5 6.5 19 5 15 5 C11 5 8.5 6.5 8.5 9 Z" fill="#3a2a1e"/>
+      <circle cx="12.8" cy="9" r="0.9" fill="#22303c"/><circle cx="17.2" cy="9" r="0.9" fill="#22303c"/>
+      <path d="M13.5 12 Q15 13.2 16.5 12" stroke="#22303c" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="eqbar">
+    <p class="world-line">Ayan's Car World · Addition Quest</p>
+    <div class="equation" role="heading" aria-label="Addition problem">
+      <span id="eq-a">47</span><span class="op">+</span><span id="eq-b">26</span><span class="op">=</span><span class="q" id="eq-q">?</span>
+    </div>
+    <div class="toggles">
+      <button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true">🚗 Ayan</button>
+      <button type="button" class="pill theme-pill" data-theme="mermaids" aria-pressed="false">🧜‍♀️ Aliya</button>
+      <button type="button" class="pill sound" id="sound-toggle" aria-pressed="true">🔊 Sound on</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="quantities" aria-label="The two quantities">
+      <div class="side left" id="side-left">
+        <div class="who"><span class="dot"></span><span class="who-label">Blue cars</span><span class="size-badge" id="left-size">bigger</span></div>
+        <div class="bignum" id="left-num">47</div>
+        <p class="caption" id="left-cap">4 tens · 7 ones</p>
+        <div class="grid" id="left-grid"></div>
+      </div>
+      <div class="plus-badge" aria-hidden="true">+</div>
+      <div class="side right" id="side-right">
+        <div class="who"><span class="dot"></span><span class="who-label">Gold cars</span><span class="size-badge" id="right-size">smaller</span></div>
+        <div class="bignum" id="right-num">26</div>
+        <p class="caption" id="right-cap">2 tens · 6 ones</p>
+        <div class="grid" id="right-grid"></div>
+      </div>
+    </section>
+
+    <div class="move-row">
+      <button type="button" class="move-btn" id="move-btn">← Move one ten over</button>
+    </div>
+    <p class="total-badge" id="total-badge">Total stays 73</p>
+    <p class="moved" id="moved-tally" hidden></p>
+    <p id="progress-status" role="status"></p>
+
+    <section class="landscape" id="landscape" aria-label="Addition places"></section>
+
+    <div class="caption-bar" id="captions" aria-live="polite">
+      <p class="line note">Tap Move to move from the smaller side to the bigger side.</p>
+    </div>
+
+    <div class="celebrate">
+      <p class="cheer" id="cheer" hidden></p>
+      <button type="button" class="new-mystery" id="new-mystery" hidden disabled>✨ New Mystery</button>
+    </div>
+
+    <details class="parents">
+      <summary>🌱 For parents — problem size &amp; test problems</summary>
+      <div class="row">
+        <span class="lbl">How big?</span>
+        <button type="button" class="mini level-pill" data-level="easy" aria-pressed="true">Easy · up to 20</button>
+        <button type="button" class="mini level-pill" data-level="medium" aria-pressed="false">Medium · up to 50</button>
+        <button type="button" class="mini level-pill" data-level="big" aria-pressed="false">Big · up to 100</button>
+      </div>
+      <div class="row">
+        <span class="lbl">Try one:</span>
+        <button type="button" class="mini test-problem" data-a="47" data-b="26">47 + 26</button>
+        <button type="button" class="mini test-problem" data-a="69" data-b="4">69 + 4</button>
+        <button type="button" class="mini test-problem" data-a="26" data-b="47">26 + 47</button>
+        <button type="button" class="mini test-problem" data-a="30" data-b="30">30 + 30</button>
+        <button type="button" class="mini test-problem" data-a="9" data-b="5">9 + 5</button>
+        <button type="button" class="mini test-problem" data-a="100" data-b="47">100 + 47</button>
+      </div>
+      <p><strong>How it works:</strong> every move transfers from the
+      smaller side to the bigger side — complete tens first, then ones,
+      one unit at a time. The total never changes, so when the smaller
+      side reaches zero, what is left on the bigger side <em>is</em> the
+      answer. The panels keep the order of the problem (first number on
+      the left, second on the right), so the move goes left-to-right or
+      right-to-left depending on which side is smaller.</p>
+      <p><strong>Voices:</strong> after each move only the place that just
+      changed is counted — tens while tens are moving, then ones on their
+      own. The full count is always on screen, and the answer is spoken
+      in full (“The answer is seven tens, three ones!”). The two voices
+      (one per side) take turns. Sound starts after the first tap. You
+      can also open a problem directly,
+      e.g. <code>addition-quest.html?theme=mermaids&amp;a=47&amp;b=26</code></p>
+    </details>
+  </main>
+
+  <footer class="foot">
+    <p class="test-note">🧪 Test version — Addition Quest, the addition sibling of Cancellation Quest. Audio clips are shared with Cancellation Quest.</p>
+  </footer>
+</div>
+
+<script src="addition-engine.js"></script>
+<script src="addition-layout.js"></script>
+<script src="addition-quest.js"></script>
+</body>
+</html>
