@@ -1,5 +1,9 @@
 # Counting Worlds — continuation checkpoint (2026-11-07, final)
 
+## 2026-11-07 — Plus-one plate fix (on top of 71c6b04, ?v=14)
+
+Matt's bug: in the mermaid theme the +1 plate "doesn't work" — only taps near its top/right edge registered. Root cause (reproduced headlessly with `elementFromPoint`): `.route-sign{pointer-events:none}` made every plate dead; taps passed through to the bare SVG and nothing fired. Only taps clipping the `.road-hit` just above the plate worked. Fix in `test/counting-worlds.css` only: removed the `.route-sign{pointer-events:none}` rule (the label keeps its own `pointer-events:none`; no plate overlaps another route's hit area, checked across states). Also added `stroke-linejoin:round` to `.edge` — Matt's second note: the middle line of the road kinked sharply at the 90° turn; it now rounds the corner like the road band (solid in mermaids, dashed in cars). Verified: all 9 probe points on the +1 plate now hit entry/1, clicks at left/center/right move Blue 10→11 in both themes; all suites pass except the same 5 pre-existing failures. `?v` 13→14 on all five `index.html` refs together. Patch: `~/workspace/counting-worlds/plus1-fix.patch`.
+
 ## 2026-11-07 — Counting Play voice + roads (on top of e7db32b)
 
 Base: origin/main **e7db32b** (the ChatGPT "Integrate Mermaid Icon" session's HEAD). All changes below are LOCAL, UNCOMMITTED, UNPUBLISHED. Work only in test/. Root production byte-identical. Patch: `~/workspace/counting-worlds/voice-and-roads.patch` (6 files) — applies to a fresh e7db32b checkout.
