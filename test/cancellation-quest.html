@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cancellation Quest — Ayan &amp; Aliya's Counting Worlds (Test)</title>
+<meta name="description" content="A subtraction game for kids: cancel the same amount from both sides, count in tens and ones, and watch what is left become the answer.">
+<link rel="stylesheet" href="cancellation-quest.css">
+</head>
+<body data-theme="cars">
+<!-- Inline SVG symbols: every car is one car, every mermaid is one mermaid.
+     No x10 badges anywhere: a group of ten is ten separate symbols in a row. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="car-blue" viewBox="0 0 44 26">
+      <rect x="3" y="11" width="38" height="9" rx="4.5" fill="#2f7fe0"/>
+      <path d="M12 11 L15 5 Q16 3.5 18 3.5 L27 3.5 Q29 3.5 30 5 L33 11 Z" fill="#2f7fe0"/>
+      <rect x="16.5" y="5.5" width="5" height="5" rx="1" fill="#cfeaff"/>
+      <rect x="23.5" y="5.5" width="5" height="5" rx="1" fill="#cfeaff"/>
+      <circle cx="13" cy="20" r="4" fill="#22303c"/><circle cx="13" cy="20" r="1.8" fill="#d7e3ef"/>
+      <circle cx="31" cy="20" r="4" fill="#22303c"/><circle cx="31" cy="20" r="1.8" fill="#d7e3ef"/>
+    </symbol>
+    <symbol id="car-gold" viewBox="0 0 44 26">
+      <rect x="3" y="11" width="38" height="9" rx="4.5" fill="#f2b705"/>
+      <path d="M12 11 L15 5 Q16 3.5 18 3.5 L27 3.5 Q29 3.5 30 5 L33 11 Z" fill="#f2b705"/>
+      <rect x="16.5" y="5.5" width="5" height="5" rx="1" fill="#fff3c4"/>
+      <rect x="23.5" y="5.5" width="5" height="5" rx="1" fill="#fff3c4"/>
+      <circle cx="13" cy="20" r="4" fill="#22303c"/><circle cx="13" cy="20" r="1.8" fill="#d7e3ef"/>
+      <circle cx="31" cy="20" r="4" fill="#22303c"/><circle cx="31" cy="20" r="1.8" fill="#d7e3ef"/>
+    </symbol>
+    <symbol id="mermaid-teal" viewBox="0 0 30 44">
+      <path d="M15 44 C8 35 6 29 9 22 L21 22 C24 29 22 35 15 44 Z" fill="#0e9aa8"/>
+      <path d="M11 22 L19 22 L18 16 L12 16 Z" fill="#ff8fb3"/>
+      <circle cx="15" cy="9" r="6.5" fill="#ffd9b3"/>
+      <path d="M8.5 9 C8.5 3 12 1 15 1 C18 1 21.5 3 21.5 9 C21.5 6.5 19 5 15 5 C11 5 8.5 6.5 8.5 9 Z" fill="#5b3a1e"/>
+      <circle cx="12.8" cy="9" r="0.9" fill="#22303c"/><circle cx="17.2" cy="9" r="0.9" fill="#22303c"/>
+      <path d="M13.5 12 Q15 13.2 16.5 12" stroke="#22303c" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="mermaid-pink" viewBox="0 0 30 44">
+      <path d="M15 44 C8 35 6 29 9 22 L21 22 C24 29 22 35 15 44 Z" fill="#e85a9b"/>
+      <path d="M11 22 L19 22 L18 16 L12 16 Z" fill="#7fe3d0"/>
+      <circle cx="15" cy="9" r="6.5" fill="#ffd9b3"/>
+      <path d="M8.5 9 C8.5 3 12 1 15 1 C18 1 21.5 3 21.5 9 C21.5 6.5 19 5 15 5 C11 5 8.5 6.5 8.5 9 Z" fill="#3a2a1e"/>
+      <circle cx="12.8" cy="9" r="0.9" fill="#22303c"/><circle cx="17.2" cy="9" r="0.9" fill="#22303c"/>
+      <path d="M13.5 12 Q15 13.2 16.5 12" stroke="#22303c" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="eqbar">
+    <p class="world-line">Ayan's Car World · Cancellation Quest</p>
+    <div class="equation" role="heading" aria-label="Subtraction problem">
+      <span id="eq-a">84</span><span class="op">−</span><span id="eq-b">27</span><span class="op">=</span><span class="q" id="eq-q">?</span>
+    </div>
+    <div class="toggles">
+      <button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true">🚗 Ayan</button>
+      <button type="button" class="pill theme-pill" data-theme="mermaids" aria-pressed="false">🧜‍♀️ Aliya</button>
+      <button type="button" class="pill sound" id="sound-toggle" aria-pressed="true">🔊 Sound on</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="quantities" aria-label="The two quantities">
+      <div class="side left" id="side-left">
+        <div class="who"><span class="dot"></span>Ayan <small>· blue</small></div>
+        <div class="bignum" id="left-num">84</div>
+        <p class="caption" id="left-cap">8 tens · 4 ones</p>
+        <div class="grid" id="left-grid"></div>
+      </div>
+      <div class="minus-badge" aria-hidden="true">−</div>
+      <div class="side right" id="side-right">
+        <div class="who"><span class="dot"></span>Aliya <small>· gold</small></div>
+        <div class="bignum" id="right-num">27</div>
+        <p class="caption" id="right-cap">2 tens · 7 ones</p>
+        <div class="grid" id="right-grid"></div>
+      </div>
+    </section>
+
+    <section class="landscape" id="landscape" aria-label="Cancellation places — tap one to cancel"></section>
+
+    <p class="nextmove"><span class="chip" id="next-chip">Next: one ten from each side — tap a place!</span></p>
+
+    <div class="caption-bar" id="captions" aria-live="polite">
+      <p class="line note">Tap a place below to cancel from each side.</p>
+    </div>
+
+    <div class="celebrate">
+      <p class="cheer" id="cheer" hidden></p>
+      <button type="button" class="new-mystery" id="new-mystery">✨ New Mystery</button>
+    </div>
+
+    <details class="parents">
+      <summary>🌱 For parents — problem size &amp; test problems</summary>
+      <div class="row">
+        <span class="lbl">How big?</span>
+        <button type="button" class="mini level-pill" data-level="easy" aria-pressed="true">Easy · up to 20</button>
+        <button type="button" class="mini level-pill" data-level="medium" aria-pressed="false">Medium · up to 50</button>
+        <button type="button" class="mini level-pill" data-level="big" aria-pressed="false">Big · up to 100</button>
+      </div>
+      <div class="row">
+        <span class="lbl">Try one:</span>
+        <button type="button" class="mini test-problem" data-a="9" data-b="5">9 − 5</button>
+        <button type="button" class="mini test-problem" data-a="25" data-b="15">25 − 15</button>
+        <button type="button" class="mini test-problem" data-a="42" data-b="18">42 − 18</button>
+        <button type="button" class="mini test-problem" data-a="84" data-b="27">84 − 27</button>
+        <button type="button" class="mini test-problem" data-a="100" data-b="47">100 − 47</button>
+      </div>
+      <p><strong>How it works:</strong> every tap cancels the same amount from both
+      sides — hundreds first, then tens, then ones, one unit at a time. The
+      difference never changes, so when the second side reaches zero, what is
+      left on the first side <em>is</em> the answer.</p>
+      <p><strong>Voices:</strong> counts are spoken in tens and ones
+      (“eight tens, four ones”), not fused names like “eighty-four”, so the
+      counting pattern stays visible: six tens, five tens, four tens… then
+      ones count down on their own. The two voices (one per side) take turns.
+      Sound starts after the first tap. You can also open a problem directly,
+      e.g. <code>cancellation-quest.html?theme=mermaids&amp;a=84&amp;b=27</code></p>
+    </details>
+  </main>
+
+  <footer class="foot">
+    <a href="index.html">← Back to test games</a> ·
+    <a href="../">Stable games</a>
+    <p class="test-note">🧪 Test version — the stable car and mermaid games are unchanged.</p>
+  </footer>
+</div>
+
+<script src="cancellation-engine.js"></script>
+<script src="cancellation-quest.js"></script>
+</body>
+</html>
