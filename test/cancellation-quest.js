@@ -143,6 +143,7 @@
     } catch (e) {}
   }
   function popSound() { blip(520, 0.12, 'triangle', 0.09); setTimeout(function () { blip(760, 0.14, 'triangle', 0.07); }, 90); }
+  function boomSound() { blip(170, 0.3, 'sine', 0.12); setTimeout(function () { blip(95, 0.35, 'sine', 0.12); }, 110); popSound(); }
   function cheerSound() { [523, 659, 784, 1047].forEach(function (f, i) { setTimeout(function () { blip(f, 0.25, 'sine', 0.1); }, i * 130); }); }
 
   /* ---------- rendering ---------- */
@@ -298,34 +299,45 @@
     }
   }
 
-  /* Collect the last `amount` objects from a side, grouped by their row,
-   * and lift each group into a fixed wrapper at its current screen spot.
-   * Returns [{wrapper, nodes}]. The nodes are the REAL objects, so the
+  /* Lift the objects for one move. A move NEVER splits a row: a ten lifts
+   * one whole ten-row, a hundred lifts ten whole ten-rows, a one lifts a
+   * single object. The rows taken are the last complete rows, so the
+   * leftover ones stay put at the bottom and children see a whole group
+   * of ten leave — never a partial row here and a partial row there.
+   * (Always possible: a ten-move only happens while the side holds at
+   * least ten, a hundred-move while it holds at least a hundred.)
+   * Returns the fixed wrappers. The nodes are the REAL objects, so the
    * children watch the actual cars/mermaids leave — nothing teleports. */
   function liftObjects(grid, amount) {
-    var objs = $all('.obj', grid);
-    var take = objs.slice(-amount);
-    var groups = [];
-    take.forEach(function (obj) {
-      var row = obj.parentNode;
-      var g = groups[groups.length - 1];
-      if (!g || g.row !== row) { g = { row: row, nodes: [] }; groups.push(g); }
-      g.nodes.push(obj);
+    var wraps = [];
+    if (amount === 1) {
+      var objs = $all('.obj', grid);
+      var last = objs[objs.length - 1];
+      wraps.push(wrapNodes([last], last.parentNode));
+      return wraps;
+    }
+    var need = amount / 10; // 1 whole row for a ten, 10 for a hundred
+    var fullRows = $all('.ten-row', grid).filter(function (r) { return r.children.length === 10; });
+    fullRows.slice(-need).forEach(function (row) {
+      wraps.push(wrapNodes($all('.obj', row), row));
     });
-    return groups.map(function (g) {
-      var first = g.nodes[0].getBoundingClientRect();
-      var last = g.nodes[g.nodes.length - 1].getBoundingClientRect();
-      var wrap = el('div', 'flying flying-row');
-      wrap.style.left = first.left + 'px';
-      wrap.style.top = first.top + 'px';
-      wrap.style.width = (last.right - first.left) + 'px';
-      wrap.style.height = first.height + 'px';
-      wrap.style.gridTemplateColumns = 'repeat(' + g.nodes.length + ', 1fr)';
-      g.nodes.forEach(function (n) { wrap.appendChild(n); });
-      if (!g.row.hasChildNodes()) g.row.remove();
-      document.body.appendChild(wrap);
-      return wrap;
-    });
+    return wraps;
+  }
+
+  /* Move real nodes into a fixed wrapper at their current screen spot. */
+  function wrapNodes(nodes, row) {
+    var first = nodes[0].getBoundingClientRect();
+    var last = nodes[nodes.length - 1].getBoundingClientRect();
+    var wrap = el('div', 'flying flying-row');
+    wrap.style.left = first.left + 'px';
+    wrap.style.top = first.top + 'px';
+    wrap.style.width = (last.right - first.left) + 'px';
+    wrap.style.height = first.height + 'px';
+    wrap.style.gridTemplateColumns = 'repeat(' + nodes.length + ', 1fr)';
+    nodes.forEach(function (n) { wrap.appendChild(n); });
+    if (row && !row.hasChildNodes()) row.remove();
+    document.body.appendChild(wrap);
+    return wrap;
   }
 
   function flyTo(wrapper, targetRect, delay) {
@@ -341,6 +353,16 @@
     return anim.finished.catch(function () {}).then(function () { wrapper.remove(); });
   }
 
+  /* The collision: two whole rows meeting at the landmark explode into a
+   * double burst of the landmark's magic plus star-bursts, and the
+   * landmark itself thumps. Single objects keep the small burst above. */
+  function bigBurst(landmarkEl, lm) {
+    burst(landmarkEl, lm.fx.concat(['💥', '⭐', '💥']));
+    setTimeout(function () { burst(landmarkEl, ['💥', '✨', '⭐', '💥']); }, 130);
+    landmarkEl.classList.add('boom');
+    setTimeout(function () { landmarkEl.classList.remove('boom'); }, 550);
+  }
+
   /* ---------- one cancellation tap ---------- */
   function onLandmark(btn, lm) {
     if (animating || solved || stepIndex >= solution.moves.length) return;
@@ -352,14 +374,16 @@
     var leftWraps = liftObjects(leftGrid, amount);
     var rightWraps = liftObjects(rightGrid, amount);
     var flights = [];
-    leftWraps.concat(rightWraps).forEach(function (w, i) {
-      flights.push(flyTo(w, target, i * 90));
-    });
+    // Whole rows meet at the landmark: the left row leaves at once, the
+    // right row a beat later, so the two rows arrive together and collide.
+    // Single objects keep the gentle stagger they already had.
+    leftWraps.forEach(function (w) { flights.push(flyTo(w, target, 0)); });
+    rightWraps.forEach(function (w) { flights.push(flyTo(w, target, amount >= 10 ? 120 : 90)); });
     btn.classList.add('busy');
     setTimeout(function () { btn.classList.remove('busy'); }, 650);
     Promise.all(flights).then(function () {
-      burst(btn, lm.fx);
-      popSound();
+      if (amount >= 10) { bigBurst(btn, lm); boomSound(); }
+      else { burst(btn, lm.fx); popSound(); }
       stepIndex++;
       var st = solution.states[stepIndex];
       renderSide('left', st.left, true);
