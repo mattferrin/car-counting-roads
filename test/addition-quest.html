@@ -10,8 +10,8 @@
      never mix a cached old file with a new one. Audio files are
      intentionally unversioned (63 shared clips; re-downloading them
      every deploy would be wasteful). -->
-<link rel="stylesheet" href="addition-quest.css?v=5">
-<link rel="stylesheet" href="storybook.css?v=5">
+<link rel="stylesheet" href="addition-quest.css?v=6">
+<link rel="stylesheet" href="storybook.css?v=6">
 </head>
 <body data-theme="cars">
 <nav aria-label="Test version" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 18px;padding:10px 12px;background:#fff0bd;color:#403000;font:700 14px system-ui;text-align:center"><span>🧪 Test version · Daddy’s workshop</span><a href="../" style="display:inline-block;padding:10px 12px;border-radius:12px;background:white;color:#174b79">Play the stable games →</a></nav>
@@ -81,72 +81,35 @@
 
     <div class="landmark-strip below-strip" id="landmarks-below" aria-label="Places below the numbers — tap one to move"></div>
 
-    <!-- The status lines live BELOW the bottom strip, never between the
-         panels and a strip: the total badge, the moved tally and the
-         progress status used to sit between the panels and the below
-         strip and pushed it ~72px down the page (round 5). Cancellation
-         Quest puts its below strip immediately under the panels, and
-         Addition now matches it — the gap is just the strip's 10px
-         margin. Nothing is removed: the total is still shown, and the
-         progress line still reports each move. -->
-    <p class="total-badge" id="total-badge">Total stays 73</p>
+    <!-- Keep narration and move announcements available to assistive technology. -->
+    <div class="game-announcements">
+      <p class="total-badge" id="total-badge">Total stays 73</p>
     <p class="moved" id="moved-tally" hidden></p>
     <p id="progress-status" role="status"></p>
 
     <div class="caption-bar" id="captions" aria-live="polite">
       <p class="line note">Tap a place on the map to move!</p>
     </div>
-
-    <details class="parents">
-      <summary>🌱 For parents — problem size &amp; test problems</summary>
-      <div class="row">
-        <span class="lbl">How big?</span>
-        <button type="button" class="mini level-pill" data-level="easy" aria-pressed="true">Easy · up to 20</button>
-        <button type="button" class="mini level-pill" data-level="medium" aria-pressed="false">Medium · up to 50</button>
-        <button type="button" class="mini level-pill" data-level="big" aria-pressed="false">Big · up to 100</button>
-      </div>
-      <div class="row">
-        <span class="lbl">Try one:</span>
-        <button type="button" class="mini test-problem" data-a="47" data-b="26">47 + 26</button>
-        <button type="button" class="mini test-problem" data-a="69" data-b="4">69 + 4</button>
-        <button type="button" class="mini test-problem" data-a="26" data-b="47">26 + 47</button>
-        <button type="button" class="mini test-problem" data-a="30" data-b="30">30 + 30</button>
-        <button type="button" class="mini test-problem" data-a="9" data-b="5">9 + 5</button>
-        <button type="button" class="mini test-problem" data-a="100" data-b="47">100 + 47</button>
-      </div>
-      <p><strong>How it works:</strong> every move transfers from the
-      smaller side to the bigger side — complete tens first, then ones,
-      one unit at a time. Tap a place on the map and the moving cars fly
-      there in one smooth swoop, loop once around it, then carry on to
-      the bigger side. A ten lands on
-      top of the bigger side and the rows below slide down to make room.
-      The ones always sit on the bottom row of each side, lined up with
-      each other, so each one slides straight across to the next free
-      square. The total never changes, so when the smaller side reaches
-      zero, what is left on the bigger side <em>is</em> the answer. The
-      panels keep the order of the problem (first number on the left,
-      second on the right), so the move goes left-to-right or
-      right-to-left depending on which side is smaller.</p>
-      <p><strong>Voices:</strong> after each move only the place that just
-      changed is counted — tens while tens are moving, then ones on their
-      own. The full count is always on screen, and the answer is spoken
-      in full (“The answer is seven tens, three ones!”). The two voices
-      (one per side) take turns. Sound starts after the first tap. You
-      can also open a problem directly,
-      e.g. <code>addition-quest.html?theme=mermaids&amp;a=47&amp;b=26</code></p>
-    </details>
+    </div>
   </main>
 
-  <footer class="foot">
-    <a href="index.html">← Back to test games</a> ·
-    <a href="../">Stable games</a>
-    <p class="test-note">🧪 Test version — Addition Quest, the addition sibling of Cancellation Quest. Audio clips are shared with Cancellation Quest.</p>
+  <footer class="quest-footer">
+    <nav class="footer-nav" aria-label="Game navigation">
+      <a class="footer-home" href="index.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+        <span>All games</span>
+      </a>
+      <a class="footer-stable" href="../">
+        <span>Stable games</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
+      </a>
+    </nav>
   </footer>
 </div>
 
-<!-- ?v=5 on every script — bump together with the stylesheet on every deploy (see the cache-busting note in <head>). -->
-<script src="addition-engine.js?v=5"></script>
-<script src="addition-layout.js?v=5"></script>
-<script src="addition-quest.js?v=5"></script>
+<!-- ?v=6 on every script — bump together with the stylesheet on every deploy (see the cache-busting note in <head>). -->
+<script src="addition-engine.js?v=6"></script>
+<script src="addition-layout.js?v=6"></script>
+<script src="addition-quest.js?v=6"></script>
 </body>
 </html>
