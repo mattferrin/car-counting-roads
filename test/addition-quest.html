@@ -49,11 +49,6 @@
 </svg>
 
 <div class="page">
-  <!-- The map circles the page now, not one band: a landmark rises
-       above the equation bar (sky), one hovers above the panels (mid),
-       and two sit on the ground below the panels — each where it fits,
-       never overlapping a panel, caption, or control. -->
-  <div class="map-strip sky-strip" id="sky" aria-label="A place above the game"></div>
   <header class="eqbar">
     <p class="world-line">Ayan's Car World · Addition Quest</p>
     <div class="equation" role="heading" aria-label="Addition problem">
@@ -74,8 +69,10 @@
   </div>
 
   <main>
-    <nav class="game-nav"><a href="index.html">← Back to test games</a></nav>
-    <div class="map-strip mid-strip" id="mid-map" aria-label="A place above the numbers"></div>
+    <!-- Two compact landmark strips hugging the panels: four above,
+         four below. The back-home link lives in the footer now, so
+         nothing crowds the equation and the top strip. -->
+    <div class="landmark-strip above-strip" id="landmarks-above" aria-label="Places above the numbers — tap one to move"></div>
     <section class="quantities" aria-label="The two quantities">
       <div class="side left" id="side-left">
         <div class="who"><span class="dot"></span><span class="who-label">Blue cars</span><span class="size-badge" id="left-size">bigger</span></div>
@@ -96,7 +93,7 @@
     <p class="moved" id="moved-tally" hidden></p>
     <p id="progress-status" role="status"></p>
 
-    <div class="map-strip ground-strip" id="ground-map" aria-label="Addition places — tap one to send them over"></div>
+    <div class="landmark-strip below-strip" id="landmarks-below" aria-label="Places below the numbers — tap one to move"></div>
 
     <div class="caption-bar" id="captions" aria-live="polite">
       <p class="line note">Tap a place on the map to move!</p>

@@ -9,8 +9,8 @@
  * landmark performs the move, landmarks lock while a move is in flight,
  * the bigger/smaller badge size classes follow the numbers, the
  * celebration banner sits directly under the equation bar with the only
- * New Mystery button, and the nav (test banner, back-home nav, footer)
- * is the same as on every other test page.
+ * New Mystery button, and the nav (test banner, footer back-home link)
+ * is the same as on every other test page — no top game-nav row.
  */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -67,17 +67,19 @@ const E=require('./addition-engine');
   assert(!d.querySelector('.celebrate'), 'old bottom celebrate div removed');
   assert(d.querySelector('#celebrate-banner').hidden);
   // Navigation, same as every other test page: test banner up top with
-  // the stable-games escape, back-home nav + footer links.
+  // the stable-games escape, footer back-home link. No top game-nav
+  // row — the back link lives in the footer now.
   assert(d.querySelector('nav[aria-label="Test version"] a[href="../"]').textContent.includes('Play the stable games'));
-  assert.equal(d.querySelector('.game-nav a[href="index.html"]').textContent,'← Back to test games');
+  assert(!d.querySelector('.game-nav'), 'top game-nav removed');
   assert.equal(d.querySelector('.foot a[href="index.html"]').textContent,'← Back to test games');
   assert.equal(d.querySelector('.foot a[href="../"]').textContent,'Stable games');
   assert.equal(d.querySelectorAll('.eqbar .theme-pill').length,2);
   assert(d.querySelector('.eqbar #sound-toggle'), 'sound toggle in the equation bar');
-  // The map: four landmarks, cars theme, in page order — sky, mid, ground.
+  // The map: eight landmarks, cars theme, in page order — four above
+  // the panels, four below.
   const lms=[...d.querySelectorAll('.landmark')];
-  assert.equal(lms.length,4);
-  assert.deepEqual(lms.map(b=>b.querySelector('.name').textContent),['Castle','Magic Tree','Volcano','Car Wash']);
+  assert.equal(lms.length,8);
+  assert.deepEqual(lms.map(b=>b.querySelector('.name').textContent),['Castle','Magic Tree','Sunny Hill','Race Track','Volcano','Car Wash','Gas Station','Bridge']);
   for(let i=0;i<sol.moves.length;i++) {
    const lm=d.querySelector('[data-landmark="volcano"]');
    lm.click(); lm.click(); lm.click(); // rapid triple-tap must equal one move
@@ -247,10 +249,10 @@ const E=require('./addition-engine');
   // The next move is still a whole ten, found from the layout — the
   // objects no longer carry a .movable marker.
   assert.equal(t.w.AdditionLayout.movingIds(E.solve(47,26),1).length,10);
-  // Mermaid map: same four places, mermaid names, same page order.
+  // Mermaid map: same eight places, mermaid names, same page order.
   const mlms=[...d.querySelectorAll('.landmark')];
-  assert.equal(mlms.length,4);
-  assert.deepEqual(mlms.map(b=>b.querySelector('.name').textContent),['Palace','Whirlpool','Coral Reef','Giant Shell']);
+  assert.equal(mlms.length,8);
+  assert.deepEqual(mlms.map(b=>b.querySelector('.name').textContent),['Palace','Whirlpool','Turtle Rock','Dolphin Cove','Coral Reef','Giant Shell','Shipwreck','Treasure Chest']);
   checks++; t.close();
  }
  // --- Speech-failure recovery (mirror of Cancellation Quest) -----------------

@@ -29,10 +29,12 @@
  *     in the destination grid. A ten arcs higher on the approach than
  *     a one. The landmark's fx burst / shockwave fire as the group
  *     reaches the loop, and the landmark booms.
- *  5. Map spread: the four landmarks circle the page in three strips —
- *     one above the equation bar (sky), one above the panels (mid),
- *     two below the panels (ground) — spanning at least three
- *     x-quartiles and three vertical zones, not a row and not one band.
+ *  5. Map layout: eight landmarks in two compact strips hugging the
+ *     panels — four above, four below — as tight as possible. The
+ *     strips are flex rows, so the four cards share the width; the
+ *     arithmetic is checked from the stylesheet at iPhone portrait
+ *     (390px): four cards fit side by side with room to read their
+ *     names, and each strip stays short. No sky strip, no top nav.
  *  6. New Mystery banner: hidden until solved, then the big banner
  *     directly under the sticky equation bar holds the only New Mystery
  *     button, in both directions and both themes.
@@ -392,36 +394,51 @@ function flyingAnims(t) {
     assert.equal(+d.querySelector('#left-num').textContent, 68);
     checks++; t.close();
   }
-  // Map spread: the four landmarks circle the page in three strips —
-  // one above the equation bar (sky), one above the panels (mid), two
-  // below the panels (ground). Positions are declared in the stylesheet,
-  // so parse them there; zones are checked in the DOM.
+  // Map layout: two compact strips hugging the panels — four landmarks
+  // above, four below — 8 total per theme, as tight as possible. The
+  // strips are flex rows, so check the sizing arithmetic from the
+  // stylesheet at iPhone portrait (390px): four cards fit side by side
+  // with room to read their names, and each strip stays short. The sky
+  // strip above the equation bar and the top back-home nav are gone.
   {
-    const posRe = /\.(sky-strip|mid-strip|ground-strip)\s+\.landmark(?:\.pos-(\d))?\s*\{[^}]*?left:\s*([\d.]+)%[^}]*?top:\s*([\d.]+)px[^}]*\}/g;
-    const positions = [];
+    const stripRe = /\.(above-strip|below-strip)\s*\{[^}]*?background:/g;
+    const strips = new Set();
     let m;
-    while ((m = posRe.exec(CSS))) positions.push({ strip: m[1], pos: m[2] ? +m[2] : null, left: +m[3], top: +m[4] });
-    assert.equal(positions.length, 4, 'four landmark positions declared');
-    assert.equal(positions.filter(p => p.strip === 'sky-strip').length, 1, 'one landmark in the sky strip');
-    assert.equal(positions.filter(p => p.strip === 'mid-strip').length, 1, 'one landmark in the mid strip');
-    assert.equal(positions.filter(p => p.strip === 'ground-strip').length, 2, 'two landmarks on the ground');
-    const xQs = new Set(positions.map(p => Math.min(3, Math.floor(p.left / 25))));
-    assert(xQs.size >= 3, `landmarks span ${xQs.size} x-quartiles, expected >= 3`);
-    const groundH = /\.ground-strip\s*\{[^}]*?min-height:\s*([\d.]+)px/.exec(CSS);
-    assert(groundH && +groundH[1] >= 220, `ground strip is tall (${groundH && groundH[1]}px), room for a staggered pair`);
+    while ((m = stripRe.exec(CSS))) strips.add(m[1]);
+    assert.deepEqual([...strips].sort(), ['above-strip', 'below-strip'], 'exactly two landmark strips');
+    assert(!/\.sky-strip|\.mid-strip|\.ground-strip|\.map-strip/.test(CSS), 'no sky/mid/ground/map strip rules survive');
+    assert(!/\.game-nav\s*\{/.test(CSS), 'no top game-nav rule survives');
+    const stripFlex = /\.landmark-strip\s*\{[^}]*?display:\s*flex[^}]*?gap:\s*([\d.]+)px[^}]*?padding:\s*([\d.]+)px/.exec(CSS);
+    assert(stripFlex, 'landmark strip is a flex row with a gap and padding');
+    const gap = +stripFlex[1], pad = +stripFlex[2];
+    // iPhone portrait: content width = 390 - 2*12 page padding.
+    const cardW = (390 - 24 - 2 * pad - 3 * gap) / 4;
+    assert(cardW >= 80, `four cards fit at iPhone portrait: ${cardW.toFixed(1)}px each`);
+    // Strip height bound, from the stylesheet: art + up to two lines of
+    // name + up to two lines of hint + card gaps/padding + strip padding.
+    const art = +/\.landmark \.art\s*\{[^}]*?font-size:\s*([\d.]+)px/.exec(CSS)[1];
+    const name = +/\.landmark \.name\s*\{[^}]*?font-size:\s*([\d.]+)px/.exec(CSS)[1];
+    const hint = +/\.landmark \.hint\s*\{[^}]*?font-size:\s*([\d.]+)px/.exec(CSS)[1];
+    const stripH = 2 * pad + (5 + 6) + art + 2 * 1 + 2 * (name * 1.15) + 2 * (hint * 1.1);
+    assert(stripH <= 120, `each strip stays short: ~${stripH.toFixed(0)}px tall`);
     for (const theme of ['cars', 'mermaids']) {
       const t = boot(47, 26, theme), dd = t.w.document;
       await settle(t);
-      assert.equal(dd.querySelectorAll('.landmark').length, 4, `${theme}: four landmarks render`);
-      assert.equal(dd.querySelectorAll('#sky .landmark').length, 1, `${theme}: one landmark above the equation bar`);
-      assert.equal(dd.querySelectorAll('#mid-map .landmark').length, 1, `${theme}: one landmark above the panels`);
-      assert.equal(dd.querySelectorAll('#ground-map .landmark').length, 2, `${theme}: two landmarks below the panels`);
-      // DOM order: sky, equation bar, mid, panels, ground, captions.
-      const order = Array.from(dd.querySelectorAll('#sky, .eqbar, #mid-map, .quantities, #ground-map, .caption-bar'))
-        .map(n => n.id === 'sky' ? 'sky' : n.id === 'mid-map' ? 'mid-map' : n.id === 'ground-map' ? 'ground-map'
-          : n.id === 'captions' ? 'caption-bar' : n.classList.contains('eqbar') ? 'eqbar' : 'quantities');
-      assert.deepEqual(order, ['sky', 'eqbar', 'mid-map', 'quantities', 'ground-map', 'caption-bar'],
-        `${theme}: strips circle the page in order`);
+      assert.equal(dd.querySelectorAll('.landmark').length, 8, `${theme}: eight landmarks render`);
+      assert.equal(dd.querySelectorAll('#landmarks-above .landmark').length, 4, `${theme}: four landmarks above the panels`);
+      assert.equal(dd.querySelectorAll('#landmarks-below .landmark').length, 4, `${theme}: four landmarks below the panels`);
+      assert(!dd.querySelector('#sky, #mid-map, #ground-map, .map-strip, .game-nav'),
+        `${theme}: no sky/mid/ground strip and no top game-nav`);
+      // DOM order: equation bar, banner, above strip, panels, below
+      // strip, captions — the strips hug the panels.
+      const order = Array.from(dd.querySelectorAll('.eqbar, #celebrate-banner, #landmarks-above, .quantities, #landmarks-below, .caption-bar'))
+        .map(n => n.id === 'landmarks-above' ? 'above' : n.id === 'landmarks-below' ? 'below'
+          : n.id === 'celebrate-banner' ? 'banner' : n.id === 'captions' ? 'caption-bar'
+          : n.classList.contains('eqbar') ? 'eqbar' : 'quantities');
+      assert.deepEqual(order, ['eqbar', 'banner', 'above', 'quantities', 'below', 'caption-bar'],
+        `${theme}: strips hug the panels in order`);
+      // The back link lives in the footer now.
+      assert.equal(dd.querySelector('.foot a[href="index.html"]').textContent, '← Back to test games');
       t.close();
     }
     checks++;
@@ -438,5 +455,5 @@ function flyingAnims(t) {
       `same ${same[1]}px sits between smaller ${smaller[1]}px and bigger ${bigger[1]}px`);
     checks++;
   }
-  console.log(`Rendered: ${checks} cases passed; rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on .obj and no .movable left, one continuous spline flight per move (no jumps, genuine loop, fx burst at the loop, flatter one-move arc), landmarks circling the page in three strips, banner placement, badge sizes.`);
+  console.log(`Rendered: ${checks} cases passed; rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on .obj and no .movable left, one continuous spline flight per move (no jumps, genuine loop, fx burst at the loop, flatter one-move arc), eight landmarks in two compact strips hugging the panels, banner placement, badge sizes.`);
 })().catch(e => { console.error(e); process.exitCode = 1; });

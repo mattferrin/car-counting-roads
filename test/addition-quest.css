@@ -36,8 +36,8 @@ button { font-family: inherit; }
 button:focus-visible, summary:focus-visible { outline: 3px solid #ffbf47; outline-offset: 2px; }
 
 /* The page is the burst host: waypoint bursts can fire at a landmark
- * in any of the three map strips, so they are positioned against the
- * page, not one strip. */
+ * in either of the two landmark strips, so they are positioned against
+ * the page, not one strip. */
 .page { max-width: 600px; margin: 0 auto; padding: 10px 12px 40px; position: relative; }
 
 /* ---- Equation bar (sticky, always visible) ---- */
@@ -130,78 +130,47 @@ body[data-theme="mermaids"] .side.right .ten-row { border-color: rgba(214, 51, 1
 .flying.glow-one { box-shadow: 0 0 0 3px var(--ones), 0 0 22px rgba(232, 113, 10, .55); }
 .flying.glow-hun { box-shadow: 0 0 0 3px var(--huns), 0 0 22px rgba(124, 77, 255, .55); }
 
-/* ---- The map circles the page, not one band ----
- * Three strips where landmarks rise out of the page: one above the
- * equation bar (sky), one above the panels (mid), two on the ground
- * below the panels. Each strip is its own in-flow block, so a landmark
- * can never overlap a panel, a caption, or a control — and the sticky
- * equation bar only ever slides over the sky strip as it scrolls off,
- * the way any content above a sticky header does. The landmarks are
- * the only move trigger: they nudge on the first move, and the child
- * taps one to send the cars there.
- * Sky: the Castle / Palace rises at the very top. Mid: the Magic Tree /
- * Whirlpool hovers above the numbers, off-centre. Ground: the Volcano /
- * Coral Reef sits big and low on the left, the Car Wash / Giant Shell
- * low on the right. Dashed paths wind between the two ground places. */
-.map-strip {
-  position: relative; margin-top: 14px; border-radius: var(--radius);
-  box-shadow: var(--shadow); overflow: hidden;
+/* ---- Two compact landmark strips, one above and one below the panels ----
+ * Compactness is the point: the landmarks sit in two tight rows hugging
+ * the panels — four above, four below — instead of scattered around the
+ * page. Each strip is a flex row, so the four landmarks share the width
+ * evenly and nothing wraps awkwardly on iPhone portrait; the cards are
+ * small (34px art, 11px name) so the row stays short. The sky strip
+ * above the equation bar is gone (round 4). The landmarks are the only
+ * move trigger: they nudge on the first move, and the child taps one to
+ * send the cars there. Above is sky, below is grass (sea floor for
+ * mermaids). */
+.landmark-strip {
+  display: flex; gap: 6px; margin-top: 10px; border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 6px;
 }
-.sky-strip {
-  min-height: 124px;
+.above-strip {
   background: linear-gradient(#7ec8f7 0%, #bfe6ff 100%);
 }
-body[data-theme="mermaids"] .sky-strip {
+body[data-theme="mermaids"] .above-strip {
   background: linear-gradient(#0a6d99 0%, #1a8fb8 100%);
 }
-.mid-strip {
-  min-height: 124px;
-  background: linear-gradient(#cfeeff 0%, #a5d68a 100%);
+.below-strip {
+  background: linear-gradient(#8fce6e 0%, #6db95a 100%);
 }
-body[data-theme="mermaids"] .mid-strip {
-  background: linear-gradient(#3fb6d6 0%, #e8d29a 100%);
+body[data-theme="mermaids"] .below-strip {
+  background: linear-gradient(#1a8fb8 0%, #e8d29a 55%, #d9bd7a 100%);
 }
-.ground-strip {
-  min-height: 256px;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'%3E%3Cpath d='M36 62 C 170 150, 330 24, 566 96' fill='none' stroke='%23ffffff' stroke-opacity='.5' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3Cpath d='M44 262 C 210 182, 380 282, 564 204' fill='none' stroke='%23ffffff' stroke-opacity='.5' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat,
-    linear-gradient(#8fce6e 0%, #6db95a 100%);
-}
-body[data-theme="mermaids"] .ground-strip {
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'%3E%3Cpath d='M36 62 C 170 150, 330 24, 566 96' fill='none' stroke='%23ffffff' stroke-opacity='.45' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3Cpath d='M44 262 C 210 182, 380 282, 564 204' fill='none' stroke='%23ffffff' stroke-opacity='.45' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat,
-    linear-gradient(#1a8fb8 0%, #e8d29a 55%, #d9bd7a 100%);
-}
-.scenery { position: absolute; inset: 0; pointer-events: none; font-size: 26px; }
-.scenery span { position: absolute; animation: bob 5s ease-in-out infinite; }
-body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infinite; }
 .landmark {
-  position: absolute; z-index: 4; width: 92px; min-height: 104px;
-  background: rgba(255, 255, 255, .92); border: 3px solid #fff; border-radius: 20px;
-  box-shadow: var(--shadow); cursor: pointer; padding: 6px 4px 8px;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  flex: 1 1 0; min-width: 0; z-index: 4;
+  background: rgba(255, 255, 255, .92); border: 3px solid #fff; border-radius: 16px;
+  box-shadow: var(--shadow); cursor: pointer; padding: 5px 3px 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
   transition: transform .15s ease;
 }
 .landmark:active { transform: scale(.94); }
 .landmark:disabled { opacity: .55; cursor: default; }
-.landmark .art { font-size: 44px; line-height: 1; }
-.landmark .name { font-size: 13px; font-weight: 800; line-height: 1.1; }
-.landmark .hint { font-size: 11px; color: var(--soft-ink); font-weight: 600; line-height: 1.1; }
+.landmark .art { font-size: 34px; line-height: 1; }
+.landmark .name { font-size: 11px; font-weight: 800; line-height: 1.15; text-align: center; }
+.landmark .hint { font-size: 10px; color: var(--soft-ink); font-weight: 600; line-height: 1.1; text-align: center; }
 .landmark.nudge { animation: nudge 1.2s ease-in-out infinite; }
 .landmark.busy { animation: landmark-joy .6s ease; }
 .landmark.boom { animation: landmark-boom .5s ease; }
-/* One landmark per strip up top, two on the ground — staggered
- * across the page, not a row: sky left, mid off-centre, ground
- * low-left and low-right. The Volcano / Coral Reef is the biggest. */
-.sky-strip .landmark { left: 4%; top: 8px; width: 24%; }
-.mid-strip .landmark { left: 38%; top: 8px; width: 22%; }
-.ground-strip .landmark.pos-1 { left: 8%; top: 8px; width: 26%; }
-.ground-strip .landmark.pos-4 { left: 70%; top: 118px; width: 22%; }
-.ground-strip .ground-label {
-  position: absolute; left: 0; right: 0; bottom: 6px; text-align: center;
-  font-weight: 800; color: rgba(255, 255, 255, .95); text-shadow: 0 1px 3px rgba(0,0,0,.35);
-  font-size: 15px; pointer-events: none;
-}
 
 /* Next-move + caption */
 .nextmove { text-align: center; margin: 10px 0 0; }
@@ -312,8 +281,8 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
   * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 @media (min-width: 520px) {
-  .landmark { width: 104px; min-height: 112px; }
-  .landmark .art { font-size: 50px; }
+  /* Landmark widths are flex-driven now; only the art grows. */
+  .landmark .art { font-size: 42px; }
 }
 
 /* Shared, unboxed ten-column pools. No reconstruction between moves. */
@@ -346,10 +315,9 @@ button:disabled { cursor: default; }
 .side .who .size-badge.same { font-size: 14px; }
 .side.dest .who .size-badge { background: #e3f2e8; color: var(--good); }
 .side.source .who .size-badge { background: #fff3c4; color: #8a6d00; }
-/* Back-home nav, same on every test page: top of the content, same
- * wording, same white pill as the original game's game nav. */
-.game-nav { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; font-size: 12px; font-weight: 750; }
-.game-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 16px; background: white; text-decoration: none; color: var(--ink); }
+/* The top back-home nav is gone (round 4): the back link lives in the
+ * footer now, so nothing crowds the equation and the top strip. There
+ * is no .game-nav rule at all. */
 
 /* The Move button is gone (round 3): landmarks are the only move
  * trigger, so there is no .move-row / .move-btn rule at all. */
@@ -360,7 +328,7 @@ button:disabled { cursor: default; }
 }
 .moved { text-align: center; font-size: 14px; font-weight: 700; color: var(--soft-ink); margin: 6px 0 0; }
 main { text-align: center; }
-.quantities, .map-strip, .caption-bar, .parents, .celebrate-banner { text-align: left; }
+.quantities, .landmark-strip, .caption-bar, .parents, .celebrate-banner { text-align: left; }
 /* The objects themselves are no longer a tap target (round 3): the
  * landmarks carry the only move invite, with their nudge. There is no
  * .movable class anywhere now — and no transform animation may ever

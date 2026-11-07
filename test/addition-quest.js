@@ -36,15 +36,18 @@
       leftSym: 'car-blue', rightSym: 'car-gold',
       leftColor: 'Blue', rightColor: 'Gold',
       // Places on the map — the child taps one to send the cars there.
+      // Two compact strips hugging the panels: four above, four below.
+      // Each landmark carries its strip, so the builder just groups them.
       landmarks: [
-        { id: 'volcano', art: '🌋', name: 'Volcano', hint: 'poof in a puff!', fx: ['🔥', '⭐', '💥'] },
-        { id: 'castle', art: '🏰', name: 'Castle', hint: 'magic sparkles!', fx: ['✨', '💫', '⭐'] },
-        { id: 'tree', art: '🌳', name: 'Magic Tree', hint: 'swirling leaves!', fx: ['🍃', '🍂', '🌿'] },
-        { id: 'wash', art: '🫧', name: 'Car Wash', hint: 'bubbles pop!', fx: ['🫧', '💧', '✨'] }
-      ],
-      scenerySky: [['☀️', '78%', '6%'], ['☁️', '52%', '40%']],
-      sceneryMid: [['☁️', '8%', '18%'], ['🌼', '82%', '30%']],
-      sceneryGround: [['🚗', '44%', '52%']]
+        { id: 'castle', art: '🏰', name: 'Castle', hint: 'magic sparkles!', fx: ['✨', '💫', '⭐'], strip: 'above' },
+        { id: 'tree', art: '🌳', name: 'Magic Tree', hint: 'swirling leaves!', fx: ['🍃', '🍂', '🌿'], strip: 'above' },
+        { id: 'hill', art: '☀️', name: 'Sunny Hill', hint: 'sunny and warm!', fx: ['☀️', '🌼', '✨'], strip: 'above' },
+        { id: 'track', art: '🏁', name: 'Race Track', hint: 'zoom around!', fx: ['🏁', '💨', '⭐'], strip: 'above' },
+        { id: 'volcano', art: '🌋', name: 'Volcano', hint: 'poof in a puff!', fx: ['🔥', '⭐', '💥'], strip: 'below' },
+        { id: 'wash', art: '🫧', name: 'Car Wash', hint: 'bubbles pop!', fx: ['🫧', '💧', '✨'], strip: 'below' },
+        { id: 'station', art: '⛽', name: 'Gas Station', hint: 'fill up and go!', fx: ['⛽', '💛', '✨'], strip: 'below' },
+        { id: 'bridge', art: '🌉', name: 'Bridge', hint: 'over the river!', fx: ['🌉', '💧', '⭐'], strip: 'below' }
+      ]
     },
     mermaids: {
       label: "Aliya's Mermaid World", thing: 'mermaid', things: 'mermaids',
@@ -52,14 +55,15 @@
       emoji: '🧜‍♀️', // the same mermaid emoji as on Aliya's theme button
       leftColor: 'Teal', rightColor: 'Pink',
       landmarks: [
-        { id: 'reef', art: '🪸', name: 'Coral Reef', hint: 'bubbles bloom!', fx: ['🫧', '🪸', '✨'] },
-        { id: 'palace', art: '🏰', name: 'Palace', hint: 'pearl sparkles!', fx: ['✨', '🤍', '💫'] },
-        { id: 'whirlpool', art: '🌀', name: 'Whirlpool', hint: 'round and round!', fx: ['🌀', '💧', '🫧'] },
-        { id: 'shell', art: '🐚', name: 'Giant Shell', hint: 'a pearl pops out!', fx: ['🤍', '✨', '⭐'] }
-      ],
-      scenerySky: [['🐠', '78%', '8%'], ['🫧', '52%', '42%']],
-      sceneryMid: [['⭐', '8%', '20%'], ['🐢', '82%', '28%']],
-      sceneryGround: [['🐟', '44%', '52%']]
+        { id: 'palace', art: '🏰', name: 'Palace', hint: 'pearl sparkles!', fx: ['✨', '🤍', '💫'], strip: 'above' },
+        { id: 'whirlpool', art: '🌀', name: 'Whirlpool', hint: 'round and round!', fx: ['🌀', '💧', '🫧'], strip: 'above' },
+        { id: 'turtle', art: '🐢', name: 'Turtle Rock', hint: 'slow and steady!', fx: ['🐢', '⭐', '🫧'], strip: 'above' },
+        { id: 'cove', art: '🐬', name: 'Dolphin Cove', hint: 'dolphins jump!', fx: ['🐬', '💧', '✨'], strip: 'above' },
+        { id: 'reef', art: '🪸', name: 'Coral Reef', hint: 'bubbles bloom!', fx: ['🫧', '🪸', '✨'], strip: 'below' },
+        { id: 'shell', art: '🐚', name: 'Giant Shell', hint: 'a pearl pops out!', fx: ['🤍', '✨', '⭐'], strip: 'below' },
+        { id: 'wreck', art: '⚓', name: 'Shipwreck', hint: 'sunken treasure!', fx: ['⚓', '💰', '✨'], strip: 'below' },
+        { id: 'chest', art: '💰', name: 'Treasure Chest', hint: 'gold inside!', fx: ['💰', '✨', '⭐'], strip: 'below' }
+      ]
     }
   };
 
@@ -80,7 +84,7 @@
 
   var eqA, eqB, eqQ, leftNum, rightNum, leftCap, rightCap, leftGrid, rightGrid,
       leftSide, rightSide, captionBar, newMysteryBtn, cheerEl, celebrateBanner, pageEl,
-      skyEl, midEl, groundEl, movedTally, totalBadge, leftSize, rightSize;
+      aboveEl, belowEl, movedTally, totalBadge, leftSize, rightSize;
   var flightToken = 0;  // each move takes a token; a stale burst (from a
   // previous move's timer) checks it and stands down.
 
@@ -609,35 +613,26 @@
     return playPhrases([{ kind: 'girl', answer: true, frags: ['answer'].concat(fragmentsFor(answer, false)), text: 'The answer is ' + phrase + '!' }]);
   }
 
-  /* ---------- the map: scenery plus the four tappable places ----------
-   * The landmarks circle the page, one per open space: the Castle /
-   * Palace rises in the sky above the equation bar, the Magic Tree /
-   * Whirlpool hovers above the panels, off-centre, and the Volcano /
-   * Coral Reef and the Car Wash / Giant Shell sit on the ground below
-   * the panels — big and low on the left, low on the right. Tapping
-   * one IS the move: the cars fly there in one smooth swoop, loop
-   * around it, then carry on to the bigger side. Landmarks are the
-   * ONLY move trigger — there is no button and no source tap. */
+  /* ---------- the map: two compact strips of tappable places ----------
+   * Eight landmarks in two tight rows hugging the panels — four above,
+   * four below — instead of scattered around the page. Compactness is
+   * the point: the equation, the landmarks and the panels read as one
+   * tight display. Tapping one IS the move: the cars fly there in one
+   * smooth swoop, loop around it, then carry on to the bigger side.
+   * Landmarks are the ONLY move trigger — there is no button and no
+   * source tap. */
   function buildLandmarks() {
     var T = THEMES[theme];
-    // [strip, landmarks by index into T.landmarks, scenery]
+    // [strip element, landmarks whose strip matches]
     var zones = [
-      { el: skyEl, landmarks: [T.landmarks[1]], scenery: T.scenerySky },
-      { el: midEl, landmarks: [T.landmarks[2]], scenery: T.sceneryMid },
-      { el: groundEl, landmarks: [T.landmarks[0], T.landmarks[3]], scenery: T.sceneryGround }
+      { el: aboveEl, strip: 'above' },
+      { el: belowEl, strip: 'below' }
     ];
     zones.forEach(function (zone) {
       if (!zone.el) return;
       zone.el.innerHTML = '';
-      var scenery = el('div', 'scenery');
-      zone.scenery.forEach(function (s) {
-        var sp = el('span', null, s[0]);
-        sp.style.left = s[1]; sp.style.top = s[2];
-        scenery.appendChild(sp);
-      });
-      zone.el.appendChild(scenery);
-      zone.landmarks.forEach(function (lm) {
-        var b = el('button', 'landmark pos-' + (T.landmarks.indexOf(lm) + 1));
+      T.landmarks.filter(function (lm) { return lm.strip === zone.strip; }).forEach(function (lm) {
+        var b = el('button', 'landmark');
         b.type = 'button';
         b.dataset.landmark = lm.id;
         b.setAttribute('aria-label', lm.name + ' — tap here to send the ' + T.things + ' around!');
@@ -650,10 +645,6 @@
         zone.el.appendChild(b);
       });
     });
-    if (groundEl) {
-      var gl = el('div', 'ground-label', T.label + ' — tap a place to send them over!');
-      groundEl.appendChild(gl);
-    }
     updateControls();
   }
 
@@ -861,7 +852,7 @@
 
   /* The burst at the waypoint: the landmark's own fx, a shockwave
    * ring, and the landmark itself booms. Bursts are hosted by the page
-   * (landmarks live in three different strips now), so they are
+   * (landmarks live in two different strips now), so they are
    * positioned against the page, not one strip. */
   function waypointBurst(waypoint) {
     var cx = waypoint.rect.left + waypoint.rect.width / 2;
@@ -1173,9 +1164,8 @@
     celebrateBanner = $('#celebrate-banner');
     cheerEl = $('#cheer');
     pageEl = $('.page');
-    skyEl = $('#sky');
-    midEl = $('#mid-map');
-    groundEl = $('#ground-map');
+    aboveEl = $('#landmarks-above');
+    belowEl = $('#landmarks-below');
     movedTally = $('#moved-tally');
     totalBadge = $('#total-badge');
     leftSize = $('#left-size'); rightSize = $('#right-size');

@@ -1,13 +1,12 @@
 /* Cancellation Quest — map-layout tests.
  * Run:  NODE_PATH=~/workspace/cancellation-quest/node_modules node test/cancellation-map.test.cjs
  *
- * The landmarks are pins on a map now, not a staggered row: they circle
- * the page in three strips — one above the equation bar (sky), one
- * above the panels (mid), two below the panels (ground) — spanning at
- * least three x-quartiles and three vertical zones. And the re-layout
- * must not change the mechanics: tapping a landmark still cancels there
- * — the flight code reads each landmark's rect at tap time, so it is
- * position-agnostic. Also the nav (test banner, back-home nav, footer)
+ * The landmarks sit in two compact strips hugging the panels — four
+ * above, four below, 8 total per theme — as tight as possible, not
+ * scattered around the page and not one band. And the re-layout must
+ * not change the mechanics: tapping a landmark still cancels there —
+ * the flight code reads each landmark's rect at tap time, so it is
+ * position-agnostic. Also the nav (test banner, footer back-home link)
  * is the same as on every other test page, and the celebration banner
  * sits directly under the equation bar with the only New Mystery button.
  */
@@ -17,27 +16,33 @@ const {JSDOM} = require('jsdom');
 const path = require('node:path');
 const flush = async()=>{for(let i=0;i<12;i++)await new Promise(setImmediate)};
 
-/* ---------- map spread, read from the stylesheet ---------- */
-const CSS = fs.readFileSync(path.join(__dirname,'cancellation-quest.css'),'utf8');
+/* ---------- map layout, read from the stylesheet ---------- */
+const CSS = fs.readFileSync(path.join(__dirname,'cancellation-quest.css'),'utf8')
+  // Strip comments first: a comment mentioning a strip must not count.
+  .replace(/\/\*[\s\S]*?\*\//g, '');
 {
-  // One position rule per landmark, scoped to its strip: sky 1, mid 1,
-  // ground 2 — genuinely spread across the page, not a row, not one band.
-  const posRe = /\.(sky-strip|mid-strip|ground-strip)\s+\.landmark(?:\.pos-(\d))?\s*\{[^}]*?left:\s*([\d.]+)%[^}]*?top:\s*([\d.]+)px[^}]*\}/g;
-  const positions = [];
+  // Two flex-row strips, one above and one below the panels — four
+  // landmarks each, sharing the width. No sky/mid/ground strip rules.
+  const stripRe = /\.(above-strip|below-strip)\s*\{[^}]*?background:/g;
+  const strips = new Set();
   let m;
-  while ((m = posRe.exec(CSS))) positions.push({ strip: m[1], pos: m[2] ? +m[2] : null, left: +m[3], top: +m[4] });
-  assert.equal(positions.length, 4, 'four landmark positions declared');
-  assert.equal(positions.filter(p => p.strip === 'sky-strip').length, 1, 'one landmark in the sky strip');
-  assert.equal(positions.filter(p => p.strip === 'mid-strip').length, 1, 'one landmark in the mid strip');
-  assert.equal(positions.filter(p => p.strip === 'ground-strip').length, 2, 'two landmarks on the ground');
-  const xQs = new Set(positions.map(p => Math.min(3, Math.floor(p.left / 25))));
-  assert(xQs.size >= 3, `landmarks span ${xQs.size} x-quartiles, expected >= 3`);
-  const groundH = /\.ground-strip\s*\{[^}]*?min-height:\s*([\d.]+)px/.exec(CSS);
-  assert(groundH && +groundH[1] >= 220, `ground strip is tall (${groundH && groundH[1]}px), room for a staggered pair`);
-  // No two landmarks share the same x-band AND strip.
-  const bands = new Set(positions.map(p =>
-    `${Math.min(3, Math.floor(p.left / 25))},${p.strip}`));
-  assert.equal(bands.size, 4, 'all four landmarks sit in distinct strip/x-band combinations');
+  while ((m = stripRe.exec(CSS))) strips.add(m[1]);
+  assert.deepEqual([...strips].sort(), ['above-strip', 'below-strip'], 'exactly two landmark strips');
+  assert(!/\.sky-strip|\.mid-strip|\.ground-strip|\.map-strip/.test(CSS), 'no sky/mid/ground/map strip rules survive');
+  assert(!/\.game-nav\s*\{/.test(CSS), 'no top game-nav rule survives');
+  const stripFlex = /\.landmark-strip\s*\{[^}]*?display:\s*flex[^}]*?gap:\s*([\d.]+)px[^}]*?padding:\s*([\d.]+)px/.exec(CSS);
+  assert(stripFlex, 'landmark strip is a flex row with a gap and padding');
+  const gap = +stripFlex[1], pad = +stripFlex[2];
+  // iPhone portrait: content width = 390 - 2*12 page padding.
+  const cardW = (390 - 24 - 2 * pad - 3 * gap) / 4;
+  assert(cardW >= 80, `four cards fit at iPhone portrait: ${cardW.toFixed(1)}px each`);
+  // Strip height bound, from the stylesheet: art + up to two lines of
+  // name + up to two lines of hint + card gaps/padding + strip padding.
+  const art = +/\.landmark \.art\s*\{[^}]*?font-size:\s*([\d.]+)px/.exec(CSS)[1];
+  const name = +/\.landmark \.name\s*\{[^}]*?font-size:\s*([\d.]+)px/.exec(CSS)[1];
+  const hint = +/\.landmark \.hint\s*\{[^}]*?font-size:\s*([\d.]+)px/.exec(CSS)[1];
+  const stripH = 2 * pad + (5 + 6) + art + 2 * 1 + 2 * (name * 1.15) + 2 * (hint * 1.1);
+  assert(stripH <= 120, `each strip stays short: ~${stripH.toFixed(0)}px tall`);
 }
 
 /* ---------- jsdom boot (same harness as the UI suite) ---------- */
@@ -69,36 +74,40 @@ async function settle(t, errors = false) {
 
 (async () => {
   let checks = 0;
-  // Four landmarks render in both themes, with the same art/names as
-  // before — only the positions changed — one per strip up top, two on
-  // the ground, in page order sky, mid, ground.
+  // Eight landmarks render in both themes, with the same art/names as
+  // before for the original four plus four new ones — four above the
+  // panels, four below, in page order above, panels, below.
   for (const [theme, names] of [
-    ['cars', ['Castle','Magic Tree','Volcano','Car Wash']],
-    ['mermaids', ['Palace','Whirlpool','Coral Reef','Giant Shell']],
+    ['cars', ['Castle','Magic Tree','Sunny Hill','Race Track','Volcano','Car Wash','Gas Station','Bridge']],
+    ['mermaids', ['Palace','Whirlpool','Turtle Rock','Dolphin Cove','Coral Reef','Giant Shell','Shipwreck','Treasure Chest']],
   ]) {
     const t = boot(78, 35, theme), d = t.w.document;
     await settle(t);
     const lms = [...d.querySelectorAll('.landmark')];
-    assert.equal(lms.length, 4, `${theme}: four landmarks render`);
+    assert.equal(lms.length, 8, `${theme}: eight landmarks render`);
     assert.deepEqual(lms.map(b => b.querySelector('.name').textContent), names);
-    assert.equal(d.querySelectorAll('#sky .landmark').length, 1, `${theme}: one landmark above the equation bar`);
-    assert.equal(d.querySelectorAll('#mid-map .landmark').length, 1, `${theme}: one landmark above the panels`);
-    assert.equal(d.querySelectorAll('#ground-map .landmark').length, 2, `${theme}: two landmarks below the panels`);
-    // DOM order: sky, equation bar, mid, panels, ground, captions.
-    const order = Array.from(d.querySelectorAll('#sky, .eqbar, #mid-map, .quantities, #ground-map, .caption-bar'))
-      .map(n => n.id === 'sky' ? 'sky' : n.id === 'mid-map' ? 'mid-map' : n.id === 'ground-map' ? 'ground-map'
-        : n.id === 'captions' ? 'caption-bar' : n.classList.contains('eqbar') ? 'eqbar' : 'quantities');
-    assert.deepEqual(order, ['sky', 'eqbar', 'mid-map', 'quantities', 'ground-map', 'caption-bar'],
-      `${theme}: strips circle the page in order`);
+    assert.equal(d.querySelectorAll('#landmarks-above .landmark').length, 4, `${theme}: four landmarks above the panels`);
+    assert.equal(d.querySelectorAll('#landmarks-below .landmark').length, 4, `${theme}: four landmarks below the panels`);
+    assert(!d.querySelector('#sky, #mid-map, #ground-map, .map-strip, .game-nav'),
+      `${theme}: no sky/mid/ground strip and no top game-nav`);
+    // DOM order: equation bar, banner, above strip, panels, below
+    // strip, captions — the strips hug the panels.
+    const order = Array.from(d.querySelectorAll('.eqbar, #celebrate-banner, #landmarks-above, .quantities, #landmarks-below, .caption-bar'))
+      .map(n => n.id === 'landmarks-above' ? 'above' : n.id === 'landmarks-below' ? 'below'
+        : n.id === 'celebrate-banner' ? 'banner' : n.id === 'captions' ? 'caption-bar'
+        : n.classList.contains('eqbar') ? 'eqbar' : 'quantities');
+    assert.deepEqual(order, ['eqbar', 'banner', 'above', 'quantities', 'below', 'caption-bar'],
+      `${theme}: strips hug the panels in order`);
     // Celebration banner: directly under the equation bar, the only
     // New Mystery button, hidden until solved.
     assert(d.querySelector('.eqbar + #celebrate-banner'), 'celebration banner directly under the equation bar');
     assert.equal(d.querySelectorAll('#new-mystery').length, 1, 'exactly one New Mystery button');
     assert(!d.querySelector('.celebrate'), 'old bottom celebrate div removed');
     assert(d.querySelector('#celebrate-banner').hidden, 'banner hidden before completion');
-    // Navigation, same as every other test page.
+    // Navigation, same as every other test page: test banner up top,
+    // footer back-home link. No top game-nav row.
     assert(d.querySelector('nav[aria-label="Test version"] a[href="../"]').textContent.includes('Play the stable games'));
-    assert.equal(d.querySelector('.game-nav a[href="index.html"]').textContent, '← Back to test games');
+    assert(!d.querySelector('.game-nav'), 'top game-nav removed');
     assert.equal(d.querySelector('.foot a[href="index.html"]').textContent, '← Back to test games');
     assert.equal(d.querySelector('.foot a[href="../"]').textContent, 'Stable games');
     assert.equal(d.querySelectorAll('.eqbar .theme-pill').length, 2);
@@ -125,5 +134,5 @@ async function settle(t, errors = false) {
     assert.equal(+d.querySelector('#right-num').textContent, 15);
     t.close(); checks++;
   }
-  console.log(`Map: ${checks} cases passed; landmarks circle the page in three strips in both themes, banner sits under the equation bar, nav matches the other test pages, and tapping a landmark still cancels (mechanics untouched).`);
+  console.log(`Map: ${checks} cases passed; eight landmarks in two compact strips hugging the panels in both themes, banner sits under the equation bar, nav matches the other test pages, and tapping a landmark still cancels (mechanics untouched).`);
 })().catch(e => { console.error(e); process.exitCode = 1; });

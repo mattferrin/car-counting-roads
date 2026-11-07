@@ -59,18 +59,24 @@ Checks:
 - `NODE_PATH=/tmp/cq-test-deps/node_modules node test/cancellation-highlight.test.cjs`
 - `NODE_PATH=/tmp/cq-test-deps/node_modules node test/cancellation-map.test.cjs` (3 cases: map spread, nav, mechanics)
 
-Map layout (2026-11-06, round 3): the four landmarks circle the page
-now, not a staggered row and not one band — the Castle / Palace rises
-in the sky above the equation bar, the Magic Tree / Whirlpool hovers
-above the panels, and the Volcano / Coral Reef and the Car Wash / Giant
-Shell sit on the ground below the panels, with dashed paths winding
-between the two ground places. Only the positions changed (CSS + which
-strip each landmark is built into) and the scenery moved into each
-strip's open gaps; the mechanics are untouched — the flight code reads
-each landmark's rect at tap time, so it is position-agnostic, and the
-map test proves a tap still cancels there. Cancellation Quest's
-celebration is the same big banner Addition Quest has: directly under
-the sticky equation bar, the only New Mystery button on the page.
+Map layout (2026-11-06, round 4): eight landmarks in two compact
+strips hugging the panels — four above, four below — as tight as
+possible, not scattered around the page. The original four (Castle /
+Palace, Magic Tree / Whirlpool, Volcano / Coral Reef, Car Wash / Giant
+Shell) are joined by four new ones per theme — cars: Sunny Hill,
+Race Track, Gas Station, Bridge; mermaids: Turtle Rock, Dolphin Cove,
+Shipwreck, Treasure Chest — each with its own art, name, hint and fx.
+Each strip is a flex row, so the four cards share the width; the sky
+strip above the equation bar is gone, and so is the scenery that used
+to sit in the strips' open gaps. Only the positions changed (CSS + which
+strip each landmark is built into); the mechanics are untouched — the
+flight code reads each landmark's rect at tap time, so it is
+position-agnostic, and the map test proves a tap still cancels there.
+Cancellation Quest's celebration is the same big banner Addition Quest
+has: directly under the sticky equation bar, the only New Mystery
+button on the page. The top back-home nav row is gone too (round 4) —
+the back link lives in the footer now, so nothing crowds the equation
+and the top strip.
 
 The UI suite simulates completion/error events; actual iOS voice/output latency
 still needs a device check. Both original game suites must also pass in root and
@@ -91,11 +97,12 @@ the next free square. A ten-move inserts a whole new row at the top of
 the destination (y = 0) and the rows below slide down to make room; a
 one-move that fills the ones row regroups it into a new ten just above
 the ones row. Flights stay full-size into their slots — no shrinking
-or fading. The tap target is a place on the map — Castle, Magic Tree,
-Volcano, Car Wash (mermaids: Palace, Whirlpool, Coral Reef, Giant
-Shell) — circling the page: one above the equation bar, one above the
-panels, two on the ground below the panels. There is no Move button and
-no source tap — landmarks are the only move trigger. Whichever place is
+or fading. The tap target is a place on the map — eight of them, in
+two compact strips hugging the panels: Castle, Magic Tree, Sunny Hill,
+Race Track above, Volcano, Car Wash, Gas Station, Bridge below
+(mermaids: Palace, Whirlpool, Turtle Rock, Dolphin Cove above, Coral
+Reef, Giant Shell, Shipwreck, Treasure Chest below). There is no Move
+button and no source tap — landmarks are the only move trigger. Whichever place is
 tapped, the moving group flies there in one smooth continuous swoop — a
 single spline that loops once around the place as part of the same curve
 and flows on into the bigger side, bursting with that place's fx as it
@@ -128,7 +135,7 @@ Checks:
 - `node test/addition-quest.test.cjs` (576,631 checks, exhaustive 0..100)
 - `node test/addition-layout.test.cjs` (83,861 states)
 - `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-ui.test.cjs` (27 cases)
-- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-rendered.test.cjs` (59 cases: rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on `.obj` and no `.movable` left, one continuous spline flight per move with a genuine loop and an fx burst at the loop, landmarks circling the page in three strips, banner placement, badge sizes)
+- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-rendered.test.cjs` (59 cases: rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on `.obj` and no `.movable` left, one continuous spline flight per move with a genuine loop and an fx burst at the loop, eight landmarks in two compact strips hugging the panels, banner placement, badge sizes)
 
 Only Addition Quest files, `test/index.html` (one home-page card and the
 game-nav wording), and this README are changed. Production files are
@@ -142,10 +149,11 @@ so a child or parent moving between pages finds them without thinking:
 - **Test banner** (top of every page, same inline markup): "🧪 Test
   version · Daddy's workshop" + "Play the stable games →" (links to
   `../`). The banner is the stable-games escape everywhere.
-- **Back home** (top of the content, `nav.game-nav`): "← Back to test
-  games" → `index.html`. The original game's game-view link says the
-  same thing now ("⌂ Home" renamed). The two Quest pages also repeat
-  the back link in the footer.
+- **Back home** (footer): "← Back to test games" → `index.html`. The
+  top `nav.game-nav` row is gone (round 4) — the back link lives in
+  the footer on both Quest pages, alongside Stable games, so nothing
+  crowds the equation and the top strip. The original game's game-view
+  link still says the same thing in its own top nav.
 - **Footer** (Quest pages): "← Back to test games · Stable games" +
   the test note. The original game has no footer; its banner and
   game-nav carry both escapes.
@@ -173,7 +181,7 @@ The two themes are distinctive (sky vs sea, gold vs pink) but balanced:
 same white cards, same digit colours, same button and banner styles, no
 theme drastically darker or louder than the other. One-off colours that
 only existed on one page were removed; the remaining page-specific
-colours are the map-strip gradients and the page backgrounds above.
+colours are the landmark-strip gradients and the page backgrounds above.
 
 Left open for a follow-up (deliberately not done here): the original
 counting game's palette (`#1264a0` blue / `#885500` gold, light grass

@@ -32,14 +32,15 @@
       leftSym: 'car-blue', rightSym: 'car-gold',
       leftColor: 'Blue', rightColor: 'Gold',
       landmarks: [
-        { id: 'volcano', art: '🌋', name: 'Volcano', hint: 'poof in a puff!', fx: ['🔥', '⭐', '💥'] },
-        { id: 'castle', art: '🏰', name: 'Castle', hint: 'magic sparkles!', fx: ['✨', '💫', '⭐'] },
-        { id: 'tree', art: '🌳', name: 'Magic Tree', hint: 'swirling leaves!', fx: ['🍃', '🍂', '🌿'] },
-        { id: 'wash', art: '🫧', name: 'Car Wash', hint: 'bubbles pop!', fx: ['🫧', '💧', '✨'] }
-      ],
-      scenerySky: [['☀️', '80%', '6%'], ['☁️', '55%', '40%']],
-      sceneryMid: [['☁️', '8%', '18%'], ['🌼', '84%', '26%']],
-      sceneryGround: [['🚗', '44%', '55%']]
+        { id: 'castle', art: '🏰', name: 'Castle', hint: 'magic sparkles!', fx: ['✨', '💫', '⭐'], strip: 'above' },
+        { id: 'tree', art: '🌳', name: 'Magic Tree', hint: 'swirling leaves!', fx: ['🍃', '🍂', '🌿'], strip: 'above' },
+        { id: 'hill', art: '☀️', name: 'Sunny Hill', hint: 'sunny and warm!', fx: ['☀️', '🌼', '✨'], strip: 'above' },
+        { id: 'track', art: '🏁', name: 'Race Track', hint: 'zoom around!', fx: ['🏁', '💨', '⭐'], strip: 'above' },
+        { id: 'volcano', art: '🌋', name: 'Volcano', hint: 'poof in a puff!', fx: ['🔥', '⭐', '💥'], strip: 'below' },
+        { id: 'wash', art: '🫧', name: 'Car Wash', hint: 'bubbles pop!', fx: ['🫧', '💧', '✨'], strip: 'below' },
+        { id: 'station', art: '⛽', name: 'Gas Station', hint: 'fill up and go!', fx: ['⛽', '💛', '✨'], strip: 'below' },
+        { id: 'bridge', art: '🌉', name: 'Bridge', hint: 'over the river!', fx: ['🌉', '💧', '⭐'], strip: 'below' }
+      ]
     },
     mermaids: {
       label: "Aliya's Mermaid World", thing: 'mermaid', things: 'mermaids',
@@ -48,14 +49,15 @@
       emoji: '🧜‍♀️', // the same mermaid emoji as on Aliya's theme button
       leftColor: 'Teal', rightColor: 'Pink',
       landmarks: [
-        { id: 'reef', art: '🪸', name: 'Coral Reef', hint: 'bubbles bloom!', fx: ['🫧', '🪸', '✨'] },
-        { id: 'palace', art: '🏰', name: 'Palace', hint: 'pearl sparkles!', fx: ['✨', '🤍', '💫'] },
-        { id: 'whirlpool', art: '🌀', name: 'Whirlpool', hint: 'round and round!', fx: ['🌀', '💧', '🫧'] },
-        { id: 'shell', art: '🐚', name: 'Giant Shell', hint: 'a pearl pops out!', fx: ['🤍', '✨', '⭐'] }
-      ],
-      scenerySky: [['🐠', '80%', '8%'], ['🫧', '52%', '42%']],
-      sceneryMid: [['⭐', '8%', '20%'], ['🐢', '84%', '26%']],
-      sceneryGround: [['🐟', '44%', '55%']]
+        { id: 'palace', art: '🏰', name: 'Palace', hint: 'pearl sparkles!', fx: ['✨', '🤍', '💫'], strip: 'above' },
+        { id: 'whirlpool', art: '🌀', name: 'Whirlpool', hint: 'round and round!', fx: ['🌀', '💧', '🫧'], strip: 'above' },
+        { id: 'turtle', art: '🐢', name: 'Turtle Rock', hint: 'slow and steady!', fx: ['🐢', '⭐', '🫧'], strip: 'above' },
+        { id: 'cove', art: '🐬', name: 'Dolphin Cove', hint: 'dolphins jump!', fx: ['🐬', '💧', '✨'], strip: 'above' },
+        { id: 'reef', art: '🪸', name: 'Coral Reef', hint: 'bubbles bloom!', fx: ['🫧', '🪸', '✨'], strip: 'below' },
+        { id: 'shell', art: '🐚', name: 'Giant Shell', hint: 'a pearl pops out!', fx: ['🤍', '✨', '⭐'], strip: 'below' },
+        { id: 'wreck', art: '⚓', name: 'Shipwreck', hint: 'sunken treasure!', fx: ['⚓', '💰', '✨'], strip: 'below' },
+        { id: 'chest', art: '💰', name: 'Treasure Chest', hint: 'gold inside!', fx: ['💰', '✨', '⭐'], strip: 'below' }
+      ]
     }
   };
 
@@ -76,7 +78,7 @@
 
   var eqA, eqB, eqQ, leftNum, rightNum, leftCap, rightCap, leftGrid, rightGrid,
       leftSide, rightSide, captionBar, nextChip, newMysteryBtn, cheerEl, celebrateBanner,
-      pageEl, skyEl, midEl, groundEl, cancelledTally;
+      pageEl, aboveEl, belowEl, cancelledTally;
 
   /* ---------- voices: pre-recorded clips, two distinct voices ---------- */
   /* Counts are spoken from short recorded clips — one male voice for the
@@ -543,31 +545,22 @@
   }
 
   /* ---------- landmarks ----------
-   * The landmarks circle the page, one per open space: the Castle /
-   * Palace rises in the sky above the equation bar, the Magic Tree /
-   * Whirlpool hovers above the panels, off-centre, and the Volcano /
-   * Coral Reef and the Car Wash / Giant Shell sit on the ground below
-   * the panels — big and low on the left, low on the right. */
+   * Eight landmarks in two tight rows hugging the panels — four above,
+   * four below — instead of scattered around the page. Compactness is
+   * the point: the equation, the landmarks and the panels read as one
+   * tight display. */
   function buildLandmarks() {
     var T = THEMES[theme];
-    // [strip, landmarks by index into T.landmarks, scenery]
+    // [strip element, landmarks whose strip matches]
     var zones = [
-      { el: skyEl, landmarks: [T.landmarks[1]], scenery: T.scenerySky },
-      { el: midEl, landmarks: [T.landmarks[2]], scenery: T.sceneryMid },
-      { el: groundEl, landmarks: [T.landmarks[0], T.landmarks[3]], scenery: T.sceneryGround }
+      { el: aboveEl, strip: 'above' },
+      { el: belowEl, strip: 'below' }
     ];
     zones.forEach(function (zone) {
       if (!zone.el) return;
       zone.el.innerHTML = '';
-      var scenery = el('div', 'scenery');
-      zone.scenery.forEach(function (s) {
-        var sp = el('span', null, s[0]);
-        sp.style.left = s[1]; sp.style.top = s[2];
-        scenery.appendChild(sp);
-      });
-      zone.el.appendChild(scenery);
-      zone.landmarks.forEach(function (lm) {
-        var b = el('button', 'landmark pos-' + (T.landmarks.indexOf(lm) + 1));
+      T.landmarks.filter(function (lm) { return lm.strip === zone.strip; }).forEach(function (lm) {
+        var b = el('button', 'landmark');
         b.type = 'button';
         b.dataset.landmark = lm.id;
         b.setAttribute('aria-label', lm.name + ' — tap here to cancel ' + THEMES[theme].things);
@@ -578,10 +571,6 @@
         zone.el.appendChild(b);
       });
     });
-    if (groundEl) {
-      var gl = el('div', 'ground-label', T.label + ' — tap a place to cancel!');
-      groundEl.appendChild(gl);
-    }
     updateLandmarkState();
   }
 
@@ -595,7 +584,7 @@
   }
 
   function burst(landmarkEl, chars) {
-    // Collision bursts are hosted by the page (landmarks live in three
+    // Collision bursts are hosted by the page (landmarks live in two
     // different strips now), so they are positioned against the page.
     var host = pageEl;
     var r = landmarkEl.getBoundingClientRect();
@@ -962,9 +951,8 @@
     cheerEl = $('#cheer');
     celebrateBanner = $('#celebrate-banner');
     pageEl = $('.page');
-    skyEl = $('#sky');
-    midEl = $('#mid-map');
-    groundEl = $('#ground-map');
+    aboveEl = $('#landmarks-above');
+    belowEl = $('#landmarks-below');
     cancelledTally = $('#cancelled-tally');
 
     var specific = parseParams();
