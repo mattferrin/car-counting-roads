@@ -21,6 +21,19 @@
  *  4. Flight: the flying wrapper never scales below 1 and never fades,
  *     the one-move's arc lift is smaller than the ten-move's, and the
  *     arriving nodes keep their DOM identity in the destination grid.
+ *     Every move now has a waypoint (the tapped landmark or the Move
+ *     button): phase 1 flies to the top of a loop, phase 2 is one full
+ *     orbit around the waypoint (~400ms, 9 keyframes), the waypoint
+ *     bursts with its own fx, and phase 3 flies on to the destination
+ *     slots at full size.
+ *  5. Map spread: the four landmark positions span at least three
+ *     x-quartiles and both y-halves of the map — genuinely spread, not
+ *     a row — and four landmarks render in both themes.
+ *  6. New Mystery banner: hidden until solved, then the big banner
+ *     directly under the sticky equation bar holds the only New Mystery
+ *     button, in both directions and both themes.
+ *  7. Badge sizes: the bigger/smaller/same badge classes render at
+ *     18/12/14px — the word matches what it says.
  */
 'use strict';
 const assert = require('node:assert/strict');
@@ -161,6 +174,23 @@ function assertFullSizeFlight(frames, what) {
   assert(frames.every(f => f.opacity === 1 || f.opacity === undefined),
     `${what}: flight never fades`);
 }
+/* An orbit: 9 keyframes whose wrapper-centre points all sit on one
+ * circle of radius R around the waypoint centre, covering all four
+ * quadrants — a real visible loop, not a pass-through. */
+function assertOrbit(frames, cx, cy, R, what) {
+  assert.equal(frames.length, 9, `${what}: orbit has 9 keyframes`);
+  const pts = frames.map(translateOf);
+  pts.forEach(([x, y]) => {
+    const dist = Math.hypot(x - cx, y - cy);
+    assert(Math.abs(dist - R) < 1.5,
+      `${what}: orbit point (${x},${y}) is ${dist.toFixed(1)} from centre (${cx},${cy}), expected radius ${R}`);
+  });
+  const quads = new Set(pts.map(([x, y]) => (x >= cx ? 1 : 0) + (y >= cy ? 2 : 0)));
+  assert.equal(quads.size, 4, `${what}: orbit visits all four quadrants`);
+}
+function flyingAnims(t) {
+  return t.anims.filter(a => a.el.classList && a.el.classList.contains('flying'));
+}
 
 (async () => {
   let checks = 0;
@@ -170,6 +200,10 @@ function assertFullSizeFlight(frames, what) {
     await settle(t);
     const sol = E.solve(a, b);
     assertRendered(t, sol, 0); checks++;
+    // New Mystery banner: hidden until solved, in both directions and
+    // both themes.
+    assert(d.querySelector('#celebrate-banner').hidden, 'banner hidden before completion');
+    assert(d.querySelector('#new-mystery').hidden, 'New Mystery hidden before completion');
     for (let i = 0; i < sol.moves.length; i++) {
       d.querySelector('#move-btn').click();
       await settle(t);
@@ -178,6 +212,9 @@ function assertFullSizeFlight(frames, what) {
       assert.equal(+d.querySelector('#right-num').textContent, sol.states[i + 1].right);
     }
     assert.equal(d.querySelector('#eq-q').textContent, String(sol.answer));
+    assert.equal(d.querySelector('#celebrate-banner').hidden, false, 'banner shown after completion');
+    assert(d.querySelector('#celebrate-banner').classList.contains('show'));
+    assert.equal(d.querySelector('#new-mystery').hidden, false);
     t.close();
   }
   // One-move starts and ends on the same bottom row (47+26, step 2->3).
@@ -197,7 +234,8 @@ function assertFullSizeFlight(frames, what) {
     checks++; t.close();
   }
   // Flight: full-size, no fade; one-move arc flatter than ten-move arc;
-  // arrivals keep their DOM nodes.
+  // arrivals keep their DOM nodes. Every move is three phases now:
+  // phase 1 to the waypoint, the orbit loop, phase 2 to the slots.
   {
     const t = boot(47, 26), d = t.w.document;
     await settle(t);
@@ -206,11 +244,25 @@ function assertFullSizeFlight(frames, what) {
     t.anims.length = 0;
     d.querySelector('#move-btn').click();
     await flush();
-    const flyTen = t.anims.find(a => a.el.classList && a.el.classList.contains('flying'));
-    assert(flyTen, 'a flying wrapper animation was recorded for the ten-move');
-    assertFullSizeFlight(flyTen.kf, 'ten-move flight');
+    const flyTenAnims = flyingAnims(t);
+    assert.equal(flyTenAnims.length, 3, 'ten-move via Move button: phase 1, orbit, phase 2');
+    assertFullSizeFlight(flyTenAnims[0].kf, 'ten-move phase 1');
+    // The Move button's rect is all-zero in jsdom, so its orbit is a
+    // 22px circle around the origin — still a real full loop.
+    assertOrbit(flyTenAnims[1].kf, 0, 0, 22, 'move-button orbit');
+    const p1end = translateOf(flyTenAnims[0].kf[2]);
+    const oStart = translateOf(flyTenAnims[1].kf[0]);
+    assert(Math.abs(p1end[0] - oStart[0]) < 1 && Math.abs(p1end[1] - oStart[1]) < 1,
+      'phase 1 flows into the orbit without a jump');
+    const flyTen = flyTenAnims[2];
+    assertFullSizeFlight(flyTen.kf, 'ten-move phase 2');
     const liftTen = liftOf(flyTen.kf);
     assert(liftTen > 0, 'ten-move flight arcs');
+    // The Move-button waypoint bursts sparkles into the move row.
+    const btnBursts = Array.from(d.querySelectorAll('.move-row .burst'));
+    assert(btnBursts.length === 14, 'Move-button waypoint bursts 14 sparkles');
+    assert(btnBursts.some(s => s.textContent === '✨'), 'Move-button burst is sparkles');
+    assert(d.querySelector('.move-row .shockwave'), 'Move-button waypoint has a shockwave ring');
     await settle(t);
     tenNodes.forEach(n => assert.equal(n.parentElement.id, 'left-grid',
       'arrived ten node kept its identity in the dest grid'));
@@ -221,9 +273,11 @@ function assertFullSizeFlight(frames, what) {
     t.anims.length = 0;
     d.querySelector('#move-btn').click();
     await flush();
-    const flyOne = t.anims.find(a => a.el.classList && a.el.classList.contains('flying'));
-    assert(flyOne, 'a flying wrapper animation was recorded for the one-move');
-    assertFullSizeFlight(flyOne.kf, 'one-move flight');
+    const flyOneAnims = flyingAnims(t);
+    assert.equal(flyOneAnims.length, 3, 'one-move via Move button: phase 1, orbit, phase 2');
+    assertOrbit(flyOneAnims[1].kf, 0, 0, 22, 'one-move move-button orbit');
+    const flyOne = flyOneAnims[2];
+    assertFullSizeFlight(flyOne.kf, 'one-move phase 2');
     const liftOne = liftOf(flyOne.kf);
     assert(liftOne > 0 && liftOne < liftTen,
       `one-move arc (${liftOne}) is flatter than ten-move arc (${liftTen})`);
@@ -232,5 +286,107 @@ function assertFullSizeFlight(frames, what) {
     assert.equal(+d.querySelector('#left-num').textContent, 68);
     checks++; t.close();
   }
-  console.log(`Rendered: ${checks} cases passed; rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on .obj, full-size flights with flatter one-move arcs.`);
+  // Ten-move via a tapped landmark (Volcano): the flight visits the
+  // landmark, loops around it, bursts with its fx, then lands full-size.
+  {
+    const t = boot(47, 26), d = t.w.document;
+    await settle(t);
+    const volc = d.querySelector('[data-landmark="volcano"]');
+    assert(volc, 'Volcano landmark renders');
+    volc.getBoundingClientRect = () => ({
+      left: 300, top: 600, width: 92, height: 104,
+      right: 392, bottom: 704, x: 300, y: 600, toJSON: () => ({}),
+    });
+    const tenNodes = Array.from(d.querySelectorAll('#right-grid .obj.movable'));
+    t.anims.length = 0;
+    volc.click();
+    await flush();
+    const flyAnims = flyingAnims(t);
+    assert.equal(flyAnims.length, 3, 'landmark ten-move: phase 1, orbit, phase 2');
+    assertFullSizeFlight(flyAnims[0].kf, 'landmark ten-move phase 1');
+    assertFullSizeFlight(flyAnims[2].kf, 'landmark ten-move phase 2');
+    // The orbit circles the Volcano's centre (346, 652) at radius
+    // 104/2 + 22 = 74 — the flight really visits the tapped place.
+    assertOrbit(flyAnims[1].kf, 346, 652, 74, 'volcano orbit');
+    const p1end = translateOf(flyAnims[0].kf[2]);
+    const oStart = translateOf(flyAnims[1].kf[0]);
+    assert(Math.abs(p1end[0] - oStart[0]) < 1 && Math.abs(p1end[1] - oStart[1]) < 1,
+      'phase 1 flows into the Volcano orbit without a jump');
+    // The waypoint bursts with the Volcano's own fx and the landmark booms.
+    const bursts = Array.from(d.querySelectorAll('#landscape .burst'));
+    assert(bursts.length === 14, 'Volcano waypoint bursts 14 sparks');
+    assert(bursts.some(s => s.textContent === '🔥'), 'Volcano burst carries fire');
+    assert(d.querySelector('#landscape .shockwave'), 'Volcano waypoint has a shockwave ring');
+    assert(volc.classList.contains('boom'), 'Volcano booms at the waypoint');
+    await settle(t);
+    tenNodes.forEach(n => assert.equal(n.parentElement.id, 'left-grid',
+      'landmark ten-move arrivals kept their identity'));
+    assert.equal(+d.querySelector('#left-num').textContent, 57);
+    assert.equal(+d.querySelector('#right-num').textContent, 16);
+    checks++; t.close();
+  }
+  // One-move via a tapped landmark (Car Wash): same three phases, and
+  // the one still lands in the next free ones square.
+  {
+    const t = boot(47, 26), d = t.w.document;
+    await settle(t);
+    for (let i = 0; i < 2; i++) { d.querySelector('#move-btn').click(); await settle(t); }
+    const wash = d.querySelector('[data-landmark="wash"]');
+    wash.getBoundingClientRect = () => ({
+      left: 440, top: 700, width: 84, height: 100,
+      right: 524, bottom: 800, x: 440, y: 700, toJSON: () => ({}),
+    });
+    const oneNode = d.querySelector('#right-grid .obj.movable');
+    assert(oneNode, 'a movable one exists');
+    t.anims.length = 0;
+    wash.click();
+    await flush();
+    const flyAnims = flyingAnims(t);
+    assert.equal(flyAnims.length, 3, 'landmark one-move: phase 1, orbit, phase 2');
+    assertFullSizeFlight(flyAnims[2].kf, 'landmark one-move phase 2');
+    assertOrbit(flyAnims[1].kf, 482, 750, 72, 'car wash orbit');
+    const bursts = Array.from(d.querySelectorAll('#landscape .burst'));
+    assert(bursts.some(s => s.textContent === '🫧'), 'Car Wash burst carries bubbles');
+    await settle(t);
+    assert.equal(oneNode.parentElement.id, 'left-grid', 'landmark one-move arrival kept its identity');
+    assert.equal(+d.querySelector('#left-num').textContent, 68);
+    checks++; t.close();
+  }
+  // Map spread: the four landmark positions span at least three
+  // x-quartiles and both y-halves of the map — genuinely spread, not a
+  // row. Positions are declared in the stylesheet, so parse them there.
+  {
+    const posRe = /\.landmark\.pos-(\d)\s*\{[^}]*?left:\s*([\d.]+)%[^}]*?top:\s*([\d.]+)px[^}]*\}/g;
+    const positions = [];
+    let m;
+    while ((m = posRe.exec(CSS))) positions.push({ n: +m[1], left: +m[2], top: +m[3] });
+    assert.equal(positions.length, 4, 'four landmark positions declared');
+    const mapH = /\.landscape\s*\{[^}]*?min-height:\s*([\d.]+)px/.exec(CSS);
+    assert(mapH, 'landscape min-height declared');
+    const H = +mapH[1];
+    const xQs = new Set(positions.map(p => Math.min(3, Math.floor(p.left / 25))));
+    const yHs = new Set(positions.map(p => ((p.top + 56) / H) < 0.5 ? 0 : 1));
+    assert(xQs.size >= 3, `landmarks span ${xQs.size} x-quartiles, expected >= 3`);
+    assert(yHs.size >= 2, 'landmarks span both y-halves');
+    for (const theme of ['cars', 'mermaids']) {
+      const t = boot(47, 26, theme), dd = t.w.document;
+      await settle(t);
+      assert.equal(dd.querySelectorAll('.landmark').length, 4, `${theme}: four landmarks render`);
+      t.close();
+    }
+    checks++;
+  }
+  // Badge sizes: the word matches what it says — bigger is bigger.
+  {
+    const bigger = /\.size-badge\.bigger\s*\{[^}]*?font-size:\s*([\d.]+)px/.exec(CSS);
+    const smaller = /\.size-badge\.smaller\s*\{[^}]*?font-size:\s*([\d.]+)px/.exec(CSS);
+    const same = /\.size-badge\.same\s*\{[^}]*?font-size:\s*([\d.]+)px/.exec(CSS);
+    assert(bigger && smaller && same, 'badge size classes declared in the stylesheet');
+    assert(+bigger[1] >= 17 && +smaller[1] <= 12,
+      `bigger ${bigger[1]}px vs smaller ${smaller[1]}px — unmistakably different`);
+    assert(+smaller[1] < +same[1] && +same[1] < +bigger[1],
+      `same ${same[1]}px sits between smaller ${smaller[1]}px and bigger ${bigger[1]}px`);
+    checks++;
+  }
+  console.log(`Rendered: ${checks} cases passed; rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on .obj, full-size three-phase flights (waypoint visit, full orbit, fx burst) with flatter one-move arcs, map spread, banner placement, badge sizes.`);
 })().catch(e => { console.error(e); process.exitCode = 1; });

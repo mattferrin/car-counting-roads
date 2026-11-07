@@ -4,7 +4,12 @@
  * rapid-tap locking, New Mystery gating, theme switching, the equal and
  * zero cases, regrouping in both directions, tapping the glowing source
  * group, captions in tens/ones words only, no pre-move amount
- * announcement, and speech-failure recovery.
+ * announcement, and speech-failure recovery. Also the map: tapping a
+ * landmark performs the move, landmarks lock while a move is in flight,
+ * the bigger/smaller badge size classes follow the numbers, the
+ * celebration banner sits directly under the equation bar with the only
+ * New Mystery button, and the nav (test banner, back-home nav, footer)
+ * is the same as on every other test page.
  */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -44,13 +49,37 @@ const E=require('./addition-engine');
   assert(d.querySelector('#move-btn').textContent.startsWith('←'),'47+26 arrow points left (source is right)');
   assert.equal(d.querySelector('#left-size').textContent,'bigger');
   assert.equal(d.querySelector('#right-size').textContent,'smaller');
+  // The word matches what it says: "bigger" is big, "smaller" is small.
+  assert(d.querySelector('#left-size').classList.contains('bigger'));
+  assert(d.querySelector('#right-size').classList.contains('smaller'));
   assert(d.querySelector('#new-mystery').hidden && d.querySelector('#new-mystery').disabled);
+  // The celebration banner sits directly under the sticky equation bar
+  // and holds the ONLY New Mystery button; the old bottom placement
+  // is gone.
+  assert(d.querySelector('.eqbar + #celebrate-banner'), 'celebration banner directly under the equation bar');
+  assert(d.querySelector('#celebrate-banner').contains(d.querySelector('#new-mystery')));
+  assert.equal(d.querySelectorAll('#new-mystery').length,1);
+  assert(!d.querySelector('.celebrate'), 'old bottom celebrate div removed');
+  assert(d.querySelector('#celebrate-banner').hidden);
+  // Navigation, same as every other test page: test banner up top with
+  // the stable-games escape, back-home nav + footer links.
+  assert(d.querySelector('nav[aria-label="Test version"] a[href="../"]').textContent.includes('Play the stable games'));
+  assert.equal(d.querySelector('.game-nav a[href="index.html"]').textContent,'← Back to test games');
+  assert.equal(d.querySelector('.foot a[href="index.html"]').textContent,'← Back to test games');
+  assert.equal(d.querySelector('.foot a[href="../"]').textContent,'Stable games');
+  assert.equal(d.querySelectorAll('.eqbar .theme-pill').length,2);
+  assert(d.querySelector('.eqbar #sound-toggle'), 'sound toggle in the equation bar');
+  // The map: four landmarks, cars theme.
+  const lms=[...d.querySelectorAll('.landmark')];
+  assert.equal(lms.length,4);
+  assert.deepEqual(lms.map(b=>b.querySelector('.name').textContent),['Volcano','Castle','Magic Tree','Car Wash']);
   for(let i=0;i<sol.moves.length;i++) {
    const btn=d.querySelector('#move-btn');
    btn.click(); btn.click(); btn.click(); // rapid triple-tap must equal one move
    d.querySelector('.test-problem').click(); d.querySelector('#new-mystery').click();
    assert.equal(d.body.dataset.phase,'moving');
    assert(btn.disabled);assert(d.querySelector('.level-pill').disabled);assert(d.querySelector('.theme-pill').disabled);
+   assert(d.querySelector('.landmark').disabled, 'landmarks locked while a move is in flight');
    assert.equal(d.querySelectorAll('.obj.speaking').length,sol.moves[i]);
    // No pre-move amount announcement: nothing is spoken at the moment of
    // the tap — the first spoken fragment comes only after the flight,
@@ -83,11 +112,36 @@ const E=require('./addition-engine');
   assert.equal(d.querySelector('#eq-q').textContent,'73');
   assert.equal(d.querySelector('#cheer').hidden,false);
   assert(d.querySelector('#cheer').textContent.includes('47 + 26 = 73'));
+  assert.equal(d.querySelector('#celebrate-banner').hidden,false);
+  assert(d.querySelector('#celebrate-banner').classList.contains('show'));
   assert(!d.querySelector('#new-mystery').hidden && !d.querySelector('#new-mystery').disabled);
   assert(d.querySelector('#new-mystery').classList.contains('show'));
   assert.equal(d.body.dataset.phase,'complete');
   assert.equal(d.querySelector('#moved-tally').textContent,'Moved over: 2 tens · 6 ones');
   t.close();
+ }
+ // --- Tapping a landmark IS the move: 47+26 via the Volcano ------------
+ {
+  const t=boot(47,26),d=t.w.document;
+  await settle(t);
+  const sol=E.solve(47,26);
+  const volc=d.querySelector('[data-landmark="volcano"]');
+  assert(volc, 'Volcano landmark exists');
+  volc.click();
+  assert.equal(d.body.dataset.phase,'moving');
+  assert(volc.disabled, 'tapped landmark locks while its move is in flight');
+  assert.equal(d.querySelectorAll('.obj.speaking').length,sol.moves[0]);
+  assert.equal(t.pending.length,0, 'no pre-move amount announcement via landmark either');
+  await settle(t);
+  assert.equal(+d.querySelector('#left-num').textContent,57);
+  assert.equal(+d.querySelector('#right-num').textContent,16);
+  assert(!volc.disabled, 'landmarks unlock after the move');
+  // A second move via a different landmark keeps the total.
+  d.querySelector('[data-landmark="castle"]').click();
+  await settle(t);
+  assert.equal(+d.querySelector('#left-num').textContent,67);
+  assert.equal(+d.querySelector('#right-num').textContent,6);
+  checks++; t.close();
  }
  // --- 26+47: the other direction — source left, arrow points right -------
  {
@@ -97,6 +151,8 @@ const E=require('./addition-engine');
   assert(d.querySelector('#move-btn').textContent.endsWith('→'),'26+47 arrow points right (source is left)');
   assert.equal(d.querySelector('#left-size').textContent,'smaller');
   assert.equal(d.querySelector('#right-size').textContent,'bigger');
+  assert(d.querySelector('#left-size').classList.contains('smaller'));
+  assert(d.querySelector('#right-size').classList.contains('bigger'));
   for(let i=0;i<sol.moves.length;i++) {
    d.querySelector('#move-btn').click();
    await settle(t);
@@ -115,6 +171,8 @@ const E=require('./addition-engine');
   assert(d.querySelector('#captions').textContent.includes('Same size'));
   assert.equal(d.querySelector('#left-size').textContent,'same size');
   assert.equal(d.querySelector('#right-size').textContent,'same size');
+  assert(d.querySelector('#left-size').classList.contains('same'));
+  assert(d.querySelector('#right-size').classList.contains('same'));
   assert(d.querySelector('#move-btn').textContent.startsWith('←'));
   for(let i=0;i<3;i++){d.querySelector('#move-btn').click();await settle(t);}
   assert.equal(d.querySelector('#eq-q').textContent,'60');
@@ -178,6 +236,10 @@ const E=require('./addition-engine');
   assert.equal(d.querySelectorAll('#left-grid .obj').length,57);
   assert.equal(d.querySelectorAll('#right-grid .obj').length,16);
   assert.equal(d.querySelectorAll('#right-grid .obj.movable').length,10);
+  // Mermaid map: same four places, mermaid names.
+  const mlms=[...d.querySelectorAll('.landmark')];
+  assert.equal(mlms.length,4);
+  assert.deepEqual(mlms.map(b=>b.querySelector('.name').textContent),['Coral Reef','Palace','Whirlpool','Giant Shell']);
   checks++; t.close();
  }
  // --- Speech-failure recovery (mirror of Cancellation Quest) -----------------

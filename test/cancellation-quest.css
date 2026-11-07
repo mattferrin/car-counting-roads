@@ -27,7 +27,10 @@ body {
   background: #bfe3ff;
   min-height: 100vh;
 }
-body[data-theme="mermaids"] { background: #0e4d6e; --right: #d63384; }
+/* The mermaid world is a mid-tone sea blue, not a dark slab: the two
+ * themes keep the same visual weight — light sky vs sea, both light
+ * enough that the white cards and controls read the same way. */
+body[data-theme="mermaids"] { background: #2e8fb5; --right: #d63384; }
 button { font-family: inherit; }
 button:focus-visible, summary:focus-visible { outline: 3px solid #ffbf47; outline-offset: 2px; }
 
@@ -123,15 +126,35 @@ body[data-theme="mermaids"] .side.right .ten-row { border-color: rgba(214, 51, 1
 .flying.glow-one { box-shadow: 0 0 0 3px var(--ones), 0 0 22px rgba(232, 113, 10, .55); }
 .flying.glow-hun { box-shadow: 0 0 0 3px var(--huns), 0 0 22px rgba(124, 77, 255, .55); }
 
-/* ---- Landscape + landmarks ---- */
+/* ---- Landscape + landmarks: a map, not a strip ----
+ * The map is tall (300px) so the four places can sit staggered in the
+ * open space — not a row, not four neat corners — each where it fits:
+ * the Volcano low on the left, the Castle up top, the Magic Tree low
+ * in the middle, the Car Wash up on the right. Dashed paths wind
+ * between them. On iPhone portrait the map sits below the panels (it
+ * never crowds them); the page just grows ~90px taller. Mechanics are
+ * untouched: the flight code reads each landmark's rect at tap time,
+ * so it is position-agnostic. */
 .landscape {
   position: relative; margin-top: 14px; border-radius: var(--radius);
-  box-shadow: var(--shadow); overflow: hidden; min-height: 208px;
-  background: linear-gradient(#7ec8f7 0%, #bfe6ff 55%, #8fce6e 55%, #6db95a 100%);
+  box-shadow: var(--shadow); overflow: hidden; min-height: 300px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'%3E%3Cpath d='M36 62 C 170 150, 330 24, 566 96' fill='none' stroke='%23ffffff' stroke-opacity='.5' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3Cpath d='M44 262 C 210 182, 380 282, 564 204' fill='none' stroke='%23ffffff' stroke-opacity='.5' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat,
+    linear-gradient(#7ec8f7 0%, #bfe6ff 55%, #8fce6e 55%, #6db95a 100%);
 }
 body[data-theme="mermaids"] .landscape {
-  background: linear-gradient(#0a6d99 0%, #1a8fb8 55%, #e8d29a 55%, #d9bd7a 100%);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'%3E%3Cpath d='M36 62 C 170 150, 330 24, 566 96' fill='none' stroke='%23ffffff' stroke-opacity='.45' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3Cpath d='M44 262 C 210 182, 380 282, 564 204' fill='none' stroke='%23ffffff' stroke-opacity='.45' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat,
+    linear-gradient(#0a6d99 0%, #1a8fb8 55%, #e8d29a 55%, #d9bd7a 100%);
 }
+/* Scenery sits in the map's open gaps, not behind the landmarks.
+ * (The scenery positions are set inline by the JS, so these rules
+ * override them — CSS-only, no JS change.) */
+.scenery span:nth-child(1) { left: 26% !important; top: 2% !important; }
+.scenery span:nth-child(2) { left: 47% !important; top: 52% !important; }
+.scenery span:nth-child(3) { left: 68% !important; top: 8% !important; }
+.scenery span:nth-child(4) { left: 10% !important; top: 78% !important; }
+.scenery span:nth-child(5) { left: 88% !important; top: 78% !important; }
 .scenery { position: absolute; inset: 0; pointer-events: none; font-size: 26px; }
 .scenery span { position: absolute; animation: bob 5s ease-in-out infinite; }
 body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infinite; }
@@ -150,10 +173,13 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
 .landmark.nudge { animation: nudge 1.2s ease-in-out infinite; }
 .landmark.busy { animation: landmark-joy .6s ease; }
 .landmark.boom { animation: landmark-boom .5s ease; }
-.landmark.pos-1 { left: 3%; top: 14px; }
-.landmark.pos-2 { left: 27%; top: 58px; }
-.landmark.pos-3 { left: 52%; top: 12px; }
-.landmark.pos-4 { left: 76%; top: 56px; }
+/* Staggered in the open space: Volcano low-left, Castle up top,
+ * Magic Tree low in the middle, Car Wash up on the right. Different
+ * sizes too — the Volcano is the biggest, the Car Wash the smallest. */
+.landmark.pos-1 { left: 2%; top: 108px; width: 24%; }
+.landmark.pos-2 { left: 31%; top: 8px; width: 21%; }
+.landmark.pos-3 { left: 54%; top: 136px; width: 22%; }
+.landmark.pos-4 { left: 78%; top: 18px; width: 20%; }
 .landscape .ground-label {
   position: absolute; left: 0; right: 0; bottom: 6px; text-align: center;
   font-weight: 800; color: rgba(255, 255, 255, .95); text-shadow: 0 1px 3px rgba(0,0,0,.35);
@@ -222,6 +248,11 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
 .foot a { color: var(--left); font-weight: 700; }
 .foot .test-note { color: var(--soft-ink); font-size: 13px; margin-top: 6px; }
 
+/* Back-home nav, same on every test page: top of the content, same
+ * wording, same white pill as the original game's game nav. */
+.game-nav { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; font-size: 12px; font-weight: 750; }
+.game-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 16px; background: white; text-decoration: none; color: var(--ink); }
+
 /* ---- Particles ---- */
 .burst { position: absolute; z-index: 6; pointer-events: none; font-size: 20px; animation: burst-fly .9s ease-out forwards; }
 
@@ -267,8 +298,6 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
 button:disabled { cursor: default; }
 .mini:disabled, .new-mystery:disabled { opacity: .5; }
 .pill, .parents .mini { min-height: 44px; }
-.landmark { width: 23%; }
-.landmark.pos-4 { left: 75%; }
 @media (prefers-reduced-motion: reduce) {
   .bignum .speaking, .equation .speaking { transform: none; }
 }

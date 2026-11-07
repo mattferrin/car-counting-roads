@@ -35,14 +35,27 @@
       label: "Ayan's Car World", thing: 'car', things: 'cars',
       leftSym: 'car-blue', rightSym: 'car-gold',
       leftColor: 'Blue', rightColor: 'Gold',
-      scenery: [['☀️', '6%', '8%'], ['☁️', '38%', '4%'], ['☁️', '68%', '10%'], ['🌼', '88%', '30%'], ['🚗', '12%', '62%']]
+      // Places on the map — the child taps one to send the cars there.
+      landmarks: [
+        { id: 'volcano', art: '🌋', name: 'Volcano', hint: 'poof in a puff!', fx: ['🔥', '⭐', '💥'] },
+        { id: 'castle', art: '🏰', name: 'Castle', hint: 'magic sparkles!', fx: ['✨', '💫', '⭐'] },
+        { id: 'tree', art: '🌳', name: 'Magic Tree', hint: 'swirling leaves!', fx: ['🍃', '🍂', '🌿'] },
+        { id: 'wash', art: '🫧', name: 'Car Wash', hint: 'bubbles pop!', fx: ['🫧', '💧', '✨'] }
+      ],
+      scenery: [['☀️', '26%', '2%'], ['☁️', '56%', '52%'], ['☁️', '86%', '8%'], ['🌼', '10%', '46%'], ['🚗', '63%', '80%']]
     },
     mermaids: {
       label: "Aliya's Mermaid World", thing: 'mermaid', things: 'mermaids',
       leftSym: 'mermaid-teal', rightSym: 'mermaid-pink',
       emoji: '🧜‍♀️', // the same mermaid emoji as on Aliya's theme button
       leftColor: 'Teal', rightColor: 'Pink',
-      scenery: [['🐠', '8%', '12%'], ['🫧', '40%', '6%'], ['🐢', '62%', '16%'], ['⭐', '86%', '26%'], ['🐟', '22%', '58%']]
+      landmarks: [
+        { id: 'reef', art: '🪸', name: 'Coral Reef', hint: 'bubbles bloom!', fx: ['🫧', '🪸', '✨'] },
+        { id: 'palace', art: '🏰', name: 'Palace', hint: 'pearl sparkles!', fx: ['✨', '🤍', '💫'] },
+        { id: 'whirlpool', art: '🌀', name: 'Whirlpool', hint: 'round and round!', fx: ['🌀', '💧', '🫧'] },
+        { id: 'shell', art: '🐚', name: 'Giant Shell', hint: 'a pearl pops out!', fx: ['🤍', '✨', '⭐'] }
+      ],
+      scenery: [['🐠', '26%', '6%'], ['🫧', '56%', '52%'], ['🐢', '86%', '10%'], ['⭐', '10%', '46%'], ['🐟', '63%', '80%']]
     }
   };
 
@@ -62,7 +75,7 @@
   var prevLeftTens = null, prevRightTens = null;
 
   var eqA, eqB, eqQ, leftNum, rightNum, leftCap, rightCap, leftGrid, rightGrid,
-      leftSide, rightSide, captionBar, moveBtn, newMysteryBtn, cheerEl, landscapeEl,
+      leftSide, rightSide, captionBar, moveBtn, newMysteryBtn, cheerEl, celebrateBanner, landscapeEl,
       movedTally, totalBadge, leftSize, rightSize;
 
   /* ---------- voices: pre-recorded clips, two distinct voices ---------- */
@@ -457,6 +470,12 @@
     if (moveBtn) moveBtn.disabled = animating || solved;
     $all('.theme-pill, .level-pill, .test-problem').forEach(function (b) { b.disabled = animating; });
     if (newMysteryBtn) newMysteryBtn.disabled = animating || !solved;
+    // Landmarks are move triggers too: locked while a move is in flight
+    // or the problem is solved, and they nudge on the first move only.
+    $all('.landmark', landscapeEl).forEach(function (b) {
+      b.disabled = animating || solved;
+      b.classList.toggle('nudge', !animating && !solved && stepIndex === 0);
+    });
   }
 
   /* The quantity panels are labelled by colour, never by a child's name,
@@ -474,8 +493,18 @@
       if (rightSize) rightSize.textContent = '';
       return;
     }
-    if (leftSize) leftSize.textContent = equal ? 'same size' : (solution.destSide === 'left' ? 'bigger' : 'smaller');
-    if (rightSize) rightSize.textContent = equal ? 'same size' : (solution.destSide === 'right' ? 'bigger' : 'smaller');
+    if (leftSize) {
+      leftSize.textContent = equal ? 'same size' : (solution.destSide === 'left' ? 'bigger' : 'smaller');
+      // The word itself matches what it says: "bigger" is big, "smaller"
+      // is small — never let "smaller" look bigger than "bigger".
+      leftSize.classList.remove('bigger', 'smaller', 'same');
+      leftSize.classList.add(equal ? 'same' : (solution.destSide === 'left' ? 'bigger' : 'smaller'));
+    }
+    if (rightSize) {
+      rightSize.textContent = equal ? 'same size' : (solution.destSide === 'right' ? 'bigger' : 'smaller');
+      rightSize.classList.remove('bigger', 'smaller', 'same');
+      rightSize.classList.add(equal ? 'same' : (solution.destSide === 'right' ? 'bigger' : 'smaller'));
+    }
     leftSide.classList.toggle('dest', solution.destSide === 'left');
     leftSide.classList.toggle('source', solution.sourceSide === 'left');
     rightSide.classList.toggle('dest', solution.destSide === 'right');
@@ -596,8 +625,13 @@
     return playPhrases([{ kind: 'girl', answer: true, frags: ['answer'].concat(fragmentsFor(answer, false)), text: 'The answer is ' + phrase + '!' }]);
   }
 
-  /* ---------- scenery (decorative only — no tap targets here) ---------- */
-  function buildScenery() {
+  /* ---------- the map: scenery plus the four tappable places ----------
+   * The landmarks sit staggered in the open space of the map — not a
+   * row, not four neat corners — each where it fits: the Volcano up on
+   * the left, the Castle tucked down in the middle, the Magic Tree up
+   * top, the Car Wash low on the right. Tapping one IS the move: the
+   * cars fly there, loop around it, then carry on to the bigger side. */
+  function buildLandmarks() {
     var T = THEMES[theme];
     landscapeEl.innerHTML = '';
     var scenery = el('div', 'scenery');
@@ -607,17 +641,31 @@
       scenery.appendChild(sp);
     });
     landscapeEl.appendChild(scenery);
-    var gl = el('div', 'ground-label', T.label + ' — watch the smaller side move over!');
+    T.landmarks.forEach(function (lm, i) {
+      var b = el('button', 'landmark pos-' + (i + 1));
+      b.type = 'button';
+      b.dataset.landmark = lm.id;
+      b.setAttribute('aria-label', lm.name + ' — tap here to send the ' + T.things + ' around!');
+      b.innerHTML = '<span class="art" aria-hidden="true">' + lm.art + '</span>' +
+        '<span class="name">' + lm.name + '</span>' +
+        '<span class="hint">' + lm.hint + '</span>';
+      b.addEventListener('click', function () {
+        doMove({ kind: 'landmark', el: b, lm: lm, name: lm.name, fx: lm.fx, rect: b.getBoundingClientRect() });
+      });
+      landscapeEl.appendChild(b);
+    });
+    var gl = el('div', 'ground-label', T.label + ' — tap a place to send them over!');
     landscapeEl.appendChild(gl);
+    updateControls();
   }
 
   /* A burst of sparkles at a point inside a host element. */
-  function burstAt(host, clientX, clientY, chars) {
+  function burstAt(host, clientX, clientY, chars, cls) {
     var hr = host.getBoundingClientRect();
     var cx = clientX - hr.left;
     var cy = clientY - hr.top;
     for (var i = 0; i < 14; i++) {
-      var s = el('span', 'arrival-burst', chars[i % chars.length]);
+      var s = el('span', cls || 'arrival-burst', chars[i % chars.length]);
       s.style.left = cx + 'px'; s.style.top = cy + 'px';
       var ang = (i / 14) * Math.PI * 2 + Math.random() * 0.6;
       var dist = 46 + Math.random() * 55;
@@ -720,8 +768,75 @@
     });
   }
 
+  /* ---------- waypoints: every move goes via a place the finger tapped ----------
+   * A move has a waypoint: the landmark that was tapped, or the Move
+   * button itself when that is what was tapped. The group flies to the
+   * waypoint, loops once all the way around it (~400ms — a real orbit,
+   * not a pass-through), bursts with that place's fx, then flies on to
+   * its destination slots at full size. The orbit starts at the top of
+   * the circle, so phase 1 aims at the circle's top, not the centre. */
+  function buttonWaypoint() {
+    return {
+      kind: 'button', el: moveBtn, name: 'Move button',
+      fx: ['✨', '⭐', '💛'], rect: moveBtn.getBoundingClientRect()
+    };
+  }
+
+  function orbitRadius(waypointRect) {
+    return waypointRect.height / 2 + 22;
+  }
+
+  function orbitLoop(wrapper, waypointRect) {
+    if (!wrapper || !wrapper.animate) return Promise.resolve();
+    var dur = reducedMotion() ? 100 : 400;
+    var baseLeft = parseFloat(wrapper.style.left) || 0;
+    var baseTop = parseFloat(wrapper.style.top) || 0;
+    var baseW = parseFloat(wrapper.style.width) || 0;
+    var baseH = parseFloat(wrapper.style.height) || 0;
+    var cx = waypointRect.left + waypointRect.width / 2;
+    var cy = waypointRect.top + waypointRect.height / 2;
+    var R = orbitRadius(waypointRect);
+    var bcx = baseLeft + baseW / 2, bcy = baseTop + baseH / 2;
+    var frames = [];
+    for (var k = 0; k <= 8; k++) {
+      var th = (-90 + k * 45) * Math.PI / 180;
+      frames.push({
+        transform: 'translate(' + (cx + R * Math.cos(th) - bcx).toFixed(1) + 'px,' +
+          (cy + R * Math.sin(th) - bcy).toFixed(1) + 'px) scale(1)',
+        opacity: 1
+      });
+    }
+    var anim = wrapper.animate(frames, { duration: dur, easing: 'linear', fill: 'forwards' });
+    return anim.finished.catch(function () {});
+  }
+
+  function shockwaveIn(host, clientX, clientY) {
+    var hr = host.getBoundingClientRect();
+    var s = el('span', 'shockwave');
+    s.style.left = (clientX - hr.left) + 'px';
+    s.style.top = (clientY - hr.top) + 'px';
+    host.appendChild(s);
+    setTimeout(function () { s.remove(); }, 650);
+  }
+
+  /* The burst at the waypoint: the landmark's own fx (or sparkles for
+   * the Move button), a shockwave ring, and the landmark itself booms. */
+  function waypointBurst(waypoint) {
+    var cx = waypoint.rect.left + waypoint.rect.width / 2;
+    var cy = waypoint.rect.top + waypoint.rect.height / 2;
+    var host = waypoint.kind === 'landmark' ? landscapeEl : moveBtn.parentElement;
+    burstAt(host, cx, cy, waypoint.fx, 'burst');
+    shockwaveIn(host, cx, cy);
+    if (waypoint.kind === 'landmark' && waypoint.el) {
+      waypoint.el.classList.add('boom');
+      setTimeout(function () { waypoint.el.classList.remove('boom'); }, 550);
+    }
+  }
+
   /* ---------- one move ---------- */
-  async function doMove() {
+  async function doMove(waypoint) {
+    if (animating || solved || stepIndex >= solution.moves.length) return;
+    waypoint = waypoint || buttonWaypoint();
     if (animating || solved || stepIndex >= solution.moves.length) return;
     ensureAudioCtx();
     setPhase('moving');
@@ -738,7 +853,8 @@
     try {
       var srcById = new Map($all('.obj', srcGrid).map(function (n) { return [Number(n.dataset.id), n]; }));
       moving.forEach(function (id) { var n = srcById.get(id); if (n) n.classList.add('speaking'); });
-      moveBtn.classList.add('speaking');
+      // The trigger lights up too — the landmark or the button.
+      (waypoint.el || moveBtn).classList.add('speaking');
       var nextPlan = window.AdditionLayout.plan(solution, stepIndex + 1);
       var targetRect = destSlotsRect(dstGrid, nextPlan[dstSide], moving);
       var wrap = liftObjects(srcGrid, amount, moving);
@@ -748,10 +864,31 @@
       // source's survivors close up. The moving objects are in the
       // wrapper, so the preview lays out only the survivors.
       layoutPools(true, stepIndex + 1);
-      var flight = flyTo(wrap, targetRect, TELEGRAPH, amount);
+      // Phase 1: fly to the top of the loop around the waypoint.
+      var wrapW = wrap ? parseFloat(wrap.style.width) || 0 : 0;
+      var wrapH = wrap ? parseFloat(wrap.style.height) || 0 : 0;
+      var wcx = waypoint.rect.left + waypoint.rect.width / 2;
+      var wcy = waypoint.rect.top + waypoint.rect.height / 2;
+      var orbitTop = {
+        left: wcx - wrapW / 2, top: wcy - orbitRadius(waypoint.rect) - wrapH / 2,
+        width: wrapW, height: wrapH
+      };
+      var flight1 = flyTo(wrap, orbitTop, TELEGRAPH, amount);
       whooshSound();
       if (amount >= 10) trailSparkles([wrap]);
-      await flight;
+      await flight1;
+      // The loop: one full orbit around the thing the finger tapped,
+      // with sparkles trailing, then the burst with that place's fx.
+      var status = $('#progress-status');
+      if (status) status.textContent = 'Looping around the ' + waypoint.name + '…';
+      trailSparkles([wrap]);
+      await orbitLoop(wrap, waypoint.rect);
+      waypointBurst(waypoint);
+      if (amount >= 10) boomSound(); else popSound();
+      vibrate(amount);
+      // Phase 2: on to the destination slots, still at full size.
+      var flight2 = flyTo(wrap, targetRect, 0, amount);
+      await flight2;
       // The real objects arrive: move them into the destination pool.
       // Read their flight-end positions first — the wrapper still holds
       // its final transform — so the reflow below animates each object
@@ -798,7 +935,6 @@
         burstAt(dstSideEl, cx, cy, ['✨', '💛']);
         popSound();
       }
-      vibrate(amount);
       renderSide('left', st.left, true); renderSide('right', st.right, true);
       // Settle everything into its final slots: the arrivals animate
       // the last short step from where the flight left them, and any
@@ -860,6 +996,9 @@
     }
     await speakAnswer(answer);
     cheerSound();
+    // The banner sits right under the sticky equation bar, in their
+    // face: big cheer plus a big pulsing New Mystery button.
+    if (celebrateBanner) { celebrateBanner.hidden = false; celebrateBanner.classList.add('show'); }
     newMysteryBtn.hidden = false;
     newMysteryBtn.disabled = false;
     newMysteryBtn.classList.add('show');
@@ -901,6 +1040,7 @@
     newMysteryBtn.classList.remove('show');
     newMysteryBtn.hidden = true;
     newMysteryBtn.disabled = true;
+    if (celebrateBanner) { celebrateBanner.classList.remove('show'); celebrateBanner.hidden = true; }
     cheerEl.hidden = true;
     cheerEl.textContent = '';
     renderEquation();
@@ -926,11 +1066,11 @@
     if (solution.a === solution.b) {
       setCaption([
         { cls: 'note', text: 'Same size! The ' + T.rightColor.toLowerCase() + ' ' + T.things + ' move over to the ' + T.leftColor.toLowerCase() + ' ones.' },
-        { cls: 'note', text: 'Tap Move — tens first, then ones — until the smaller side is empty.' }
+        { cls: 'note', text: 'Tap a place on the map — or Move — tens first, then ones, until the smaller side is empty.' }
       ]);
     } else {
       setCaption([
-        { cls: 'note', text: 'Tap Move to move ' + E.describeMove(solution.moves[0]) + ' from the smaller side to the bigger side.' },
+        { cls: 'note', text: 'Tap a place on the map — or Move — to send ' + E.describeMove(solution.moves[0]) + ' from the smaller side to the bigger side.' },
         { cls: 'note', text: 'The total never changes — when the smaller side is empty, the bigger side is the answer.' }
       ]);
     }
@@ -950,7 +1090,7 @@
       b.setAttribute('aria-pressed', String(b.dataset.theme === theme));
     });
     $('.world-line').textContent = THEMES[theme].label + ' · Addition Quest';
-    buildScenery();
+    buildLandmarks();
     renderWho();
     if (solution) {
       var st = solution.states[stepIndex];
@@ -1000,6 +1140,7 @@
     captionBar = $('#captions');
     moveBtn = $('#move-btn');
     newMysteryBtn = $('#new-mystery');
+    celebrateBanner = $('#celebrate-banner');
     cheerEl = $('#cheer');
     landscapeEl = $('#landscape');
     movedTally = $('#moved-tally');
@@ -1051,7 +1192,7 @@
       b.setAttribute('aria-pressed', String(b.dataset.level === level));
     });
     $('.world-line').textContent = THEMES[theme].label + ' · Addition Quest';
-    buildScenery();
+    buildLandmarks();
     renderWho();
     if (specific) newProblem(specific.a, specific.b);
     else newRandomProblem();

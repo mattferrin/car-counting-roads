@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="addition-quest.css">
 </head>
 <body data-theme="cars">
+<nav aria-label="Test version" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 18px;padding:10px 12px;background:#fff0bd;color:#403000;font:700 14px system-ui;text-align:center"><span>🧪 Test version · Daddy’s workshop</span><a href="../" style="display:inline-block;padding:10px 12px;border-radius:12px;background:white;color:#174b79">Play the stable games →</a></nav>
 <!-- Inline SVG symbols: every car is one car, every mermaid is one mermaid.
      No x10 badges anywhere: a group of ten is ten separate symbols in a row. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -60,7 +61,15 @@
     </div>
   </header>
 
+  <!-- The celebration banner: big cheer + big New Mystery button, right
+       under the sticky equation bar — impossible to miss when solved. -->
+  <div class="celebrate-banner" id="celebrate-banner" hidden>
+    <p class="cheer" id="cheer" hidden></p>
+    <button type="button" class="new-mystery" id="new-mystery" hidden disabled>✨ New Mystery</button>
+  </div>
+
   <main>
+    <nav class="game-nav"><a href="index.html">← Back to test games</a></nav>
     <section class="quantities" aria-label="The two quantities">
       <div class="side left" id="side-left">
         <div class="who"><span class="dot"></span><span class="who-label">Blue cars</span><span class="size-badge" id="left-size">bigger</span></div>
@@ -84,15 +93,10 @@
     <p class="moved" id="moved-tally" hidden></p>
     <p id="progress-status" role="status"></p>
 
-    <section class="landscape" id="landscape" aria-label="Addition places"></section>
+    <section class="landscape" id="landscape" aria-label="Addition places — tap one to send them over"></section>
 
     <div class="caption-bar" id="captions" aria-live="polite">
-      <p class="line note">Tap Move to move from the smaller side to the bigger side.</p>
-    </div>
-
-    <div class="celebrate">
-      <p class="cheer" id="cheer" hidden></p>
-      <button type="button" class="new-mystery" id="new-mystery" hidden disabled>✨ New Mystery</button>
+      <p class="line note">Tap a place on the map — or Move — to send from the smaller side to the bigger side.</p>
     </div>
 
     <details class="parents">
@@ -114,15 +118,17 @@
       </div>
       <p><strong>How it works:</strong> every move transfers from the
       smaller side to the bigger side — complete tens first, then ones,
-      one unit at a time. A ten lands on top of the bigger side and the
-      rows below slide down to make room. The ones always sit on the
-      bottom row of each side, lined up with each other, so each one
-      slides straight across to the next free square. The total never
-      changes, so when the smaller side reaches zero, what is left on
-      the bigger side <em>is</em> the answer. The panels keep the order
-      of the problem (first number on the left, second on the right), so
-      the move goes left-to-right or right-to-left depending on which
-      side is smaller.</p>
+      one unit at a time. Tap a place on the map and the moving cars fly
+      there, loop once around it, then carry on to the bigger side — or
+      tap Move and they loop around the button itself. A ten lands on
+      top of the bigger side and the rows below slide down to make room.
+      The ones always sit on the bottom row of each side, lined up with
+      each other, so each one slides straight across to the next free
+      square. The total never changes, so when the smaller side reaches
+      zero, what is left on the bigger side <em>is</em> the answer. The
+      panels keep the order of the problem (first number on the left,
+      second on the right), so the move goes left-to-right or
+      right-to-left depending on which side is smaller.</p>
       <p><strong>Voices:</strong> after each move only the place that just
       changed is counted — tens while tens are moving, then ones on their
       own. The full count is always on screen, and the answer is spoken
@@ -134,6 +140,8 @@
   </main>
 
   <footer class="foot">
+    <a href="index.html">← Back to test games</a> ·
+    <a href="../">Stable games</a>
     <p class="test-note">🧪 Test version — Addition Quest, the addition sibling of Cancellation Quest. Audio clips are shared with Cancellation Quest.</p>
   </footer>
 </div>

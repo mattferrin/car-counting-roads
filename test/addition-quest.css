@@ -28,7 +28,10 @@ body {
   background: #bfe3ff;
   min-height: 100vh;
 }
-body[data-theme="mermaids"] { background: #0e4d6e; --right: #d63384; }
+/* The mermaid world is a mid-tone sea blue, not a dark slab: the two
+ * themes keep the same visual weight — light sky vs sea, both light
+ * enough that the white cards and controls read the same way. */
+body[data-theme="mermaids"] { background: #2e8fb5; --right: #d63384; }
 button { font-family: inherit; }
 button:focus-visible, summary:focus-visible { outline: 3px solid #ffbf47; outline-offset: 2px; }
 
@@ -124,14 +127,24 @@ body[data-theme="mermaids"] .side.right .ten-row { border-color: rgba(214, 51, 1
 .flying.glow-one { box-shadow: 0 0 0 3px var(--ones), 0 0 22px rgba(232, 113, 10, .55); }
 .flying.glow-hun { box-shadow: 0 0 0 3px var(--huns), 0 0 22px rgba(124, 77, 255, .55); }
 
-/* ---- Landscape + landmarks ---- */
+/* ---- Landscape + landmarks: a map, not a strip ----
+ * The map is tall (300px) so the four places can sit staggered in the
+ * open space — not a row, not four neat corners — each where it fits:
+ * the Volcano up on the left, the Castle tucked down in the middle,
+ * the Magic Tree up top, the Car Wash low on the right. Dashed paths
+ * wind between them. On iPhone portrait the map sits below the panels
+ * (it never crowds them); the page just grows ~90px taller. */
 .landscape {
   position: relative; margin-top: 14px; border-radius: var(--radius);
-  box-shadow: var(--shadow); overflow: hidden; min-height: 208px;
-  background: linear-gradient(#7ec8f7 0%, #bfe6ff 55%, #8fce6e 55%, #6db95a 100%);
+  box-shadow: var(--shadow); overflow: hidden; min-height: 300px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'%3E%3Cpath d='M36 62 C 170 150, 330 24, 566 96' fill='none' stroke='%23ffffff' stroke-opacity='.5' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3Cpath d='M44 262 C 210 182, 380 282, 564 204' fill='none' stroke='%23ffffff' stroke-opacity='.5' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat,
+    linear-gradient(#7ec8f7 0%, #bfe6ff 55%, #8fce6e 55%, #6db95a 100%);
 }
 body[data-theme="mermaids"] .landscape {
-  background: linear-gradient(#0a6d99 0%, #1a8fb8 55%, #e8d29a 55%, #d9bd7a 100%);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'%3E%3Cpath d='M36 62 C 170 150, 330 24, 566 96' fill='none' stroke='%23ffffff' stroke-opacity='.45' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3Cpath d='M44 262 C 210 182, 380 282, 564 204' fill='none' stroke='%23ffffff' stroke-opacity='.45' stroke-width='7' stroke-dasharray='2 18' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat,
+    linear-gradient(#0a6d99 0%, #1a8fb8 55%, #e8d29a 55%, #d9bd7a 100%);
 }
 .scenery { position: absolute; inset: 0; pointer-events: none; font-size: 26px; }
 .scenery span { position: absolute; animation: bob 5s ease-in-out infinite; }
@@ -151,10 +164,13 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
 .landmark.nudge { animation: nudge 1.2s ease-in-out infinite; }
 .landmark.busy { animation: landmark-joy .6s ease; }
 .landmark.boom { animation: landmark-boom .5s ease; }
-.landmark.pos-1 { left: 3%; top: 14px; }
-.landmark.pos-2 { left: 27%; top: 58px; }
-.landmark.pos-3 { left: 52%; top: 12px; }
-.landmark.pos-4 { left: 76%; top: 56px; }
+/* Staggered in the open space: Volcano low-left, Castle tucked down
+ * mid-left, Magic Tree up top, Car Wash low-right. Different sizes too
+ * — the Volcano is the biggest, the Car Wash the smallest. */
+.landmark.pos-1 { left: 1%; top: 10px; width: 24%; }
+.landmark.pos-2 { left: 30%; top: 122px; width: 21%; }
+.landmark.pos-3 { left: 55%; top: 6px; width: 22%; }
+.landmark.pos-4 { left: 76%; top: 142px; width: 20%; }
 .landscape .ground-label {
   position: absolute; left: 0; right: 0; bottom: 6px; text-align: center;
   font-weight: 800; color: rgba(255, 255, 255, .95); text-shadow: 0 1px 3px rgba(0,0,0,.35);
@@ -184,8 +200,18 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
 }
 .caption-bar .right-voice .who-tag { background: var(--right); }
 
-/* ---- Celebration + New Mystery ---- */
-.celebrate { text-align: center; margin-top: 14px; }
+/* ---- Celebration banner: right under the sticky equation bar ----
+ * Big cheer plus a big pulsing New Mystery button, full-width on
+ * mobile. Shown only when the problem is solved; exactly one New
+ * Mystery button on the page (the old small bottom one is gone). */
+.celebrate-banner {
+  display: none; margin-top: 12px; text-align: center;
+  background: linear-gradient(135deg, #fff7d6, #ffe9a8);
+  border: 3px solid #ffbf47; border-radius: 22px; box-shadow: 0 10px 26px rgba(20, 40, 70, .2);
+  padding: 16px 14px 18px;
+}
+.celebrate-banner.show { display: block; animation: banner-in .5s ease; }
+.celebrate-banner .cheer { font-size: 22px; font-weight: 800; color: var(--good); margin: 0 0 12px; }
 .new-mystery {
   display: none; font-size: 22px; font-weight: 800; color: #fff; cursor: pointer;
   background: linear-gradient(135deg, #ff5d8f, #ff9a3d); border: none; border-radius: 999px;
@@ -193,7 +219,15 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
   animation: answer-pop .6s ease;
 }
 .new-mystery.show { display: inline-block; }
-.celebrate .cheer { font-size: 18px; font-weight: 800; color: var(--good); margin: 0 0 10px; }
+.celebrate-banner .new-mystery {
+  width: 100%; font-size: 26px; padding: 18px 20px;
+  animation: banner-pulse 1.4s ease-in-out infinite;
+}
+@keyframes banner-pulse {
+  0%, 100% { box-shadow: 0 8px 22px rgba(255, 93, 143, .45); }
+  50% { box-shadow: 0 8px 34px rgba(255, 93, 143, .85), 0 0 0 6px rgba(255, 191, 71, .5); }
+}
+@keyframes banner-in { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .stars { position: fixed; inset: 0; pointer-events: none; z-index: 70; overflow: hidden; }
 .stars span { position: absolute; font-size: 26px; animation: star-fall 1.6s ease-in forwards; }
 .answer-flyer {
@@ -268,8 +302,6 @@ body[data-theme="mermaids"] .scenery span { animation: drift 7s ease-in-out infi
 button:disabled { cursor: default; }
 .mini:disabled, .new-mystery:disabled { opacity: .5; }
 .pill, .parents .mini { min-height: 44px; }
-.landmark { width: 23%; }
-.landmark.pos-4 { left: 75%; }
 @media (prefers-reduced-motion: reduce) {
   .bignum .speaking, .equation .speaking { transform: none; }
 }
@@ -281,9 +313,19 @@ button:disabled { cursor: default; }
   letter-spacing: .05em; border-radius: 999px; padding: 2px 8px;
   background: #eef3f8; color: var(--soft-ink);
 }
+/* The word matches what it says: "bigger" is big, "smaller" is small,
+ * "same size" sits in the middle — never let "smaller" look bigger. */
+.side .who .size-badge.bigger { font-size: 18px; }
+.side .who .size-badge.smaller { font-size: 12px; }
+.side .who .size-badge.same { font-size: 14px; }
 .side.dest .who .size-badge { background: #e3f2e8; color: var(--good); }
 .side.source .who .size-badge { background: #fff3c4; color: #8a6d00; }
-.move-row { text-align: center; margin-top: 14px; }
+/* Back-home nav, same on every test page: top of the content, same
+ * wording, same white pill as the original game's game nav. */
+.game-nav { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; font-size: 12px; font-weight: 750; }
+.game-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 16px; background: white; text-decoration: none; color: var(--ink); }
+
+.move-row { position: relative; text-align: center; margin-top: 14px; }
 .move-btn {
   font-size: 21px; font-weight: 800; color: #fff; cursor: pointer;
   background: linear-gradient(135deg, #1668d6, #2f7fe0); border: none; border-radius: 999px;
@@ -300,7 +342,7 @@ button:disabled { cursor: default; }
 }
 .moved { text-align: center; font-size: 14px; font-weight: 700; color: var(--soft-ink); margin: 6px 0 0; }
 main { text-align: center; }
-.quantities, .landscape, .caption-bar, .parents, .celebrate { text-align: left; }
+.quantities, .landscape, .caption-bar, .parents, .celebrate-banner { text-align: left; }
 .obj.movable { cursor: pointer; }
 /* The movable group pulses to invite a tap — with a brightness pulse,
  * never a transform. (A transform animation would override the inline

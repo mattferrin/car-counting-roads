@@ -57,6 +57,15 @@ Checks:
 - `NODE_PATH=/tmp/cq-test-deps/node_modules node test/cancellation-ui.test.cjs`
 - `NODE_PATH=/tmp/cq-test-deps/node_modules node test/cancellation-flight.test.cjs`
 - `NODE_PATH=/tmp/cq-test-deps/node_modules node test/cancellation-highlight.test.cjs`
+- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/cancellation-map.test.cjs` (3 cases: map spread, nav, mechanics)
+
+Map layout (2026-11-06): the four landmarks are pins on a map now, not
+a staggered row — Volcano low on the left, Castle up top, Magic Tree low
+in the middle, Car Wash up on the right, on a taller 300px map with
+dashed paths winding between them. Only the positions changed (CSS) and
+the scenery moved into the open gaps; the mechanics are untouched — the
+flight code reads each landmark's rect at tap time, so it is
+position-agnostic, and the map test proves a tap still cancels there.
 
 The UI suite simulates completion/error events; actual iOS voice/output latency
 still needs a device check. Both original game suites must also pass in root and
@@ -77,12 +86,22 @@ the next free square. A ten-move inserts a whole new row at the top of
 the destination (y = 0) and the rows below slide down to make room; a
 one-move that fills the ones row regroups it into a new ten just above
 the ones row. Flights stay full-size into their slots — no shrinking
-or fading. The tap target is the central Move button (its arrow
-flips with the direction) or the glowing group in the smaller pool.
-No new voice clips: it reuses the Cancellation Quest recordings in
+or fading. The tap target is a place on the map — Volcano, Castle,
+Magic Tree, Car Wash (mermaids: Coral Reef, Palace, Whirlpool, Giant
+Shell), staggered in the open space of a taller 300px map with dashed
+paths between them — or the central Move button (its arrow flips with
+the direction) or the glowing group in the smaller pool. Whichever is
+tapped, the moving group flies there, loops once all the way around it
+(~400ms), bursts with that place's fx, then carries on to the bigger
+side. No new voice clips: it reuses the Cancellation Quest recordings in
 `audio/`, with the same changed-place-only counting, per-fragment glow,
 and no pre-move amount announcement. The answer flies from the larger
-panel into the "?" and New Mystery appears only after completion.
+panel into the "?" and a big celebration banner — large cheer plus a
+large pulsing New Mystery button — appears directly under the sticky
+equation bar; it is the only New Mystery button on the page. The
+bigger/smaller panel badges are sized to match their words: "bigger"
+renders at 18px, "smaller" at 12px, "same size" at 14px, following the
+badges as they swap sides between problems.
 
 Rendering rule (live defect, 2026-11-06): never animate `transform`
 on a positioned `.obj`. The first deployed version gave the movable
@@ -99,8 +118,56 @@ The movable pulse now animates `filter` (brightness + glow) only.
 Checks:
 - `node test/addition-quest.test.cjs` (576,631 checks, exhaustive 0..100)
 - `node test/addition-layout.test.cjs` (83,861 states)
-- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-ui.test.cjs` (26 cases)
-- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-rendered.test.cjs` (55 cases: rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on `.obj`, full-size flights)
+- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-ui.test.cjs` (27 cases)
+- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-rendered.test.cjs` (59 cases: rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on `.obj`, full-size three-phase flights with waypoint orbits and fx bursts, map spread, banner placement, badge sizes)
 
-Only Addition Quest files, `test/index.html` (one home-page card), and
-this README are changed. Production files are untouched.
+Only Addition Quest files, `test/index.html` (one home-page card and the
+game-nav wording), and this README are changed. Production files are
+untouched.
+
+## Navigation & themes
+
+Every entry point in test/ carries the same controls in the same spots,
+so a child or parent moving between pages finds them without thinking:
+
+- **Test banner** (top of every page, same inline markup): "🧪 Test
+  version · Daddy's workshop" + "Play the stable games →" (links to
+  `../`). The banner is the stable-games escape everywhere.
+- **Back home** (top of the content, `nav.game-nav`): "← Back to test
+  games" → `index.html`. The original game's game-view link says the
+  same thing now ("⌂ Home" renamed). The two Quest pages also repeat
+  the back link in the footer.
+- **Footer** (Quest pages): "← Back to test games · Stable games" +
+  the test note. The original game has no footer; its banner and
+  game-nav carry both escapes.
+- **Theme pills + sound toggle**: in the sticky equation bar on both
+  Quest pages, same order, same behaviour (🚗 Ayan / 🧜‍♀️ Aliya pills,
+  🔊 Sound on toggle). The original counting game has no spoken
+  narration, so it has no sound toggle; its theme is chosen from the
+  home cards (and by `?theme=`), which is a property of that game, not
+  an inconsistency to fix.
+
+Palettes are defined once per theme and shared by both Quest games —
+the two stylesheets' `:root` tokens are identical:
+
+- **Cars** (blue/gold, light sky): page `#bfe3ff`; left `--left #1668d6`,
+  right `--right #c98a04`; tens `#1668d6`, ones `#e8710a`, hundreds
+  `#7c4dff`; ink `#22303c`, card white.
+- **Mermaids** (teal/pink, sea): page `#2e8fb5` (mid-tone sea blue —
+  the old dark `#0e4d6e` was a dark slab next to the light sky, so it
+  was lightened to match the cars page in visual weight while staying
+  clearly sea); left `--left #1668d6`, right `--right #d63384`; same
+  tens/ones/hundreds, ink and card as cars. The mermaid landscape keeps
+  its deeper sea gradient for depth.
+
+The two themes are distinctive (sky vs sea, gold vs pink) but balanced:
+same white cards, same digit colours, same button and banner styles, no
+theme drastically darker or louder than the other. One-off colours that
+only existed on one page were removed; the remaining page-specific
+colours are the landscape gradients and the page backgrounds above.
+
+Left open for a follow-up (deliberately not done here): the original
+counting game's palette (`#1264a0` blue / `#885500` gold, light grass
+and aqua) predates the Quest tokens and differs from them where the
+same roles appear. Recolouring it would visibly change the game the
+kids already play, so it stays as-is until Matt says otherwise.
