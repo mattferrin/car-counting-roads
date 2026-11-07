@@ -565,7 +565,7 @@
     cap.innerHTML = captionHtml(value);
     if (!flash) {
       var ids = window.AdditionLayout.plan(solution, stepIndex)[which].map(function (p) { return p.id; });
-      // Mermaid objects are the M1 SVG now, not the picker emoji —
+      // Mermaid objects are the N1 SVG now, not the picker emoji —
       // the emoji field stays for Aliya's theme BUTTON only.
       buildGrid(grid, ids, sym, theme === 'mermaids' ? null : T.emoji);
     }
