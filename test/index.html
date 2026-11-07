@@ -1,15 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Ayan and Aliya's counting worlds: add, move, and take away individual cars and mermaids in tens and ones.">
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Connected roads and underwater tunnels carry groups of ten or one between two counting garages.">
 <title>Ayan &amp; Aliya’s Counting Worlds</title>
-<link rel="stylesheet" href="addition-quest.css?v=11">
-<link rel="stylesheet" href="storybook.css?v=11">
-<link rel="stylesheet" href="counting-worlds.css?v=11">
-</head>
-<body data-theme="cars">
+<link rel="stylesheet" href="addition-quest.css?v=12"><link rel="stylesheet" href="storybook.css?v=12"><link rel="stylesheet" href="counting-worlds.css?v=12">
+</head><body data-theme="cars">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="car-blue" viewBox="0 0 44 26">
@@ -29,9 +23,7 @@
     <symbol id="mermaid-teal" viewBox="0 0 44 30"><image href="art/mermaid-selector-M.svg" width="44" height="30"/></symbol>
     <symbol id="mermaid-pink" viewBox="0 0 44 30"><image href="art/mermaid-selector-M.svg" width="44" height="30"/></symbol>
   </defs>
-</svg>
-<section id="home" hidden><div class="welcome"><span class="home-kicker">AYAN + ALIYA’S</span><h1>Little worlds.<br>Big discoveries.</h1><p>Pick your world. Let’s count and play!</p></div><div class="worlds"><article class="world cars"><div class="scene" aria-hidden="true">☁️<span>🚙 🚗</span>🌳</div><h2>Ayan’s Car Game</h2><p>Add, move, and count in tens and ones.</p><a class="play" href="?theme=cars&max=20">🚗 Play with 20</a><div class="more"><a href="?theme=cars&max=50">50 cars</a><a href="?theme=cars&max=100">100 cars</a></div></article><article class="world sea"><div class="scene" aria-hidden="true">🫧<span>🧜‍♀️ 🐠</span>🐚</div><h2>Aliya’s Mermaid Game</h2><p>Swim and count in tens and ones.</p><a class="play" href="?theme=mermaids&max=20">🧜‍♀️ Play with 20</a><div class="more"><a href="?theme=mermaids&max=50">50 mermaids</a><a href="?theme=mermaids&max=100">100 mermaids</a></div></article><article class="world quest"><div class="scene" aria-hidden="true">🌋<span>🚗 🧜‍♀️</span>✨</div><h2>Cancellation Quest</h2><p>Cancel the same from both sides. What stays is the answer!</p><a class="play" href="cancellation-quest.html?theme=cars">🚗 Play cars</a><div class="more"><a href="cancellation-quest.html?theme=mermaids">🧜‍♀️ Play mermaids</a></div></article><article class="world quest"><div class="scene" aria-hidden="true">➕<span>🚗 🧜‍♀️</span>✨</div><h2>Addition Quest</h2><p>Move the smaller side over to the bigger side. What stays is the answer!</p><a class="play" href="addition-quest.html?theme=cars">🚗 Play cars</a><div class="more"><a href="addition-quest.html?theme=mermaids">🧜‍♀️ Play mermaids</a></div></article></div><p class="home-note">Tens and ones. Four games. Two little worlds.</p></section>
-
+</svg><section id="home" hidden><header class="home-welcome"><p>Ayan &amp; Aliya’s Counting Worlds</p><h1>Choose an adventure</h1><span>Two little worlds. So much to discover.</span></header><div class="choose-games"><article class="choose-game"><h2>Counting Play</h2><p>Drive the roads or swim the tunnels. Add, move, and take away tens and ones.</p><div class="choose-worlds"><a class="choose-world cars" data-counting="true" href="index.html?theme=cars&amp;max=20"><svg viewBox="0 0 44 26" width="28" height="18" aria-hidden="true"><use href="#car-blue"/></svg><span>Ayan</span></a><a class="choose-world mermaids" data-counting="true" href="index.html?theme=mermaids&amp;max=20"><img src="art/mermaid-selector-M.svg" width="28" height="20" alt=""><span>Aliya</span></a></div><fieldset class="home-capacity"><legend>Count up to</legend><button type="button" data-max="20" aria-pressed="true">20</button><button type="button" data-max="50" aria-pressed="false">50</button><button type="button" data-max="100" aria-pressed="false">100</button></fieldset></article><article class="choose-game"><h2>Cancellation Quest</h2><p>Count down together. What stays is the answer.</p><div class="choose-worlds"><a class="choose-world cars" data-counting="false" href="cancellation-quest.html?theme=cars"><svg viewBox="0 0 44 26" width="28" height="18" aria-hidden="true"><use href="#car-blue"/></svg><span>Ayan</span></a><a class="choose-world mermaids" data-counting="false" href="cancellation-quest.html?theme=mermaids"><img src="art/mermaid-selector-M.svg" width="28" height="20" alt=""><span>Aliya</span></a></div></article><article class="choose-game"><h2>Addition Quest</h2><p>Move the smaller group over. Bring the total together.</p><div class="choose-worlds"><a class="choose-world cars" data-counting="false" href="addition-quest.html?theme=cars"><svg viewBox="0 0 44 26" width="28" height="18" aria-hidden="true"><use href="#car-blue"/></svg><span>Ayan</span></a><a class="choose-world mermaids" data-counting="false" href="addition-quest.html?theme=mermaids"><img src="art/mermaid-selector-M.svg" width="28" height="20" alt=""><span>Aliya</span></a></div></article></div></section>
 <main id="game" class="page free-play" hidden>
   <header class="eqbar">
     <p class="world-line" id="world-line">Ayan's Car World · Counting Play</p>
@@ -44,25 +36,23 @@
       <button type="button" class="pill" id="reset" aria-label="Reset to 10 on the left and zero on the right">↻ Reset</button>
     </div>
   </header>
-  <div class="free-actions landmark-strip" id="outside-actions" role="group" aria-label="Add or take away tens and ones"></div>
-  <section class="quantities" aria-label="The two quantities">
-    <div class="side left" id="blue-side">
-      <div class="who"><span class="dot"></span><span id="blue-label">Blue cars</span></div>
-      <div class="bignum" id="blue-num">10</div>
-      <p class="caption" id="blue-cap">1 ten · 0 ones</p>
-      <div class="free-pool" id="blue-pool" role="img" aria-label="10 blue cars"></div>
-    </div>
-    <div class="plus-badge" aria-hidden="true">+</div>
-    <div class="side right" id="gold-side">
-      <div class="who"><span class="dot"></span><span id="gold-label">Gold cars</span></div>
-      <div class="bignum" id="gold-num">0</div>
-      <p class="caption" id="gold-cap">0 tens · 0 ones</p>
-      <div class="free-pool" id="gold-pool" role="img" aria-label="0 gold cars"></div>
-    </div>
-  </section>
-  <div class="free-actions landmark-strip" id="transfer-actions" role="group" aria-label="Move tens and ones between the two sides"></div>
+  <div class="track-board">
+    <svg id="map" viewBox="0 0 420 552" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Eight connected roads: add, move, and take away ten or one">
+      <defs>
+        <linearGradient id="garage-left" x2="0" y2="1"><stop stop-color="#fffdf2"/><stop offset="1" stop-color="#eaf2da"/></linearGradient>
+        <linearGradient id="garage-right" x2="0" y2="1"><stop stop-color="#fffdf2"/><stop offset="1" stop-color="#fff1cb"/></linearGradient>
+        <linearGradient id="pool-left" x2="0" y2="1"><stop stop-color="#effdf9"/><stop offset=".8" stop-color="#daf2f1"/><stop offset="1" stop-color="#ead59e"/></linearGradient>
+        <linearGradient id="pool-right" x2="0" y2="1"><stop stop-color="#fff7fb"/><stop offset=".8" stop-color="#e6f5f6"/><stop offset="1" stop-color="#ead59e"/></linearGradient>
+      </defs>
+      <g id="track-scenery" aria-hidden="true"></g>
+      <g id="tracks"></g>
+      <g id="garages"></g>
+      <g id="traffic" pointer-events="none" aria-hidden="true"></g>
+      <g id="motion-paths" visibility="hidden" pointer-events="none" aria-hidden="true"></g>
+    </svg>
+  </div>
   <p class="free-capacity">Room for <span id="capacity">20</span> altogether · <a id="bigger-world" href="?theme=cars&amp;max=50">Try 50</a></p>
-  <div id="feedback" class="game-announcements" role="status" aria-live="polite"></div>
+  <p class="game-announcements" id="feedback" role="status" aria-live="polite"></p>
   <footer class="quest-footer">
     <nav class="footer-nav" aria-label="Game navigation">
       <a class="footer-home" href="index.html">
@@ -72,6 +62,4 @@
     </nav>
   </footer>
 </main>
-<script src="game.js?v=11" defer></script>
-</body>
-</html>
+<noscript><p>Turn on JavaScript to choose a world and play.</p></noscript><script src="game.js?v=12" defer></script></body></html>

@@ -190,13 +190,14 @@ same roles appear. Recolouring it would visibly change the game the
 kids already play, so it stays as-is until Matt says otherwise.
 
 
-## Unified Counting Play (test only)
+## Unified Counting Play: roads and tunnels (test only)
 
-The original car and mermaid games now share the Quest equation bar, place-value colors, two counting pools, approved Candidate M mermaids, and fixed All games dock. A fresh game starts with 10 on the left and 0 on the right. Complete tens occupy ten-column rows; remaining ones share a bottom row across both pools.
+The original car and mermaid games keep their connected roads/tunnels, entry from the left, exit on the right, and transfers between the garages/pools. They share the Quest equation bar, place-value colors, approved Candidate M asset, and fixed All games dock.
 
-There are eight actions: add to the left, take from the right, move left-to-right, and move right-to-left, each by one ten or one one. Five-unit actions are rejected by the engine. Transfers preserve the total; adding and taking away change it. Animated individual characters follow curved paths, with transfers looping around the pressed control. Reset safely cancels a move in progress. Reduced motion skips flights. Changing themes preserves the current quantities.
+Eight independent SVG lanes carry one ten or one one: two entry lanes, two exit lanes, two upper left-to-right lanes, and two lower right-to-left lanes. Each lane displays exactly ten or one individual characters. Five-unit actions are rejected. Ten-unit movement is disabled unless at least ten units are available; additions also respect the total capacity. Reset starts at 10 on the left and 0 on the right and safely cancels a flight in progress.
 
-The existing `index.html?theme=cars|mermaids&max=20|50|100` URLs continue to work. No theme/max query opens the game chooser. Capacity values 10–100 are supported; malformed or out-of-range values use 20. All assets and navigation remain under test/. Root production files and both Quest implementations are unchanged.
+Characters follow their selected lane's actual SVG path. Complete tens fill ten-column rows; remaining ones share a baseline across both garages. Garages grow vertically through 100 individual units, and lower lanes move with their bottoms. Survivors slide into alignment after a move. Reduced motion skips travel. Changing themes preserves the quantities.
 
-Validation: `node test/test.cjs` and `node test/test-themes.cjs` cover both themes, every supported capacity and all valid count states for the eight actions, including rejecting five-unit moves. The root suites remain unchanged. Browser checks cover phone-width layouts, full-capacity disabled actions, exact rendered counts, both transfer directions, entry/exit, theme switching, and reset during a flight.
+The chooser uses three roomy game cards, with Ayan/Aliya theme choices for each. Capacity buttons (20/50/100) update the Counting Play links. Existing `index.html?theme=cars|mermaids&max=20|50|100` links continue to work. No theme/max query opens the chooser. Malformed or out-of-range capacities fall back to 20. All navigation and assets remain under test/. Production and the Quest implementations are unchanged.
 
+Validation: `node test/test.cjs`, `node test/test-themes.cjs`, and `node test/counting-layout.test.cjs`. Engine suites cover all valid states across both themes and every capacity from 10–100. Layout checks enforce unique individual unit positions, garage bounds, shared ones alignment, and all 100 units. Browser checks cover 320/390 pixel layouts, actual lane travel, entry/exit, both transfer directions, capacity limits, theme changes, and reset during a flight.
