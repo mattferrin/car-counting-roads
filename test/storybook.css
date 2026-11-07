@@ -21,7 +21,7 @@ body[data-theme="mermaids"] {
   background-attachment: fixed;
 }
 .eqbar { background: #fffaf0; border: 1px solid #ffffff; box-shadow: 0 4px 18px #294b5818; }
-.eqbar .world-line { color: #45616a; letter-spacing: .02em; }
+.eqbar .world-line { color: #3a5560; letter-spacing: .02em; font-weight: 700; margin: 0 0 6px; }
 .side { box-shadow: 0 4px 16px #294b5818; }
 .landmark { background: var(--world-paper); border: 2px solid #fffdf5;
   box-shadow: 0 3px 0 #c4a975, 0 5px 12px #193f4920; }

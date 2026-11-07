@@ -5,7 +5,7 @@
  */
 :root {
   --ink: #22303c;
-  --soft-ink: #5b6b7a;
+  --soft-ink: #3a5560;
   --card: #ffffff;
   --tens: #1668d6;   /* tens digit colour, used everywhere a ten is shown */
   --ones: #e8710a;   /* ones digit colour */
@@ -60,7 +60,7 @@ button:focus-visible, summary:focus-visible { outline: 3px solid #ffbf47; outlin
  * world-line hides and the equation + answer get those 14px. */
 .page:has(#celebrate-banner.show) .eqbar .world-line { display: none; }
 .page:has(#celebrate-banner.show) .eqbar { padding: 4px 12px; }
-.eqbar .world-line { font-size: 12px; color: var(--soft-ink); margin: 0; }
+.eqbar .world-line { font-size: 12px; color: var(--soft-ink); font-weight: 700; margin: 0 0 6px; }
 .equation {
   font-size: clamp(28px, 8vw, 38px);
   font-weight: 800; line-height: 1.05; letter-spacing: 1px;
