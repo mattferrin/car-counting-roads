@@ -70,14 +70,27 @@ until the smaller side reaches zero, and what is left is the answer.
 The total never changes. Panels keep the problem's own order (left =
 first addend, right = second), so the move goes right-to-left for
 47+26 and left-to-right for 26+47. Every object is one real car/mermaid
-in rows of ten; a ten-move inserts a whole new row just above the
-destination's ones, and a one-move that fills the ones row regroups it
-into a new ten. The tap target is the central Move button (its arrow
+in rows of ten. The grid has a fixed R = floor(total/10)+1 rows: tens
+stack from the top and the ones row is bottom-anchored at the same
+height in both pools, so a one-move slides across the bottom row into
+the next free square. A ten-move inserts a whole new row at the top of
+the destination (y = 0) and the rows below slide down to make room; a
+one-move that fills the ones row regroups it into a new ten just above
+the ones row. Flights stay full-size into their slots — no shrinking
+or fading. The tap target is the central Move button (its arrow
 flips with the direction) or the glowing group in the smaller pool.
 No new voice clips: it reuses the Cancellation Quest recordings in
 `audio/`, with the same changed-place-only counting, per-fragment glow,
 and no pre-move amount announcement. The answer flies from the larger
 panel into the "?" and New Mystery appears only after completion.
+
+Rendering rule (live defect, 2026-11-06): never animate `transform`
+on a positioned `.obj`. The first deployed version gave the movable
+group a `nudge` animation whose keyframes set `transform: scale(...)`;
+a running CSS animation overrides the inline `translate()` that
+positions each object, so every movable object collapsed to the grid
+origin and a whole ten rendered as one car (26 showed as 17, 6 as 5).
+The movable pulse now animates `filter` (brightness + glow) only.
 
 - Play: `addition-quest.html` (cars) or `addition-quest.html?theme=mermaids`
 - Try one: `addition-quest.html?a=47&b=26` (and `?a=26&b=47` for the mirror)
@@ -87,6 +100,7 @@ Checks:
 - `node test/addition-quest.test.cjs` (576,631 checks, exhaustive 0..100)
 - `node test/addition-layout.test.cjs` (83,861 states)
 - `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-ui.test.cjs` (26 cases)
+- `NODE_PATH=/tmp/cq-test-deps/node_modules node test/addition-rendered.test.cjs` (55 cases: rendered counts == labelled counts at every state, ones bottom-anchored in both pools, no transform animation on `.obj`, full-size flights)
 
 Only Addition Quest files, `test/index.html` (one home-page card), and
 this README are changed. Production files are untouched.

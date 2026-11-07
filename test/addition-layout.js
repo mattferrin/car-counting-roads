@@ -5,13 +5,18 @@
  * ids: the left pool owns 0..a-1, the right pool owns a..a+b-1.
  * Survivors keep their identity; no object is ever duplicated or lost.
  *
- * Canonical grid per pool: complete tens rows on top, the ones row at
- * the bottom. A ten-move takes the FIRST whole row (top row) off the
- * source pool and inserts it into the destination pool just BEFORE its
- * ones row, so the destination's existing ones shift down a row. A
- * one-move takes the LAST object off the source pool and appends it to
- * the destination pool's ones row; when that row reaches ten it becomes
- * a new complete ten row (regrouping).
+ * Grid shape (fixed for the whole problem): R = floor(total/10) + 1
+ * rows. The ones row is BOTTOM-ANCHORED at y = R-1 in BOTH pools, at
+ * the same height, throughout — tens stack above it from y = 0 down,
+ * so the two pools share one positional grid and a one-move is a slide
+ * across the bottom row into the next free square. A ten-move takes the
+ * FIRST whole row (top row) off the source pool and inserts it at the
+ * START of the destination pool's list, so it lands at y = 0 — the top
+ * of the destination — and the rows below slide down one row to make
+ * room. A one-move takes the LAST object off the source pool and
+ * appends it to the destination pool's ones row; when that row reaches
+ * ten it becomes a new complete ten row just above the ones row (the
+ * tens above it shift up one row), which is the regrouping.
  */
 (function (root, factory) {
   var api = factory();
@@ -33,9 +38,10 @@
       if (amount === 10) {
         if (src.length < 10) throw new Error('Invalid surviving identity');
         var row = src.splice(0, 10);
-        var ones = dst.length % 10;
-        var at = dst.length - ones; // just before the ones row
-        for (var j = 0; j < row.length; j++) dst.splice(at + j, 0, row[j]);
+        // Insert at the START of the destination's list: the new ten
+        // lands on top of the destination (y = 0) and the rows below
+        // slide down one row to make room.
+        for (var j = 0; j < row.length; j++) dst.splice(j, 0, row[j]);
       } else if (amount === 1) {
         if (src.length < 1) throw new Error('Invalid surviving identity');
         dst.push(src.pop());
@@ -62,7 +68,10 @@
     }
     var st = solution.states[step];
     var lists = orderedLists(solution, step);
-    var result = { left: [], right: [], rows: 1 };
+    // Fixed rows for the whole problem: the ones row sits at y = R-1
+    // in both pools, at the same height, from the first state to the last.
+    var R = Math.floor(solution.total / 10) + 1;
+    var result = { left: [], right: [], rows: R };
     var seen = {};
     ['left', 'right'].forEach(function (side) {
       var list = lists[side];
@@ -76,10 +85,11 @@
         if (seen[id]) throw new Error('Invalid surviving identity');
         seen[id] = true;
         var x, y;
+        // Tens stack from the top (y = 0); the ones row is anchored to
+        // the bottom (y = R-1) in both pools.
         if (i < tenCount) { x = i % 10; y = Math.floor(i / 10); }
-        else { x = i - tenCount; y = tenCount / 10; }
+        else { x = i - tenCount; y = R - 1; }
         result[side].push({ id: id, x: x, y: y });
-        result.rows = Math.max(result.rows, y + 1);
       }
     });
     return result;

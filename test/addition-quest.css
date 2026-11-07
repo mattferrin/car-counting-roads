@@ -302,6 +302,13 @@ button:disabled { cursor: default; }
 main { text-align: center; }
 .quantities, .landscape, .caption-bar, .parents, .celebrate { text-align: left; }
 .obj.movable { cursor: pointer; }
-.obj.movable:not(.speaking) { animation: nudge 1.6s ease-in-out infinite; }
+/* The movable group pulses to invite a tap — with a brightness pulse,
+ * never a transform. (A transform animation would override the inline
+ * translate() that positions each object, collapsing every movable
+ * object to the grid origin so a whole ten rendered as one car — the
+ * live defect of 2026-11-06. The Move button may keep its nudge: it
+ * has no inline transform to override.) */
+.obj.movable:not(.speaking) { animation: movable-pulse 1.6s ease-in-out infinite; }
+@keyframes movable-pulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.3) drop-shadow(0 0 8px rgba(255, 191, 71, .9)); } }
 /* Arrival burst particles inside a quantity panel */
 .arrival-burst { position: absolute; z-index: 6; pointer-events: none; font-size: 20px; animation: burst-fly .9s ease-out forwards; }

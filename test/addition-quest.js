@@ -384,8 +384,15 @@
     return theme === 'mermaids' ? width * 1.6 + 8 : Math.max(22, width * 0.65 + 10);
   }
 
-  function layoutPools(animate) {
-    var layout = window.AdditionLayout.plan(solution, stepIndex);
+  /* Lay both pools out from the plan at `step` (default: the current
+   * step). Survivors animate gradually (FLIP) from their previous
+   * slots; objects not found in a grid — the ones mid-flight in the
+   * wrapper — are skipped. The preview call during a move lays the
+   * survivors out from the NEXT plan, so the destination's rows slide
+   * down to open the top row (or, for a regrouping one, the ones rise
+   * to form the new ten) while the group is still flying. */
+  function layoutPools(animate, step) {
+    var layout = window.AdditionLayout.plan(solution, step == null ? stepIndex : step);
     var jobs = [];
     ['left', 'right'].forEach(function (side) {
       var grid = side === 'left' ? leftGrid : rightGrid;
@@ -430,7 +437,10 @@
       left: gridRect.left + minX * width,
       top: gridRect.top + minY * rowHeight,
       width: (maxX - minX + 1) * width,
-      height: (maxY - minY + 1) * rowHeight
+      // Objects are rowHeight-8 tall, so this is the objects' box, not
+      // the full row box — the flight must end with each object exactly
+      // on its slot, not a few pixels above it.
+      height: (maxY - minY) * rowHeight + (rowHeight - 8)
     };
   }
 
@@ -628,8 +638,12 @@
    * in their positions for a beat (the telegraph), then the REAL objects
    * lift off together — one whole row for a ten, one single object for
    * a one — and fly across to their destination slots in the bigger
-   * pool, arriving together. Only then do the survivors reflow.
-   * Nothing ever vanishes from one side and appears on the other. */
+   * pool, arriving together. While they fly, the survivors make room:
+   * the destination's rows slide down to open the top row and the
+   * source's survivors close up. The flight travels at FULL size and
+   * opacity all the way into the slots — the objects arrive and stay,
+   * so nothing shrinks, fades, or pops on arrival. Nothing ever
+   * vanishes from one side and appears on the other. */
   function liftObjects(grid, amount, moving) {
     // The glow colour is the place that is moving: blue for a ten,
     // orange for a one — the same colours as the digits, so the flight
@@ -664,20 +678,28 @@
     return wrap;
   }
 
-  /* Fly one whole group to its destination slots in the bigger pool. */
-  function flyTo(wrapper, targetRect, delay) {
+  /* Fly one whole group to its destination slots in the bigger pool.
+   * A ten arcs up over the pools; a one slides almost flat along the
+   * bottom row, underneath the tens. Either way the group travels at
+   * full size and full opacity into its slots and stays there — the
+   * wrapper is left in place (still holding its final transform) so the
+   * caller can land the real objects from exactly where the flight
+   * left them. */
+  function flyTo(wrapper, targetRect, delay, amount) {
     if (!wrapper) return Promise.resolve();
     var r = wrapper.getBoundingClientRect();
     var dx = targetRect.left + targetRect.width / 2 - (r.left + r.width / 2);
     var dy = targetRect.top + targetRect.height / 2 - (r.top + r.height / 2);
     var dur = reducedMotion() ? 180 : 620;
     if (!wrapper.animate) { wrapper.remove(); return Promise.resolve(); }
+    var lift = amount === 1 ? 16 : 64;
+    var rot = amount === 1 ? 0 : (solution.sourceIsLeft ? 3 : -3);
     var anim = wrapper.animate([
       { transform: 'translate(0px, 0px) scale(1)', opacity: 1 },
-      { transform: 'translate(' + dx * 0.5 + 'px,' + (dy * 0.5 - 64) + 'px) scale(1.06) rotate(-3deg)', opacity: 1, offset: 0.55 },
-      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.3)', opacity: 0.85 }
+      { transform: 'translate(' + dx * 0.5 + 'px,' + (dy * 0.5 - lift) + 'px) scale(1.04) rotate(' + rot + 'deg)', opacity: 1, offset: 0.55 },
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(1)', opacity: 1 }
     ], { duration: dur, delay: delay, easing: 'ease-in-out', fill: 'forwards' });
-    return anim.finished.catch(function () {}).then(function () { wrapper.remove(); });
+    return anim.finished.catch(function () {});
   }
 
   /* A few sparkles trail behind a flying group, so the flight reads as
@@ -720,18 +742,39 @@
       var nextPlan = window.AdditionLayout.plan(solution, stepIndex + 1);
       var targetRect = destSlotsRect(dstGrid, nextPlan[dstSide], moving);
       var wrap = liftObjects(srcGrid, amount, moving);
-      var flight = flyTo(wrap, targetRect, TELEGRAPH);
+      // The survivors make room while the group flies: the
+      // destination's rows slide down to open the top row (or, for a
+      // regrouping one, the ones rise to form the new ten), and the
+      // source's survivors close up. The moving objects are in the
+      // wrapper, so the preview lays out only the survivors.
+      layoutPools(true, stepIndex + 1);
+      var flight = flyTo(wrap, targetRect, TELEGRAPH, amount);
       whooshSound();
       if (amount >= 10) trailSparkles([wrap]);
       await flight;
       // The real objects arrive: move them into the destination pool.
+      // Read their flight-end positions first — the wrapper still holds
+      // its final transform — so the reflow below animates each object
+      // from exactly where the flight left it into its slot. No pop,
+      // no shrink: the objects arrive and stay.
+      var dstRect = dstGrid.getBoundingClientRect();
+      var cellW = dstGrid.clientWidth / 10;
+      var rowH = rowHeightFor(dstGrid);
       var arrived = wrap ? Array.prototype.slice.call(wrap.childNodes) : [];
-      arrived.forEach(function (n) {
+      var landed = arrived.map(function (n) {
+        var r = (wrap && wrap.isConnected) ? n.getBoundingClientRect() : null;
+        return { node: n, x: r ? r.left - dstRect.left : 0, y: r ? r.top - dstRect.top : 0, ok: !!r };
+      });
+      landed.forEach(function (item) {
+        var n = item.node;
         n.style.position = ''; n.style.left = ''; n.style.top = '';
-        n.style.width = ''; n.style.height = ''; n.style.transform = '';
+        n.style.width = cellW + 'px'; n.style.height = (rowH - 8) + 'px';
+        if (n.classList.contains('emoji')) n.style.fontSize = Math.max(10, Math.round(Math.min(cellW, rowH - 8) * 0.9)) + 'px';
         var svg = n.querySelector('svg');
         if (svg) { svg.style.width = ''; svg.style.height = ''; }
         dstGrid.appendChild(n);
+        if (item.ok) n.style.transform = 'translate(' + item.x + 'px,' + item.y + 'px)';
+        else n.style.transform = '';
       });
       if (wrap) wrap.remove();
       var prev = solution.states[stepIndex];
@@ -757,8 +800,9 @@
       }
       vibrate(amount);
       renderSide('left', st.left, true); renderSide('right', st.right, true);
-      // Survivors reflow gradually to their new slots; the arrivals are
-      // already sitting in theirs.
+      // Settle everything into its final slots: the arrivals animate
+      // the last short step from where the flight left them, and any
+      // survivors the preview did not already move reflow now.
       await layoutPools(true);
       renderMoveButton();
       renderMoved();
