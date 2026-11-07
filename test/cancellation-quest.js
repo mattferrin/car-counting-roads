@@ -30,6 +30,7 @@
       label: "Ayan's Car World", thing: 'car', things: 'cars',
       leftName: 'Ayan', rightName: 'Aliya',
       leftSym: 'car-blue', rightSym: 'car-gold',
+      leftColor: 'Blue', rightColor: 'Gold',
       landmarks: [
         { id: 'volcano', art: '🌋', name: 'Volcano', hint: 'poof in a puff!', fx: ['🔥', '⭐', '💥'] },
         { id: 'castle', art: '🏰', name: 'Castle', hint: 'magic sparkles!', fx: ['✨', '💫', '⭐'] },
@@ -42,6 +43,7 @@
       label: "Aliya's Mermaid World", thing: 'mermaid', things: 'mermaids',
       leftName: 'Ayan', rightName: 'Aliya',
       leftSym: 'mermaid-teal', rightSym: 'mermaid-pink',
+      leftColor: 'Teal', rightColor: 'Pink',
       landmarks: [
         { id: 'reef', art: '🪸', name: 'Coral Reef', hint: 'bubbles bloom!', fx: ['🫧', '🪸', '✨'] },
         { id: 'palace', art: '🏰', name: 'Palace', hint: 'pearl sparkles!', fx: ['✨', '🤍', '💫'] },
@@ -68,8 +70,122 @@
   var eqA, eqB, eqQ, leftNum, rightNum, leftCap, rightCap, leftGrid, rightGrid,
       leftSide, rightSide, captionBar, nextChip, newMysteryBtn, cheerEl, landscapeEl;
 
-  /* ---------- speech: two voices, place-value words only ---------- */
-  function voices() {
+  /* ---------- voices: pre-recorded clips, two distinct voices ---------- */
+  /* Counts are spoken from short recorded clips — one male voice for the
+   * left side, one female voice for the right — so the two voices are
+   * unmistakably different on every device (the device's built-in speech
+   * could only shift one voice's pitch, which sounded like one person).
+   * A count is played as its place-value fragments in order ("five tens"
+   * + "three ones"), which is also why the counting pattern is audible:
+   * tens count down, then ones. If a clip is missing or audio is
+   * unavailable, the same words fall back to the device's speech — the
+   * captions always show the same words either way. */
+  var clipBuffers = {};   // "boy:tens-8" -> AudioBuffer, false = missing
+  var clipsPreloading = false;
+  var clipSources = [];   // live buffer sources, so stopSpeech can cut them
+  var clipTimer = null;
+
+  function ensureAudioCtx() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    } catch (e) { return null; }
+  }
+
+  function stopSpeech() {
+    speechToken++;
+    if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch (e) {} }
+    clipSources.forEach(function (s) { try { s.stop(); } catch (e) {} });
+    clipSources = [];
+    if (clipTimer) { clearTimeout(clipTimer); clipTimer = null; }
+  }
+
+  /* Fragment names for a count, mirroring E.describeCount exactly. */
+  function fragmentsFor(n, sayZeroTens) {
+    var pv = E.placeValue(n);
+    var frags = [];
+    if (pv.hundreds > 0) frags.push('hundreds-' + pv.hundreds);
+    if (pv.tens > 0) frags.push('tens-' + pv.tens);
+    else if (pv.ones > 0 && sayZeroTens && pv.hundreds === 0) frags.push('tens-0');
+    if (pv.tens > 0) { if (pv.ones > 0) frags.push('ones-' + pv.ones); }
+    else if (pv.ones > 0) frags.push('ones-' + pv.ones);
+    if (frags.length === 0) frags.push('zero');
+    return frags;
+  }
+
+  var CLIP_FRAGS = ['tens-0', 'tens-1', 'tens-2', 'tens-3', 'tens-4', 'tens-5', 'tens-6', 'tens-7', 'tens-8', 'tens-9',
+    'ones-1', 'ones-2', 'ones-3', 'ones-4', 'ones-5', 'ones-6', 'ones-7', 'ones-8', 'ones-9',
+    'hundreds-1', 'hundreds-2', 'hundreds-3', 'hundreds-4', 'hundreds-5', 'hundreds-6', 'hundreds-7', 'hundreds-8', 'hundreds-9',
+    'zero'];
+
+  /* Fetch + decode every clip in the background; playback uses whatever is
+   * ready and falls back to device speech for the rest. Fetching is silent
+   * (no gesture needed); only playing needs the tap that already happened. */
+  function preloadClips() {
+    if (clipsPreloading) return;
+    clipsPreloading = true;
+    if (typeof fetch !== 'function') return;
+    var ctx = ensureAudioCtx();
+    if (!ctx) return;
+    ['boy', 'girl'].forEach(function (kind) {
+      CLIP_FRAGS.forEach(function (f) { loadClip(ctx, kind, f); });
+    });
+    loadClip(ctx, 'girl', 'answer');
+  }
+  function loadClip(ctx, kind, frag) {
+    var key = kind + ':' + frag;
+    fetch('audio/' + kind + '/' + frag + '.mp3').then(function (r) {
+      if (!r.ok) throw new Error('missing clip ' + key);
+      return r.arrayBuffer();
+    }).then(function (buf) { return ctx.decodeAudioData(buf); })
+    .then(function (decoded) { clipBuffers[key] = decoded; })
+    .catch(function () { clipBuffers[key] = false; });
+  }
+
+  /* One side's count, spoken in its voice. Clips when every fragment is
+   * buffered, device speech otherwise. Resolves when the phrase ends. */
+  function playPhrase(p, token) {
+    if (!soundOn) return Promise.resolve();
+    var frags = (p.prefix || []).concat(fragmentsFor(p.n, p.sayZero));
+    var ctx = ensureAudioCtx();
+    var ready = ctx && frags.every(function (f) { return clipBuffers[p.kind + ':' + f]; });
+    if (ready) {
+      var t = ctx.currentTime + 0.05;
+      frags.forEach(function (f) {
+        var src = ctx.createBufferSource();
+        src.buffer = clipBuffers[p.kind + ':' + f];
+        src.connect(ctx.destination);
+        src.start(t);
+        clipSources.push(src);
+        t += src.buffer.duration + 0.18;
+      });
+      var total = Math.max(0, (t - ctx.currentTime) * 1000);
+      return new Promise(function (res) {
+        clipTimer = setTimeout(function () { clipTimer = null; res(); }, total);
+      });
+    }
+    return new Promise(function (res) {
+      speakUtterance(p.text, p.kind, token, res);
+    });
+  }
+
+  /* Device speech for one phrase (fallback when clips are not ready). */
+  function speakUtterance(text, kind, token, done) {
+    if (!soundOn || !('speechSynthesis' in window)) { done(); return; }
+    var vs = pickVoices();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 0.88;
+    u.pitch = kind === 'boy' ? 0.85 : 1.3;
+    var v = kind === 'boy' ? vs.boy : vs.girl;
+    if (v) u.voice = v;
+    u.onend = function () { done(); };
+    u.onerror = function () { done(); };
+    try { window.speechSynthesis.speak(u); } catch (e) { done(); }
+  }
+
+  function pickVoices() {
     if (!('speechSynthesis' in window)) return { boy: null, girl: null };
     var all = window.speechSynthesis.getVoices().filter(function (v) {
       return v.lang && v.lang.toLowerCase().indexOf('en') === 0;
@@ -85,47 +201,30 @@
     return { boy: boy, girl: girl };
   }
 
-  function stopSpeech() {
-    speechToken++;
-    if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch (e) {} }
-  }
-
-  /* Speak phrases in order: [{text, kind:'boy'|'girl'}]. Captions are set
-   * by the caller at the same time, so words and screen always agree. */
-  function speak(phrases) {
-    if (!soundOn || !('speechSynthesis' in window)) return;
+  /* Play phrases in order: [{kind, n, sayZero, prefix?, text}]. Captions
+   * are set by the caller at the same time, so words and screen agree. */
+  function playPhrases(list) {
+    if (!soundOn) return;
     var token = speechToken;
-    var vs = voices();
     var i = 0;
     function next() {
-      if (token !== speechToken || i >= phrases.length) return;
-      var p = phrases[i++];
-      var u = new SpeechSynthesisUtterance(p.text);
-      u.lang = 'en-US';
-      u.rate = 0.88;
-      u.pitch = p.kind === 'boy' ? 0.85 : 1.3;
-      var v = p.kind === 'boy' ? vs.boy : vs.girl;
-      if (v) u.voice = v;
-      u.onend = function () { next(); };
-      u.onerror = function () { next(); };
-      try { window.speechSynthesis.speak(u); } catch (e) { next(); }
+      if (token !== speechToken || i >= list.length) return;
+      var p = list[i++];
+      playPhrase(p, token).then(function () { next(); });
     }
     next();
   }
 
-  /* Place-value phrase for one side, with the one-time "zero tens"
-   * transition when its tens have just run out. */
-  function describeSide(n, side) {
+  /* Whether this side gets the one-time "zero tens" transition phrase:
+   * its tens have just run out and this is the first time. */
+  function zeroTensFlag(n, side) {
     var pv = E.placeValue(n);
-    var saidFlag = side === 'left' ? leftZeroTensSaid : rightZeroTensSaid;
-    var prevTens = side === 'left' ? prevLeftTens : prevRightTens;
-    var sayZero = false;
-    if (pv.tens === 0 && pv.ones > 0 && !saidFlag && prevTens !== null && prevTens > 0) {
-      sayZero = true;
-      if (side === 'left') leftZeroTensSaid = true; else rightZeroTensSaid = true;
-    }
+    var said = side === 'left' ? leftZeroTensSaid : rightZeroTensSaid;
+    var prev = side === 'left' ? prevLeftTens : prevRightTens;
+    var say = pv.tens === 0 && pv.ones > 0 && !said && prev !== null && prev > 0;
+    if (say) { if (side === 'left') leftZeroTensSaid = true; else rightZeroTensSaid = true; }
     if (side === 'left') prevLeftTens = pv.tens; else prevRightTens = pv.tens;
-    return E.describeCount(n, sayZero);
+    return say;
   }
 
   /* ---------- little sounds (WebAudio, no files) ---------- */
@@ -182,6 +281,17 @@
     }
   }
 
+  /* The quantity panels are labelled by colour, never by a child's name:
+   * the piles stay lopsided the whole game, and a name on the bigger pile
+   * reads as "they have more than me". */
+  function renderWho() {
+    var T = THEMES[theme];
+    var leftWho = $('.side.left .who-label');
+    var rightWho = $('.side.right .who-label');
+    if (leftWho) leftWho.textContent = T.leftColor + ' ' + T.things;
+    if (rightWho) rightWho.textContent = T.rightColor + ' ' + T.things;
+  }
+
   function renderSide(which, value, flash) {
     var T = THEMES[theme];
     var num = which === 'left' ? leftNum : rightNum;
@@ -233,17 +343,24 @@
 
   function sayCounts() {
     var st = solution.states[stepIndex];
-    var leftPhrase = describeSide(st.left, 'left');
-    var rightPhrase = describeSide(st.right, 'right');
+    var lz = zeroTensFlag(st.left, 'left');
+    var rz = zeroTensFlag(st.right, 'right');
+    var leftPhrase = E.describeCount(st.left, lz);
+    var rightPhrase = E.describeCount(st.right, rz);
     var T = THEMES[theme];
     setCaption([
       { cls: 'left-voice', tag: T.leftName, text: leftPhrase + '.' },
       { cls: 'right-voice', tag: T.rightName, text: rightPhrase + '.' }
     ]);
-    speak([
-      { text: leftPhrase, kind: 'boy' },
-      { text: rightPhrase, kind: 'girl' }
+    playPhrases([
+      { kind: 'boy', n: st.left, sayZero: lz, text: leftPhrase },
+      { kind: 'girl', n: st.right, sayZero: rz, text: rightPhrase }
     ]);
+  }
+
+  function speakAnswer(answer) {
+    var phrase = E.describeCount(answer, false);
+    playPhrases([{ kind: 'girl', n: answer, sayZero: false, prefix: ['answer'], text: 'The answer is ' + phrase + '!' }]);
   }
 
   /* ---------- landmarks ---------- */
@@ -374,11 +491,11 @@
     var leftWraps = liftObjects(leftGrid, amount);
     var rightWraps = liftObjects(rightGrid, amount);
     var flights = [];
-    // Whole rows meet at the landmark: the left row leaves at once, the
-    // right row a beat later, so the two rows arrive together and collide.
-    // Single objects keep the gentle stagger they already had.
+    // Whole rows meet at the landmark: both rows leave at once and arrive
+    // together, so they smash into each other and explode. Single objects
+    // keep the gentle stagger they already had.
     leftWraps.forEach(function (w) { flights.push(flyTo(w, target, 0)); });
-    rightWraps.forEach(function (w) { flights.push(flyTo(w, target, amount >= 10 ? 120 : 90)); });
+    rightWraps.forEach(function (w) { flights.push(flyTo(w, target, amount >= 10 ? 0 : 90)); });
     btn.classList.add('busy');
     setTimeout(function () { btn.classList.remove('busy'); }, 650);
     Promise.all(flights).then(function () {
@@ -437,7 +554,7 @@
       newMysteryBtn.classList.add('show');
       newMysteryBtn.focus();
     });
-    speak([{ text: 'The answer is ' + phrase + '!', kind: 'girl' }]);
+    speakAnswer(answer);
   }
 
   function starBurst() {
@@ -513,6 +630,7 @@
     });
     $('.world-line').textContent = THEMES[theme].label + ' · Cancellation Quest';
     buildLandmarks();
+    renderWho();
     if (solution) {
       var st = solution.states[stepIndex];
       renderSide('left', st.left, false);
@@ -571,6 +689,7 @@
       soundBtn.textContent = soundOn ? '🔊 Sound on' : '🔇 Muted';
       soundBtn.setAttribute('aria-pressed', String(soundOn));
       if (!soundOn) stopSpeech();
+      else preloadClips();
     });
 
     $all('.theme-pill').forEach(function (b) {
@@ -596,6 +715,7 @@
     });
     $('.world-line').textContent = THEMES[theme].label + ' · Cancellation Quest';
     buildLandmarks();
+    renderWho();
     if (specific) newProblem(specific.a, specific.b, { announce: false });
     else newRandomProblem(false);
 
@@ -604,6 +724,7 @@
       window.speechSynthesis.getVoices();
       window.speechSynthesis.onvoiceschanged = function () {};
     }
+    if (soundOn) preloadClips();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
