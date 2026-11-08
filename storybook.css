@@ -144,3 +144,6 @@ body[data-phase="complete"] .landmark-strip{display:none}
 
 /* Audio waits reserve destination geometry; flights still show their targets. */
 body:is([data-phase="narrating"],[data-phase="celebrating"]) .landmark-strip{visibility:hidden;pointer-events:none}
+
+/* Nonselected destinations keep their slots while the chosen target is in use. */
+body[data-phase="moving"] .landmark:not([data-flight-target]){visibility:hidden;pointer-events:none}

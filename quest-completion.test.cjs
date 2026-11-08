@@ -34,12 +34,29 @@ function strips(t,hidden){for(const s of t.d.querySelectorAll('.landmark-strip')
  for(const game of ['addition','cancellation'])for(const theme of ['cars','mermaids'])for(const [a,b]of [[47,26],[26,47],[10,10],[0,0],[7,0],[0,7],[99,99]]){
   if(game==='cancellation'&&b>a)continue;
   const t=boot(game,theme,a,b),d=t.d,E=require('./'+game+'-engine'),solution=E.solve(a,b);await settle(t);
-  for(const move of solution.moves){
-   strips(t,false);d.querySelector('.landmark').click();strips(t,false);
+  for(const [moveIndex,move]of solution.moves.entries()){
+   strips(t,false);
+   assert.equal(d.querySelectorAll('[data-flight-target]').length,0,'ready has no stale flight target');
+   const buttons=[...d.querySelectorAll('.landmark')],target=buttons[(cases+moveIndex)%buttons.length];
+   target.click();strips(t,false);
+   assert.equal(d.querySelectorAll('[data-flight-target]').length,1,'exactly one selected destination');
+   assert(target.hasAttribute('data-flight-target'));
+   for(const button of buttons){
+    const style=t.w.getComputedStyle(button);
+    assert.equal(style.visibility,button===target?'visible':'hidden','only selected destination stays visible during flight');
+    assert.notEqual(style.display,'none','hidden destinations keep their layout slots');
+    if(button!==target)assert.equal(style.pointerEvents,'none');
+   }
    assert.equal(d.body.dataset.phase,'moving','strips remain during final flight');
-   assert.ok([...d.querySelectorAll('.landmark')].every(b=>b.disabled));await settle(t);
+   assert.ok([...d.querySelectorAll('.landmark')].every(b=>b.disabled));
+   if(moveIndex===0){
+    d.querySelector('#sound-toggle').click();
+    assert.equal(t.w.getComputedStyle(target).visibility,'visible','muting during flight retains its destination');
+    d.querySelector('#sound-toggle').click();
+   }
+   await settle(t);
   }
-  assert.equal(d.body.dataset.phase,'complete');strips(t,true);
+  assert.equal(d.body.dataset.phase,'complete');strips(t,true);assert.equal(d.querySelectorAll('[data-flight-target]').length,0,'completion clears selection');
   assert.equal(Number(d.querySelector('#eq-q').textContent),solution.answer);
   const surviving=game==='addition'?a+b:Math.abs(a-b);
   assert.equal(d.querySelectorAll('.grid .obj').length,surviving,'every surviving object retained');
