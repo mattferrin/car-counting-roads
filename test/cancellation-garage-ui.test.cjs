@@ -44,6 +44,15 @@ function roadCrossings(paths){const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)
  for(const max of [20,50,100]){const layout=app('?max='+max);
   const paths=Array.from(layout.d.querySelectorAll('.garage-road')).map(p=>samplePath(p.getAttribute('d')));
   assert.deepEqual(roadCrossings(paths),[],'no road crossings at '+max);
+  const plates=Array.from(layout.d.querySelectorAll('.garage-route')).map(b=>{
+   const xy=b.getAttribute('transform').match(/translate\(([-\d.]+) ([-\d.]+)\)/);return {x:Number(xy[1]),y:Number(xy[2])};
+  });
+  for(let road=0;road<paths.length;road++)for(let button=0;button<plates.length;button++){
+   if(road===button)continue;
+   const c=plates[button];
+   assert.ok(!paths[road].some(p=>Math.abs(p.x-c.x)<40&&Math.abs(p.y-c.y)<40),`road ${road} crowds unrelated button ${button} at ${max}`);
+  }
+
   const buttons=Array.from(layout.d.querySelectorAll('.route-target'));
   const centers=buttons.map(b=>Number(b.parentNode.getAttribute('transform').match(/translate\((\d+)/)[1]));
   assert.equal(centers[0],centers[6],'+10 and −10 share the left column');

@@ -271,3 +271,10 @@ verifies 100→20 removal, surviving identities, concurrent tap rejection,
 compact layout, updated math/URL, keyboard and drag selection, and retained
 normal-move narration. The subtraction UI suite also verifies 160 excess
 objects dissolve from two full garages at 100→20.
+
+Minimum subtraction garage height is 230 SVG units per side, independent of
+the capacity selector. Outer transfer loops sit 82 units from the boundary;
+inner loops stay close to it. Entry/exit bends sit farther out, leaving
+visible road between buttons and turns. Rendered-path tests require every
+road to clear unrelated button plates by at least 9 SVG units (including
+room for the road stroke), in addition to rejecting road crossings.

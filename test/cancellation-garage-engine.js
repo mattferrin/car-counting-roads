@@ -14,7 +14,8 @@
   function move(s,kind,n){if(!canMove(s,kind,n))return s;return {...s,blue:s.blue+(kind==='entry'||kind==='up'?n:kind==='down'?-n:0),gold:s.gold+(kind==='down'?n:kind==='exit'||kind==='up'?-n:0)};}
   function geometry(s){
     const matched=Math.min(s.blue,s.gold),rows=n=>Math.ceil(n/10),m=rows(matched);
-    const half=count=>Math.max(158,58+22*(m+rows(count-matched))+(matched&&count>matched?24:0));
+    // Leave room for entry/exit bends and two clearly separated transfer loops.
+    const half=count=>Math.max(230,58+22*(m+rows(count-matched))+(matched&&count>matched?24:0));
     const top=2,blueHeight=half(s.blue),goldHeight=half(s.gold),center=top+blueHeight,bottom=center+goldHeight;
     return {top,blueHeight,goldHeight,center,bottom,height:bottom+2};
   }
