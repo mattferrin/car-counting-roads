@@ -1,3 +1,4 @@
+const {assertNavigation}=require('./ui-contracts.cjs');
 /* Addition Quest — rendered-count, CSS-transform-audit and flight tests.
  * Run:  NODE_PATH=~/workspace/cancellation-quest/node_modules node addition-rendered.test.cjs
  *
@@ -463,7 +464,7 @@ function flyingAnims(t) {
       assert(stripMargin && +stripMargin[1] <= 12,
         `below strip hugs the panels: margin-top ${stripMargin && stripMargin[1]}px`);
       // The back link lives in the footer now.
-      assert.equal(dd.querySelector('.foot a[href="index.html"]').textContent, '← Back to test games');
+      assertNavigation(dd);
       t.close();
     }
     checks++;

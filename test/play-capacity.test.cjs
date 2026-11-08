@@ -6,7 +6,7 @@ const tick=()=>new Promise(r=>setImmediate(r));
  const dom=new JSDOM(read('index.html'),{url:'https://example.test/test/index.html?theme=mermaids&max=20',runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window,d=w.document;
  let clock=0,spoken=0;w.requestAnimationFrame=cb=>{queueMicrotask(()=>cb(clock+=100));return clock;};
  w.matchMedia=()=>({matches:true});w.CountingVoice={createNarrator:()=>({isOn:()=>false,preload(){},stop(){},speakMove(){spoken++;return Promise.resolve();}})};
- w.eval(read('play-capacity.js'));w.eval(read('game.js'));
+ w.eval(read('play-controls.js'));w.eval(read('play-capacity.js'));w.eval(read('game.js'));
  const click=n=>d.querySelector('#play-capacity [data-max="'+n+'"]').click();
  const drive=async(kind,n)=>{d.querySelector(`.route[data-kind="${kind}"][data-amount="${n}"]`).dispatchEvent(new w.MouseEvent('click'));await tick();};
  const height=()=>Number(d.querySelector('#map').getAttribute('viewBox').split(' ')[3]);

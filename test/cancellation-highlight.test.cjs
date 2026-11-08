@@ -2,9 +2,9 @@
  * Per-fragment highlights: when the voice says "two tens" the two tens
  * themselves glow; "seven ones" glows the seven ones. The answer is
  * highlighted whole first, then its tens, then its ones — never ones
- * before tens. Mermaid objects are the N1 Fluke swimmer SVG symbols
+ * before tens. Mermaid objects are the shared mermaid SVG symbols
  * (viewBox 44x30), not emoji: the theme buttons show the same SVG
- * icons (N1 mermaid on Aliya's, C1 beetle on Ayan's), not emoji.
+ * icons (the shared mermaid asset on Aliya's, car symbol on Ayan's), not emoji.
  */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -121,14 +121,14 @@ async function playMove(t) {
   checks++;
   t.close();
 
-  // 3. Mermaids are the N1 SVG symbol, cars are still SVG cars; the
+  // 3. Mermaids use the shared SVG symbols, cars are still SVG cars; the
   //    theme buttons show the new SVG icons, not emoji.
   t = boot('theme=mermaids&a=84&b=27');
   await settle(t);
   d = t.w.document;
   const aliyaBtn = d.querySelector('.theme-pill[data-theme="mermaids"]');
-  const aliyaUse = aliyaBtn.querySelector('svg use');
-  assert(aliyaUse && aliyaUse.getAttribute('href') === '#mermaid-teal', 'Aliya theme button shows the N1 mermaid SVG');
+  const aliyaImage = aliyaBtn.querySelector('img');
+  assert(aliyaImage && aliyaImage.getAttribute('src') === 'art/mermaid-selector-M.svg', 'Aliya theme button shows the current mermaid asset');
   assert(!/🧜/.test(aliyaBtn.textContent), 'no mermaid emoji on the theme button');
   const ayanBtn = d.querySelector('.theme-pill[data-theme="cars"]');
   const ayanUse = ayanBtn.querySelector('svg use');
@@ -142,7 +142,7 @@ async function playMove(t) {
     const use = svg && svg.querySelector('use');
     return svg && svg.getAttribute('viewBox') === '0 0 44 30' &&
       use && (use.getAttribute('href') === '#mermaid-teal' || use.getAttribute('href') === '#mermaid-pink');
-  }), 'every mermaid is the N1 SVG symbol (44x30, teal/pink)');
+  }), 'every mermaid is the shared SVG symbol (44x30, teal/pink)');
   t.close();
   t = boot('a=84&b=27');
   await settle(t);
@@ -152,5 +152,5 @@ async function playMove(t) {
   assert(cars.every(n => n.querySelector('svg') && n.textContent === ''), 'cars are still SVG cars');
   t.close();
 
-  console.log(`Highlight: ${checks} fragment cases + mermaid N1 SVG passed; spoken places glow their objects, answer glows whole then tens then ones.`);
+  console.log(`Highlight: ${checks} fragment cases + mermaid asset checks passed; spoken places glow their objects, answer glows whole then tens then ones.`);
 })().catch(e => { console.error(e); process.exitCode = 1; });

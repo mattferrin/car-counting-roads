@@ -1,3 +1,4 @@
+const {assertNavigation}=require('./ui-contracts.cjs');
 /* Addition Quest — DOM integration tests with controlled speech/animation.
  * Run:  NODE_PATH=~/workspace/cancellation-quest/node_modules node addition-ui.test.cjs
  * Covers the full playthrough in both directions, the exact 47+26 trace,
@@ -66,13 +67,7 @@ const E=require('./addition-engine');
   assert.equal(d.querySelectorAll('#new-mystery').length,1);
   assert(!d.querySelector('.celebrate'), 'old bottom celebrate div removed');
   assert(d.querySelector('#celebrate-banner').hidden);
-  // Navigation, same as every other test page: test banner up top with
-  // the stable-games escape, footer back-home link. No top game-nav
-  // row — the back link lives in the footer now.
-  assert(d.querySelector('nav[aria-label="Test version"] a[href="../"]').textContent.includes('Play the stable games'));
-  assert(!d.querySelector('.game-nav'), 'top game-nav removed');
-  assert.equal(d.querySelector('.foot a[href="index.html"]').textContent,'← Back to test games');
-  assert.equal(d.querySelector('.foot a[href="../"]').textContent,'Stable games');
+  assertNavigation(d);
   assert.equal(d.querySelectorAll('.eqbar .theme-pill').length,2);
   assert(d.querySelector('.eqbar #sound-toggle'), 'sound toggle in the equation bar');
   // The map: eight landmarks, cars theme, in page order — four above
@@ -83,9 +78,9 @@ const E=require('./addition-engine');
   for(let i=0;i<sol.moves.length;i++) {
    const lm=d.querySelector('[data-landmark="volcano"]');
    lm.click(); lm.click(); lm.click(); // rapid triple-tap must equal one move
-   d.querySelector('.test-problem').click(); d.querySelector('#new-mystery').click();
+   d.querySelector('.theme-pill:not([aria-pressed="true"])').click(); d.querySelector('#new-mystery').click();
    assert.equal(d.body.dataset.phase,'moving');
-   assert(lm.disabled);assert(d.querySelector('.level-pill').disabled);assert(d.querySelector('.theme-pill').disabled);
+   assert(lm.disabled);assert(d.querySelector('.theme-pill').disabled);
    assert(d.querySelector('.landmark').disabled, 'landmarks locked while a move is in flight');
    assert.equal(d.querySelectorAll('.obj.speaking').length,sol.moves[i]);
    // No pre-move amount announcement: nothing is spoken at the moment of

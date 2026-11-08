@@ -1,3 +1,4 @@
+const {assertNavigation}=require('./ui-contracts.cjs');
 /* Cancellation Quest — map-layout tests.
  * Run:  NODE_PATH=~/workspace/cancellation-quest/node_modules node test/cancellation-map.test.cjs
  *
@@ -104,12 +105,7 @@ async function settle(t, errors = false) {
     assert.equal(d.querySelectorAll('#new-mystery').length, 1, 'exactly one New Mystery button');
     assert(!d.querySelector('.celebrate'), 'old bottom celebrate div removed');
     assert(d.querySelector('#celebrate-banner').hidden, 'banner hidden before completion');
-    // Navigation, same as every other test page: test banner up top,
-    // footer back-home link. No top game-nav row.
-    assert(d.querySelector('nav[aria-label="Test version"] a[href="../"]').textContent.includes('Play the stable games'));
-    assert(!d.querySelector('.game-nav'), 'top game-nav removed');
-    assert.equal(d.querySelector('.foot a[href="index.html"]').textContent, '← Back to test games');
-    assert.equal(d.querySelector('.foot a[href="../"]').textContent, 'Stable games');
+    assertNavigation(d);
     assert.equal(d.querySelectorAll('.eqbar .theme-pill').length, 2);
     assert(d.querySelector('.eqbar #sound-toggle'), 'sound toggle in the equation bar');
     t.close(); checks++;
