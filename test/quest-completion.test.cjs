@@ -14,12 +14,21 @@ function boot(game,theme,a,b){
 }
 async function settle(t){
  for(let i=0;i<80;i++){
-  await tick();const u=t.pending.shift();if(u)u.onend();
+  await tick();
+  if(['narrating','celebrating'].includes(t.d.body.dataset.phase)){
+   for(const strip of t.d.querySelectorAll('.landmark-strip')){
+    const style=t.w.getComputedStyle(strip);
+    assert.equal(style.visibility,'hidden','audio wait hides landmarks');
+    assert.notEqual(style.display,'none','audio wait preserves landmark space');
+    assert.equal(style.pointerEvents,'none','invisible landmarks cannot intercept taps');
+   }
+  }
+  const u=t.pending.shift();if(u)u.onend();
   if(['ready','complete'].includes(t.d.body.dataset.phase)&&!t.pending.length)return;
  }
  throw Error('Quest failed to settle: '+t.d.body.dataset.phase);
 }
-function strips(t,hidden){for(const s of t.d.querySelectorAll('.landmark-strip'))assert.equal(t.w.getComputedStyle(s).display==='none',hidden);}
+function strips(t,hidden){for(const s of t.d.querySelectorAll('.landmark-strip')){const style=t.w.getComputedStyle(s);assert.equal(style.display==='none',hidden);if(!hidden)assert.equal(style.visibility,'visible','landmarks visible when ready/moving');}}
 (async()=>{
  let cases=0;
  for(const game of ['addition','cancellation'])for(const theme of ['cars','mermaids'])for(const [a,b]of [[47,26],[26,47],[10,10],[0,0],[7,0],[0,7],[99,99]]){
