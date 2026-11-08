@@ -132,7 +132,7 @@ async function playMove(t) {
   assert(!/🧜/.test(aliyaBtn.textContent), 'no mermaid emoji on the theme button');
   const ayanBtn = d.querySelector('.theme-pill[data-theme="cars"]');
   const ayanUse = ayanBtn.querySelector('svg use');
-  assert(ayanUse && ayanUse.getAttribute('href') === '#car-blue', 'Ayan theme button shows the C1 car SVG');
+  assert(ayanUse && ayanUse.getAttribute('href') === '#car-gold', 'Ayan theme button shows the gold camper van (single-vehicle default)');
   assert(!/🚗/.test(ayanBtn.textContent), 'no car emoji on the theme button');
   const mermaids = [...d.querySelectorAll('#left-grid .obj, #right-grid .obj')];
   assert(mermaids.length > 0);
