@@ -400,7 +400,7 @@
     for (var i = 0; i < count; i++) {
       var obj = el('span', 'obj'); obj.dataset.id = i;
       if (emoji) { obj.classList.add('emoji'); obj.textContent = emoji; }
-      else obj.innerHTML = '<svg viewBox="' + (sym.indexOf('mermaid') === 0 ? '0 0 44 30' : '0 0 44 26') + '" aria-hidden="true"><use href="#' + sym + '"></use></svg>';
+      else obj.innerHTML = '<svg viewBox="' + (sym.indexOf('mermaid') === 0 ? '0 0 460 266' : '0 0 44 26') + '" aria-hidden="true"><use href="#' + sym + '"></use></svg>';
       grid.appendChild(obj);
     }
   }
@@ -412,7 +412,7 @@
       var byId = new Map($all('.obj', grid).map(function (n) { return [Number(n.dataset.id), n]; }));
       var positions = layout[side];
       var width = grid.clientWidth / 10;
-      var rowHeight = theme === 'mermaids' ? Math.max(20, width * 30 / 44 + 8) : Math.max(22, width * .65 + 10);
+      var rowHeight = theme === 'mermaids' ? Math.max(20, width * 266 / 460 + 8) : Math.max(22, width * .65 + 10);
       grid.style.height = (layout.rows * rowHeight) + 'px';
       grid.classList.toggle('empty', positions.length === 0);
       // Storybook scene (A★): repaint the backdrop + one band per row

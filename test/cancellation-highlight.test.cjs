@@ -128,7 +128,7 @@ async function playMove(t) {
   d = t.w.document;
   const aliyaBtn = d.querySelector('.theme-pill[data-theme="mermaids"]');
   const aliyaImage = aliyaBtn.querySelector('img');
-  assert(aliyaImage && aliyaImage.getAttribute('src') === 'art/mermaid-selector-M.svg', 'Aliya theme button shows the current mermaid asset');
+  assert(aliyaImage && aliyaImage.getAttribute('src') === 'art/berry-star.png?v=1', 'Aliya theme button shows Berry Star, her chosen mermaid');
   assert(!/🧜/.test(aliyaBtn.textContent), 'no mermaid emoji on the theme button');
   const ayanBtn = d.querySelector('.theme-pill[data-theme="cars"]');
   const ayanUse = ayanBtn.querySelector('svg use');
@@ -140,9 +140,9 @@ async function playMove(t) {
   assert(mermaids.every(n => {
     const svg = n.querySelector('svg');
     const use = svg && svg.querySelector('use');
-    return svg && svg.getAttribute('viewBox') === '0 0 44 30' &&
+    return svg && svg.getAttribute('viewBox') === '0 0 460 266' &&
       use && (use.getAttribute('href') === '#mermaid-teal' || use.getAttribute('href') === '#mermaid-pink');
-  }), 'every mermaid is the shared SVG symbol (44x30, teal/pink)');
+  }), 'every mermaid is the shared Berry Star symbol (460x266, teal/pink)');
   t.close();
   t = boot('a=84&b=27');
   await settle(t);

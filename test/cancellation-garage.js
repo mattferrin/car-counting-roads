@@ -39,7 +39,7 @@
       const w=n===1?32:11,h=n===1?23:9;
       const x=n===1?cx-16:cx-27.5+(i%5)*11;
       const y=n===1?cy-22:cy-23+Math.floor(i/5)*12;
-      return `<svg class="route-unit" x="${x}" y="${y}" width="${w}" height="${h}" viewBox="0 0 44 30"><use href="#${symbol(side)}"/></svg>`;
+      return `<svg class="route-unit" x="${x}" y="${y}" width="${w}" height="${h}" viewBox="0 0 460 266"><use href="#${symbol(side)}"/></svg>`;
     }).join('');
   }
   function build(){
@@ -101,7 +101,7 @@
   }
   function updateControls(){routes.forEach(r=>root.PlayControls.update(r.button,E.canMove(state,r.kind,r.n),busy,[r.button],[r.hit]));doc.querySelectorAll('.theme-pill').forEach(b=>b.disabled=busy);$('garage-map').setAttribute('aria-busy',String(busy));capacityControl?.refresh();}
   function unitNode(id,side){
-    let n=nodes.get(id);if(!n){n=el('g',{'data-id':id});n.append(el('rect',{x:-11,y:-9,width:22,height:18,rx:5,class:'unit-halo'}));const icon=el('svg',{x:-10,y:-7,width:20,height:14,viewBox:'0 0 44 30'});icon.append(el('use'));n.append(icon);nodes.set(id,n);$('units').append(n);}
+    let n=nodes.get(id);if(!n){n=el('g',{'data-id':id});n.append(el('rect',{x:-11,y:-9,width:22,height:18,rx:5,class:'unit-halo'}));const icon=el('svg',{x:-10,y:-7,width:20,height:14,viewBox:'0 0 460 266'});icon.append(el('use'));n.append(icon);nodes.set(id,n);$('units').append(n);}
     n.querySelector('use').setAttribute('href','#'+symbol(side));n.dataset.side=side;return n;
   }
   function put(n,p){n.setAttribute('transform',`translate(${p.x} ${p.y})`);}
