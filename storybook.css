@@ -138,3 +138,6 @@ body[data-theme="mermaids"] .footer-home { background: linear-gradient(145deg, #
   50% { transform: scale(1.015); }
 }
 
+
+/* Completion hides move destinations only; the answer and counting objects stay. */
+body[data-phase="complete"] .landmark-strip{display:none}

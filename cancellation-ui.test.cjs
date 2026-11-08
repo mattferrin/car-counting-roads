@@ -37,9 +37,9 @@ async function settle(t, errors=false){
   for(let i=0;i<sol.moves.length;i++) {
    const button=d.querySelector('.landmark');
    const survivor=d.querySelectorAll('#left-grid .obj')[sol.moves[i]===1?0:sol.moves[i]];
-   button.click(); button.click(); d.querySelector('.test-problem').click(); d.querySelector('#new-mystery').click();
+   button.click(); button.click(); d.querySelector('.theme-pill:not([aria-pressed="true"])').click(); d.querySelector('#new-mystery').click();
    assert.equal(d.body.dataset.phase,'moving');
-   assert(button.disabled);assert(d.querySelector('.level-pill').disabled);assert(d.querySelector('.theme-pill').disabled);
+   assert(button.disabled);assert(d.querySelector('.theme-pill').disabled);
    assert.equal(d.querySelectorAll('.obj.speaking').length,sol.moves[i]*2);
    assert(!d.querySelector('#new-mystery').classList.contains('show'));
    await settle(t);

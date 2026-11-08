@@ -56,7 +56,8 @@
     else if (win.localStorage) { try { soundOn = win.localStorage.getItem('cp-sound') !== 'off'; } catch (e) {} }
     var speechToken = 0;
     var audioCtx = null;
-    var clipBuffers = {};   // "audio/boy/tens-8.mp3" -> AudioBuffer, false = missing
+    var clipBuffers = {};   // "audio/boy/tens-8.mp3" -> AudioBuffer
+    var clipLoads = {};     // in-flight fetch/decode shared by preload and playback
     var clipSources = [];   // live buffer sources, so stop() can cut them
     var cancelPlayback = null;
     var highlight = typeof deps.highlight === 'function' ? deps.highlight : function () {};
@@ -98,14 +99,16 @@
 
     function loadClip(ctx, item) {
       var path = clipPath(item);
-      if (clipBuffers[path] !== undefined) return Promise.resolve(clipBuffers[path] || null);
-      if (typeof win.fetch !== 'function') { clipBuffers[path] = false; return Promise.resolve(null); }
-      return win.fetch(path).then(function (r) {
+      if (clipBuffers[path] !== undefined) return Promise.resolve(clipBuffers[path]);
+      if (clipLoads[path]) return clipLoads[path];
+      if (typeof win.fetch !== 'function') return Promise.resolve(null);
+      clipLoads[path] = Promise.resolve().then(function () { return win.fetch(path); }).then(function (r) {
         if (!r.ok) throw new Error('missing clip ' + path);
         return r.arrayBuffer();
       }).then(function (buf) { return ctx.decodeAudioData(buf); })
-        .then(function (decoded) { clipBuffers[path] = decoded; return decoded; })
-        .catch(function () { clipBuffers[path] = false; return null; });
+        .then(function (decoded) { delete clipLoads[path]; clipBuffers[path] = decoded; return decoded; })
+        .catch(function () { delete clipLoads[path]; return null; });
+      return clipLoads[path];
     }
 
     /* Fetch + decode every known clip in the background; playback
@@ -196,7 +199,7 @@
               }
             } catch (e) { buffer = null; }
           }
-          if (!soundOn || token !== speechToken) { finish(false); return; }
+          if (finished || !soundOn || token !== speechToken) { finish(false); return; }
           if (ctx && ctx.state === 'running' && buffer) {
             try {
               src = ctx.createBufferSource(); src.buffer = buffer;
@@ -229,6 +232,7 @@
       setSound: setSound,
       stop: stop,
       preload: preload,
+      unlock: function () { if (soundOn) ensureAudioCtx(); },
       speakMove: speakMove,
       playFragment: playFragment,
       _buffers: clipBuffers

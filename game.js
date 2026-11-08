@@ -89,7 +89,7 @@
     for(const [kind,n]of routeDefs){
       const r=doc.createElementNS(NS,'g');r.classList.add('route');r.dataset.kind=kind;r.dataset.amount=n;
       r.setAttribute('tabindex','0');r.setAttribute('role','button');
-      r.innerHTML='<path class="road"/><path class="edge"/><path class="road-hit"/><g class="route-sign" aria-hidden="true"></g>';
+      r.innerHTML='<path class="road" pointer-events="none"/><path class="edge" pointer-events="none"/><path class="road-hit"/><g class="route-sign" aria-hidden="true"></g>';
       r.addEventListener('click',()=>drive(r));r.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();drive(r);}});
       $('tracks').appendChild(r);routeNodes.push(r);
     }
@@ -108,8 +108,11 @@
       else if(p.w>100)for(let i=0;i<10;i++)preview+=svgUse(side,p.x+8+i*13.5,p.y+32,12.5,10);
       else for(let i=0;i<10;i++)preview+=svgUse(side,p.x+5+(i%5)*10.4,p.y+28+Math.floor(i/5)*10.5,10,9);
       r.querySelector('.route-sign').innerHTML='<rect class="route-plate" x="'+p.x+'" y="'+p.y+'" width="'+p.w+'" height="'+p.h+'" rx="13"/><text class="route-label '+(n===10?'place-ten':'place-one')+'" x="'+(p.x+p.w/2)+'" y="'+(p.y+22)+'">'+label+'</text>'+preview;
-      r.setAttribute('aria-disabled',String(busy||!canMove(state,kind,n)));
+      updateRoute(r);
     }
+  }
+  function updateRoute(r){
+    root.PlayControls.update(r,canMove(state,r.dataset.kind,Number(r.dataset.amount)),busy,[r.querySelector('.route-sign')],[r.querySelector('.road-hit')]);
   }
   function render(){
     const g=layout(state),[left,right,thing]=names(),sea=theme==='mermaids';
@@ -149,7 +152,7 @@
     }
     const ready=()=>{
       if(token!==generation)return;busy=false;capacityControl?.refresh();
-      routeNodes.forEach(r=>r.setAttribute('aria-disabled',String(!canMove(state,r.dataset.kind,Number(r.dataset.amount)))));
+      routeNodes.forEach(updateRoute);
       doc.querySelectorAll('.theme-pill').forEach(b=>{b.disabled=false;});$('map').setAttribute('aria-busy','false');
       const [left,right]=names();$('feedback').textContent=left+' '+state.blue+', '+right+' '+state.gold+'. '+(state.blue+state.gold)+' altogether.';
     };
@@ -169,6 +172,7 @@
   function drive(route){
     const kind=route.dataset.kind,n=Number(route.dataset.amount);
     if(busy||!canMove(state,kind,n))return;
+    narrator?.unlock?.();
     const next=move(state,kind,n),moveDesc={kind,amount:n},source=kind==='entry'?null:kind==='top'?'blue':'gold',dest=kind==='exit'?null:kind==='top'?'gold':'blue';
     const movingIds=source?(n===10?ids[source].slice(0,n):ids[source].slice(-n)):Array.from({length:n},()=>++serial),movingSet=new Set(movingIds);
     const nextIds={blue:ids.blue.filter(id=>!movingSet.has(id)),gold:ids.gold.filter(id=>!movingSet.has(id))};if(dest)nextIds[dest].push(...movingIds);

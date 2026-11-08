@@ -63,7 +63,7 @@
     specs.forEach(([kind,n],i)=>{
       const geo=routeGeometry(kind,n);
       const source=kind==='up'||kind==='exit'?'gold':'blue';
-      const path=el('path',{d:geo.d,class:'garage-road',id:'road-'+i}),edge=el('path',{d:geo.d,class:'garage-edge'});$('roads').append(path,edge);
+      const path=el('path',{d:geo.d,'pointer-events':'none',class:'garage-road',id:'road-'+i}),edge=el('path',{d:geo.d,'pointer-events':'none',class:'garage-edge'});$('roads').append(path,edge);
       const button=el('g',{class:'garage-route',role:'button',tabindex:'0','data-kind':kind,'data-amount':n,'data-route':i});
       const action=kind==='entry'?'+'+n+' ↓':kind==='exit'?'−'+n+' ↓':(kind==='up'?'↑ ':'↓ ')+n;
       button.innerHTML=`<rect class="route-target" x="-34" y="-34" width="68" height="68" rx="17"/><rect class="route-plate" x="-31" y="-31" width="62" height="62" rx="16"/><g aria-hidden="true">${buttonUnits(source,n,0,0)}</g><text class="route-action" x="0" y="24">${action}</text>`;
@@ -99,7 +99,7 @@
     for(const side of ['blue','gold']){$('num-'+side).textContent=state[side];$('cap-'+side).textContent=caption(state[side]);}
     updateControls();
   }
-  function updateControls(){routes.forEach(r=>r.button.setAttribute('aria-disabled',String(busy||!E.canMove(state,r.kind,r.n))));doc.querySelectorAll('.theme-pill').forEach(b=>b.disabled=busy);$('garage-map').setAttribute('aria-busy',String(busy));capacityControl?.refresh();}
+  function updateControls(){routes.forEach(r=>root.PlayControls.update(r.button,E.canMove(state,r.kind,r.n),busy,[r.button],[r.hit]));doc.querySelectorAll('.theme-pill').forEach(b=>b.disabled=busy);$('garage-map').setAttribute('aria-busy',String(busy));capacityControl?.refresh();}
   function unitNode(id,side){
     let n=nodes.get(id);if(!n){n=el('g',{'data-id':id});n.append(el('rect',{x:-11,y:-9,width:22,height:18,rx:5,class:'unit-halo'}));const icon=el('svg',{x:-10,y:-7,width:20,height:14,viewBox:'0 0 44 30'});icon.append(el('use'));n.append(icon);nodes.set(id,n);$('units').append(n);}
     n.querySelector('use').setAttribute('href','#'+symbol(side));n.dataset.side=side;return n;

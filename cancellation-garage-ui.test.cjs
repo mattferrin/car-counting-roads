@@ -10,7 +10,7 @@ function app(query=''){
  w.AudioContext=function(){throw Error('Audio must never initialize');};
  w.speechSynthesis={speak(){throw Error('Speech must never initialize');}};
  const errors=[];w.addEventListener('error',e=>errors.push(e.error));
- for(const f of ['play-capacity.js','cancellation-garage-engine.js','cancellation-garage.js'])w.eval(at(f));
+ for(const f of ['play-controls.js','play-capacity.js','cancellation-garage-engine.js','cancellation-garage.js'])w.eval(at(f));
  return {w,d:w.document,errors,close:()=>w.close(),snapshot:()=>w.CancellationGarageView.snapshot()};
 }
 const tick=()=>new Promise(r=>setImmediate(r));

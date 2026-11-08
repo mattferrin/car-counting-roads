@@ -42,8 +42,8 @@ dissolves excess objects into embers and smoke, then updates the equation.
 Addition limits the total; subtraction limits each garage independently.
 Reduced motion skips the effect. Addition retains narration for normal moves.
 
-Release: promoted from tested commit d322e810de30d87e3b933a1e5161b830e7c3015b.
-The test environment remains available under `test/`.
+Current release status, verification, shared consumers and remaining work:
+[test/HANDOFF.md](test/HANDOFF.md). The test environment remains under `test/`.
 
 Additional checks: `node cancellation-garage.test.cjs`,
 `NODE_PATH=<jsdom install>/node_modules node cancellation-garage-ui.test.cjs`,
