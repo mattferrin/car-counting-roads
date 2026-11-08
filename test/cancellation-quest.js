@@ -755,6 +755,7 @@
   async function onLandmark(btn, lm) {
     if (animating || solved || stepIndex >= solution.moves.length) return;
     ensureAudioCtx();
+    btn.setAttribute('data-flight-target','');
     setPhase('moving');
     var amount = solution.moves[stepIndex];
     // No announcement of the amount: the matching objects just light up in
@@ -793,6 +794,7 @@
         await sayCounts(amount === 1 && Math.floor(prev.left / 10) !== Math.floor(st.left / 10) ? undefined : amount);
       }
     } finally {
+      btn.removeAttribute('data-flight-target');
       clearEmphasis();
       setPhase(solved ? 'complete' : 'ready');
     }

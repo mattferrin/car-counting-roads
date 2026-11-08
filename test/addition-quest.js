@@ -902,6 +902,7 @@
     if (!waypoint || animating || solved || stepIndex >= solution.moves.length) return;
     ensureAudioCtx();
     var moveToken = ++flightToken;
+    waypoint.el.setAttribute('data-flight-target','');
     setPhase('moving');
     var amount = solution.moves[stepIndex];
     var srcSide = solution.sourceSide, dstSide = solution.destSide;
@@ -1007,6 +1008,7 @@
         await sayCounts(amount, regroup);
       }
     } finally {
+      waypoint.el.removeAttribute('data-flight-target');
       clearEmphasis();
       setPhase(solved ? 'complete' : 'ready');
     }
