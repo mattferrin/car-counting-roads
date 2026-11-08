@@ -1,54 +1,52 @@
-# Incremental reliability checkpoint — 2026-11-08
+# Counting Worlds reliability handoff — 2026-11-08
 
-## Objective and working rules
-Reliable, mathematically correct, intuitive, consistent games; functionality before polish. One issue per increment: rank, investigate, minimally fix in `test/`, validate all affected consumers, record and commit, then reassess. Promote only verified coherent increments, atomically; the current user authorizes promotion after verification.
+## Objective and engineering rules
+Reliable, mathematically correct, intuitive, consistent games; functionality before polish. Select one highest-value issue, establish its cause and consumers, minimally fix it in `test/`, verify, record and commit, then reassess. Promote only coherent verified sets, atomically.
 
-Single source of truth for shared behavior, constants and authoritative documentation; keep unrelated concepts separate. Make dependencies/consumers discoverable. Preserve mathematical invariants and educational behavior. Verify boundaries, invalid actions, races, interruption and recovery with targeted tests and real browsers. Passing tests alone is insufficient. Avoid speculative refactors and cosmetic churn.
+Shared business behavior/configuration and authoritative documentation have one source. Keep unrelated concepts separate; make shared consumers explicit. Preserve arithmetic invariants and educational behavior. Verify boundaries, invalid actions, async races, interruption and recovery with targeted tests and actual browser interactions. Passing tests alone is insufficient. Avoid speculative refactoring and cosmetic churn.
 
-## Repository and state
-`mattferrin/car-counting-roads`, branch `main`. Inspected base: `e88e01a00d550c880b56539b172ae2f2d174cd64`.
-Current local state is the commit containing this checkpoint (`git log -1 -- test/HANDOFF.md` identifies it without a self-referential SHA). Production still matches the inspected base; all four increments change `test/` only. Earlier uncommitted/local-only and approval instructions were stale and are superseded here. Binary assets already exist remotely and are untouched.
+## Current repository and release
+Repository: `mattferrin/car-counting-roads`, branch `main`.
+- Inspected base: `e88e01a00d550c880b56539b172ae2f2d174cd64`.
+- Published staging increment: `a0bf41d64586144eba073139a057b18b89bd73b1`.
+- Published production code: `943fb2dbb5a8e8859e77a78e6fef054f6a65c342`.
+- This documentation checkpoint is identified by `git log -1 -- test/HANDOFF.md`; it changes no runtime files.
 
-## Verified increment 1 — invalid Play controls
-Evidence: both engines reject invalid moves, but both views left plates/hit areas exposed; Addition used only faded aria-disabled routes, Subtraction retained transparent road hits.
+Both Pages deployments succeeded. All 23 changed staging files and all 21 promoted production files were fetched from the live site and matched the respective committed bytes exactly. Production was promoted in one commit, with every new dependency. Root HTML keeps its existing non-Test titles; the corresponding title assertion is normalized for production. Staging documentation remains under `test/`; root README points here for release status.
 
-Fix: shared `play-controls.js` owns settled visibility, pointer availability, focus and ARIA state. Consumers: Addition Play (`game.js`, `index.html`) and Subtraction Play (`cancellation-garage.js`, `.html`). Each engine remains the authority for mathematical validity. Impossible plates and transparent targets disappear; decorative roads/edges remain and cannot intercept taps. Busy moves retain their previous visibility through animation/narration, then update once settled. Existing handler guards remain. Script versions updated together with the new dependency.
+Browser publication is authorized by the user and works through GitHub's normal Upload files interface in the authenticated session. The connector's write API returned 403 and ordinary Git push lacked credentials; these were access-method limitations, not missing user permission. Public Git fetch works. Prefer supported tools where sufficient; use the explicitly authorized browser fallback for writes when needed.
 
-Validation on this increment:
-- Both folders: `node test.cjs`, `node test-themes.cjs` PASS (all supported mathematical states/themes/limits).
-- `NODE_PATH=<external jsdom>/node_modules node test/play-controls.test.cjs` PASS: 216 Subtraction boundary states across both themes and 20/50/100; Addition fills/empties/transfers at each capacity; source/destination limits; busy animation and narration visibility; focus/hit removal; roads retained.
-- Existing `play-capacity.test.cjs`, `cancellation-garage-ui.test.cjs`, all engines/layouts, flight and Counting Voice suites PASS in both folders.
-- Initial full sweep found five failures in each folder: addition-ui:72 and addition-rendered:466 required removed navigation; cancellation-ui:40 required removed `.test-problem` controls; cancellation-map:109 required the removed banner; cancellation-highlight:131 expected replaced selector art. Increment 4 repairs these in `test/`; production copies retain the original failures.
-- Real Chromium at a 390×844 iframe: plates hide, roads remain; Addition ten-plate moves 10+0 to 0+10; Subtraction ten-transfer moves 10−0 to 0−10; controls reappear for the newly valid directions; theme changes retain counts. CSS display/pointer/focus states inspected in actual browser. No actual iPhone Safari available.
-- Root files unchanged, including all production assets.
+## Verified completions and affected consumers
+1. **Invalid Play controls.** Both engines already rejected invalid moves, but the views exposed disabled plates and transparent hit areas. Shared `play-controls.js` now owns settled visibility, pointer availability, focus and ARIA state. Consumers: `game.js`/`index.html` (Addition Play) and `cancellation-garage.js`/`.html` (Subtraction Play). Each engine remains the mathematical authority. Impossible plates and transparent targets disappear; decorative roads remain and cannot intercept taps. Busy moves retain settled visibility through animation/narration, then update once. Handler guards remain.
+2. **Addition Play audio recovery.** A failed recording request was cached permanently until refresh; late asynchronous completion could start a timed-out fragment after sound was re-enabled. `counting-voice.js` now shares in-flight loads, caches successful decodes only, guards terminal completion, and exposes synchronous gesture unlock called from a valid move tap before animation. Voices, words, highlighting and preferences are preserved. Quests do not consume this narrator and were not changed.
+3. **Quest completion.** One rule in shared `storybook.css` hides landmark strips only at settled `body[data-phase="complete"]`. Final flights/narration retain destinations; final equation, objects, answer and New Mystery remain. Restart restores landmarks automatically. CSS consumers: both Quests and both Play pages; all their HTML references were versioned together.
+4. **Restored UI coverage.** Five suites stopped at superseded navigation, removed test/level controls or replaced selector art. They now verify current behavior, preserving later arithmetic, identity, timing, interruption and recovery assertions. `ui-contracts.cjs` owns the footer navigation contract; consumers: addition-ui, addition-rendered, cancellation-map. Both root and staging copies pass.
 
-## Verified increment 2 — Counting Voice recovery
-Reproduced before fix: a failed recording request was cached permanently; the next move could not retry it. Inspection also found a timeout/load race: re-enabling sound before a late load completes could start an already-finished fragment.
+## Validation commands and results
+No build step or runtime package installation. Test dependency: jsdom 31.0.0 installed outside the repository; set `NODE_PATH` to that external node_modules directory.
 
-Fix limited to Addition Play's existing narrator: share in-flight loads, cache only successful decodes, guard asynchronous completion with its terminal finished flag, expose gesture unlock and call it synchronously from a valid move tap before animation. No narration words, voices, highlighting or preferences changed. Quests do not consume this module and are unchanged.
+From EACH of root and `test/`, run:
 
-`node test/counting-voice-recovery.test.cjs` PASS (transient retry, 40 unique preload requests shared with playback, late timeout/retry, stop during fetch, synchronous resume). Existing 41,208 narration plans/playback checks PASS. Both Play UI/capacity regression suites PASS. Real Chromium: mermaid +10 with sound enabled reaches 20+0 and releases the interaction lock with Sound on retained. Actual Safari restrictions and audible output are not proven by this check. Root files unchanged.
+```sh
+node test.cjs
+node test-themes.cjs
+for file in *.test.cjs; do node "$file" || exit; done
+```
 
-## Verified increment 3 — completed Quest landmarks
-Both Quest controllers already expose the same settled `body[data-phase="complete"]` state. One rule in their shared `storybook.css` now hides only landmark strips at that state; it leaves moving/celebrating destinations in place and restores them automatically on restart. Every HTML consumer's shared CSS version was updated (both Quests and both Play pages).
+**20 suites PASS in each folder (40 total).** `git diff --check` passes. New targeted coverage:
+- `play-controls.test.cjs`: 216 Subtraction boundary states, both themes/all capacities; Addition fills/empties/transfers at 20/50/100; source/destination limits; stable visibility through animation and narration; synchronous tap unlock; focus/hit removal; roads retained.
+- `counting-voice-recovery.test.cjs`: transient failure retry, 40 deduplicated preload requests shared with playback, terminal watchdog/load race, stop during fetch, synchronous context resume. Existing 41,208 narration-plan/playback checks also pass.
+- `quest-completion.test.cjs`: 24 valid game/theme/problem cases; Addition both directions; Subtraction valid ordering; equal/zero/99 boundaries; final-flight visibility; every surviving object/equation/answer; completed theme changes and restart.
+- Restored suites: Addition UI 27 cases; rendered behavior 59; Subtraction UI 41; highlights 2 fragment cases plus assets; map 3 cases. Exhaustive engine/layout, capacity and flight checks also pass.
 
-`NODE_PATH=<external jsdom>/node_modules node test/quest-completion.test.cjs` PASS: 24 valid game/theme/problem combinations, Addition both directions, Subtraction valid ordering, equal/zero/99 cases, final-flight visibility, final equation/answer and every surviving unit, theme changes at completion, and restart. Both Quest engine suites and cancellation flight regression PASS. Real Chromium 390×844: actual one-unit flights completed for cars Addition 1+1=2 and mermaids Subtraction 1−1=0; landmark strips disappeared, answer/objects remained, New Mystery was visible and restarted with landmarks restored. No animation stubs in browser QA. Root unchanged.
+Actual Chromium checks ran locally at 390×844 and on BOTH deployed environments: valid ten-unit Play transfers and signed differences; hidden invalid controls/hit styles with roads retained; theme changes; Addition Play +10 with sound enabled completes and releases its lock; Addition 1+1=2 and Subtraction 1−1=0 complete real flights, hide landmarks, preserve answers, and restart. Browser animations were not stubbed. Actual iPhone Safari and audible output are not proven by these checks.
 
-## Verified increment 4 — restore Quest UI coverage
-The five failing suites referenced navigation, removed test/level controls and superseded mermaid selector markup. They now verify the actual local All games footer link through one shared `ui-contracts.cjs` helper (consumers: addition-ui, addition-rendered, cancellation-map), current selector artwork, and the existing theme/New Mystery locks instead of nonexistent controls. Arithmetic, identity, timing, highlights, interruption and recovery assertions remain intact.
+## Prioritized unresolved work
+1. **Quest audio recovery and shared audio behavior:** both Quests still duplicate playback/context handling, use one-shot preloading, cache failures, and resume suspended contexts only. Reproduce closed/interrupted context and transient-load retry failures before changing them. Compare all three narrators' lifecycle and stored preferences. Broader consolidation has a larger Safari regression surface than the bounded fixes shipped here.
+2. **Accessible Addition route bounds:** in Chromium, clicking the center of the accessible ten-route GROUP hit the one-route plate because the groups' geometry bounds overlap. Actual ten-plate taps and keyboard handler work. Investigate focus/activation bounds before changing road geometry.
+3. **Actual iPhone Safari:** verify initialization after a fresh load, background/foreground recovery, mute/retry, slow/failed loading and mermaid alignment. Large 99+99 Quest captions may need scrolling; there is no evidence yet that this warrants a layout change.
 
-All five formerly failing `test/` suites now PASS: Addition UI 27 cases, rendered behavior 59 cases, Subtraction UI 41 cases, highlights 2 fragment cases plus assets, map 3 cases. Production tests remain untouched and still have the five historical failures; promotion should include repaired tests and their helper. No product code changed in this increment.
+Subtraction Play is deliberately silent in current code/README/tests. Its silence is an existing design choice, not an unimplemented dependency. Investigate consistency within the user's goal before introducing a new narration contract.
 
-## Final verification and release status
-All 20 staging suites PASS on the final tree, plus both required root engine/theme suites (22 successful processes total). Run each `test/*.test.cjs`, `test/test.cjs`, `test/test-themes.cjs`, plus root `test.cjs` and `test-themes.cjs`; NODE_PATH pointed to external jsdom 31.0.0. Full outputs accompany the recovery package. `git diff --check` passes. Every changed path is under `test/`, so production is byte-identical to the inspected base. At preparation of this staging commit, production is still unchanged; the browser publication path is now available (see next action).
-
-## Prioritized unresolved issues
-1. Audio reliability (high impact, reported intermittent, larger regression surface). Inspect the three narrators before changing them. Counting Voice retry/late-completion defects are fixed in increment 2; Quests still duplicate playback and preferences, cache failures and only resume suspended contexts. Broader shared-audio refactoring is deferred without Safari evidence. Reproduce with deferred fetch/resume, mute, tab interruption and retry. Evaluate every consumer of shared playback. Subtraction Play is currently deliberately silent in code/README/tests; adding narration needs an explicit behavioral contract within this user's consistency goal.
-2. Addition route group bounding boxes overlap: clicking the center of the accessible ten-route group hit the one-route plate in Chromium. Actual ten-plate clicks and keyboard handler are correct. Investigate accessible control bounds before any geometry change.
-3. Actual iPhone Safari audio initialization/recovery and mermaid alignment remain unverified. Large 99+99 Quest caption may require scrolling; no evidence yet that this needs a layout change.
-
-## Exact next action
-The authenticated GitHub browser is available (user explicitly authorized it on 2026-11-08). API writes still lack integration access and Git push lacks credentials; use GitHub's normal Upload files interface. The staging upload is the commit containing this checkpoint; it contains the four verified local increments through 7d7e860. Verify deployed `/test/` behavior and byte content, then atomically upload the corresponding production file set, including new shared dependencies and repaired tests. Strip the existing `(Test)` title suffix for production and adjust the matching title assertion. Keep staging documentation under test/. After promotion, record the remote staging/production commits and verification here.
-
-## Reproduction and dependency notes
-No build step or runtime packages. For local tests install jsdom outside the repo, set NODE_PATH and run each `*.test.cjs` separately from its containing folder. Apply a per-process timeout when sweeping older failing UI tests, which can leave asynchronous work alive after an assertion. Run both basic suites in both folders as AGENTS.md requires. Browser QA must use actual interactions in addition to DOM tests; a mobile-sized Chromium iframe is not Safari.
+## Exact next recommended action
+Create a failing controlled audio-lifecycle regression for each Quest (closed/interrupted context and failed preload followed by retry), compare its result with Counting Voice, then select the smallest coherent shared fix. Evaluate both Quests and Addition Play as consumers; preserve spoken place-value plans and highlighting. Keep the next increment in `test/`, rerun affected suites and actual-browser checks, record and commit, and promote only after relevant verification. Retain the physical Safari verification limit explicitly; do not describe it as completed.
