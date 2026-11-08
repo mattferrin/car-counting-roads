@@ -72,7 +72,7 @@
   const sym=side=>theme==='mermaids'?'mermaid-'+(side==='blue'?'teal':'pink'):'car-'+(side==='blue'?'blue':'gold');
   const numberMarkup=n=>String(n).split('').map((digit,i,a)=>'<span class="d-'+(a.length-i>2?'hun':a.length-i===2?'tens':'ones')+'">'+digit+'</span>').join('');
   const svgNumber=n=>String(n).split('').map((digit,i,a)=>'<tspan class="digit-'+(a.length-i>2?'hun':a.length-i===2?'tens':'ones')+'">'+digit+'</tspan>').join('');
-  const svgUse=(side,x,y,w=12,h=10)=>'<svg x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" viewBox="0 0 460 '+(theme==='mermaids'?266:26)+'" aria-hidden="true"><use href="#'+sym(side)+'"/></svg>';
+  const svgUse=(side,x,y,w=12,h=10)=>'<svg x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" viewBox="'+(theme==='mermaids'?"0 0 460 266":"0 0 44 26")+'" aria-hidden="true"><use href="#'+sym(side)+'"/></svg>';
   const caption=n=>Math.floor(n/10)+(Math.floor(n/10)===1?' ten':' tens')+' · '+n%10+(n%10===1?' one':' ones');
   const routeDefs=[['top',10],['top',1],['bottom',10],['bottom',1],['entry',10],['entry',1],['exit',10],['exit',1]];
   const routeNodes=[];
