@@ -8,7 +8,7 @@ for(let blue=0;blue<=100;blue++)for(let gold=0;gold<=100-blue;gold++){
     const seen=new Set(),x=side==='blue'?66:218;
     for(let i=0;i<state[side];i++){
       const p=unitPosition(side,i,state[side],g);
-      assert(p.x>x&&p.x<x+136&&p.y>284&&p.y<g.bottom);
+      assert(p.x>x&&p.x<x+136&&p.y>g.unitY-12&&p.y<g.bottom);
       const key=p.x+','+p.y;assert(!seen.has(key));seen.add(key);
       if(i>=Math.floor(state[side]/10)*10){
         if(baseline===undefined)baseline=p.y;else assert.equal(p.y,baseline,'ones must share the same baseline across garages');

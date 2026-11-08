@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),E=require('./cancellation-garage-engine.js');
 let moves=0,layouts=0;
 for(const max of [20,50,100])for(let blue=0;blue<=max;blue++)for(let gold=0;gold<=max;gold++){
-  const s={blue,gold,max},original=JSON.stringify(s),g=E.geometry(max),matched=Math.min(blue,gold);
+  const s={blue,gold,max},original=JSON.stringify(s),g=E.geometry(s),matched=Math.min(blue,gold);
   for(const kind of ['entry','exit','up','down'])for(const n of [1,10]){
     const next=E.move(s,kind,n),legal=kind==='entry'?blue+n<=max:kind==='exit'?gold>=n:kind==='up'?gold>=n&&blue+n<=max:blue>=n&&gold+n<=max;
     assert.equal(E.canMove(s,kind,n),legal);assert.ok(E.valid(next));

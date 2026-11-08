@@ -1,0 +1,28 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),{JSDOM}=require('jsdom');
+const read=f=>fs.readFileSync(__dirname+'/'+f,'utf8');
+const tick=()=>new Promise(r=>setImmediate(r));
+(async()=>{
+ const dom=new JSDOM(read('index.html'),{url:'https://example.test/test/index.html?theme=mermaids&max=20',runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window,d=w.document;
+ let clock=0,spoken=0;w.requestAnimationFrame=cb=>{queueMicrotask(()=>cb(clock+=100));return clock;};
+ w.matchMedia=()=>({matches:true});w.CountingVoice={createNarrator:()=>({isOn:()=>false,preload(){},stop(){},speakMove(){spoken++;return Promise.resolve();}})};
+ w.eval(read('play-capacity.js'));w.eval(read('game.js'));
+ const click=n=>d.querySelector('#play-capacity [data-max="'+n+'"]').click();
+ const drive=async(kind,n)=>{d.querySelector(`.route[data-kind="${kind}"][data-amount="${n}"]`).dispatchEvent(new w.MouseEvent('click'));await tick();};
+ const height=()=>Number(d.querySelector('#map').getAttribute('viewBox').split(' ')[3]);
+ const small=height();click(100);assert.equal(height(),small,'unused capacity must not reserve space');
+ for(let i=0;i<9;i++)await drive('entry',10);
+ assert.equal(d.querySelectorAll('.parked-unit').length,100);assert.equal(d.querySelector('#total').textContent,'100');assert(height()>small);assert.equal(spoken,9,'normal addition moves retain narration');
+ const oldIds=[...d.querySelectorAll('.parked-unit')].map(n=>n.dataset.unit);w.matchMedia=()=>({matches:false});
+ click(20);assert.equal(d.querySelectorAll('.capacity-burning').length,80);assert.equal(d.querySelectorAll('.capacity-smoke').length,80);assert.equal(d.querySelector('#play-capacity [data-max="100"]').disabled,true);
+ click(100);await new Promise(r=>setTimeout(r,760));await tick();
+ assert.equal(d.querySelectorAll('.parked-unit').length,20);assert.equal(d.querySelector('#total').textContent,'20');assert.equal(spoken,9,'capacity reduction does not narrate a false counting operation');assert(height()<500);assert.equal(new URL(w.location).searchParams.get('max'),'20');
+ assert.deepEqual([...d.querySelectorAll('.parked-unit')].map(n=>n.dataset.unit),oldIds.slice(0,20),'oldest objects survive');
+ const picker=d.querySelector('#play-capacity');picker.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert.equal(picker.style.getPropertyValue('--capacity-step'),'1');assert.equal(d.querySelector('#total').textContent,'20');
+ picker.dispatchEvent(new w.KeyboardEvent('keydown',{key:'End',bubbles:true}));assert.equal(picker.style.getPropertyValue('--capacity-step'),'2');
+ picker.getBoundingClientRect=()=>({left:0,width:240});
+ const pointer=(type,x)=>{const e=new w.Event(type,{bubbles:true});Object.assign(e,{button:0,pointerId:1,clientX:x});picker.dispatchEvent(e);};
+ pointer('pointerdown',200);pointer('pointermove',30);pointer('pointerup',30);assert.equal(picker.style.getPropertyValue('--capacity-step'),'0');
+ assert.equal(d.querySelector('#total').textContent,'20');dom.window.close();
+ console.log('Shared capacity UI passed: addition 100→20 burns exactly 80 objects, preserves identities, locks concurrent taps, compacts, updates math/URL, retains normal narration; keyboard and drag selection passed.');
+})().catch(e=>{console.error(e);process.exitCode=1;});

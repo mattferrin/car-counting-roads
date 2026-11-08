@@ -10,7 +10,7 @@ function app(query=''){
  w.AudioContext=function(){throw Error('Audio must never initialize');};
  w.speechSynthesis={speak(){throw Error('Speech must never initialize');}};
  const errors=[];w.addEventListener('error',e=>errors.push(e.error));
- for(const f of ['cancellation-garage-engine.js','cancellation-garage.js'])w.eval(at(f));
+ for(const f of ['play-capacity.js','cancellation-garage-engine.js','cancellation-garage.js'])w.eval(at(f));
  return {w,d:w.document,errors,close:()=>w.close(),snapshot:()=>w.CancellationGarageView.snapshot()};
 }
 const tick=()=>new Promise(r=>setImmediate(r));
@@ -45,7 +45,7 @@ function roadCrossings(paths){const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)
   const paths=Array.from(layout.d.querySelectorAll('.garage-road')).map(p=>samplePath(p.getAttribute('d')));
   assert.deepEqual(roadCrossings(paths),[],'no road crossings at '+max);
   const buttons=Array.from(layout.d.querySelectorAll('.route-target'));
-  const centers=buttons.map(b=>Number(b.getAttribute('x'))+34);
+  const centers=buttons.map(b=>Number(b.parentNode.getAttribute('transform').match(/translate\((\d+)/)[1]));
   assert.equal(centers[0],centers[6],'+10 and −10 share the left column');
   assert.equal(centers[1],centers[7],'+1 and −1 share the right column');
   assert.ok(centers[0]<centers[1]);layout.close();
@@ -62,10 +62,12 @@ function roadCrossings(paths){const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)
  assert.ok(first.isConnected);await drive(a,'up',10);check(a,1,9);a.close();
  const b=app('?a=3&b=7');await drive(b,'up',1);check(b,4,6);await drive(b,'up',1);check(b,5,5);await drive(b,'up',1);check(b,6,4);
  const saved=Array.from(b.d.querySelectorAll('.garage-unit')).map(n=>n.dataset.id).join();b.d.querySelector('[data-theme="mermaids"]').click();check(b,6,4);assert.equal(b.snapshot().theme,'mermaids');assert.equal(Array.from(b.d.querySelectorAll('.garage-unit')).map(n=>n.dataset.id).join(),saved);assert.ok(b.d.querySelector('.route-unit use').getAttribute('href').includes('mermaid'));b.close();
- const c=app('?max=100&a=100&b=100');check(c,100,100);await drive(c,'entry',1);check(c,100,100);c.close();
+ const c=app('?max=100&a=100&b=100');check(c,100,100);await drive(c,'entry',1);check(c,100,100);const tall=c.d.querySelector('#garage-map').getAttribute('viewBox');
+ c.d.querySelector('[data-max="20"]').click();assert.equal(c.snapshot().busy,true);assert.equal(c.d.querySelectorAll('.capacity-burning').length,160);
+ assert.equal(c.d.querySelector('[data-max="100"]').disabled,true);await new Promise(r=>setTimeout(r,750));await idle(c);check(c,20,20);assert.equal(c.snapshot().max,20);assert.notEqual(c.d.querySelector('#garage-map').getAttribute('viewBox'),tall);c.close();
  const duplicate=app();duplicate.d.querySelector('[data-kind="entry"][data-amount="10"]').dispatchEvent(new duplicate.w.MouseEvent('click'));duplicate.d.querySelector('[data-kind="entry"][data-amount="1"]').dispatchEvent(new duplicate.w.MouseEvent('click'));await idle(duplicate);check(duplicate,20,0);duplicate.close();
  // Both free-play chooser cards select their capacity independently.
- const home=new JSDOM(at('index.html'),{url:'https://example.test/test/index.html',runScripts:'outside-only'});home.window.eval(at('game.js'));
+ const home=new JSDOM(at('index.html'),{url:'https://example.test/test/index.html',runScripts:'outside-only'});home.window.eval(at('play-capacity.js'));home.window.eval(at('game.js'));
  const d=home.window.document,cards=Array.from(d.querySelectorAll('.choose-game'));
  assert.deepEqual(cards.map(c=>c.querySelector('h2').textContent),['Addition Quest','Addition Play','Subtraction Quest','Subtraction Play']);
  assert.equal(d.querySelector('.test-banner'),null);

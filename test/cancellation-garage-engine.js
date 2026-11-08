@@ -12,11 +12,16 @@
     return false;
   }
   function move(s,kind,n){if(!canMove(s,kind,n))return s;return {...s,blue:s.blue+(kind==='entry'||kind==='up'?n:kind==='down'?-n:0),gold:s.gold+(kind==='down'?n:kind==='exit'||kind==='up'?-n:0)};}
-  function geometry(max){const half=Math.max(180,90+(Math.ceil(max/10)+1)*22);return {top:48,half,center:48+half,bottom:48+2*half,height:128+2*half};}
-  function position(s,side,index){
-    const g=geometry(s.max),matched=Math.min(s.blue,s.gold),paired=index<matched;
+  function geometry(s){
+    const matched=Math.min(s.blue,s.gold),rows=n=>Math.ceil(n/10),m=rows(matched);
+    const half=count=>Math.max(158,58+22*(m+rows(count-matched))+(matched&&count>matched?24:0));
+    const top=2,blueHeight=half(s.blue),goldHeight=half(s.gold),center=top+blueHeight,bottom=center+goldHeight;
+    return {top,blueHeight,goldHeight,center,bottom,height:bottom+2};
+  }
+  function position(s,side,index,g=geometry(s)){
+    const matched=Math.min(s.blue,s.gold),paired=index<matched;
     const slot=paired?index:index-matched,col=slot%10,row=Math.floor(slot/10),x=136+col*22+(col>=5?8:0);
-    const y=paired?g.center+(side==='blue'?-1:1)*(17+row*22):side==='blue'?g.top+62+row*22:g.bottom-62-row*22;
+    const y=paired?g.center+(side==='blue'?-1:1)*(17+row*22):side==='blue'?g.top+60+row*22:g.bottom-60-row*22;
     return {x,y,paired};
   }
   const api={capacity,valid,canMove,move,geometry,position};

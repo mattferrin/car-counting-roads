@@ -222,7 +222,7 @@ gold, including negative differences. Stacked garages keep matched objects
 mirrored at the zero boundary. Pairs stay visible. Blue excess rises; gold
 excess falls. Every object is individually countable, five separated from five
 in each row of ten. Each garage has its own 20/50/100 capacity, selected from
-this game's chooser card, with the same controls as Addition Play.
+this game's chooser card or the shared sliding control below the game.
 
 Eight roads: +10/+1 enter blue; ↑10/↑1 transfer gold to blue; ↓10/↓1 transfer
 blue to gold; −10/−1 leave gold. Buttons show the actual one or ten characters,
@@ -235,9 +235,9 @@ sit behind button plates so another road cannot intercept a button tap.
 
 This game is intentionally silent: no sound control, voice module, speech
 synthesis, audio initialization, or spoken-count highlighting. There is no
-replacement reset control. The workshop banner, help panel, intro and in-game
-capacity controls are removed at Matt's request. Only the theme switch,
-equation, objects/roads, pair summary and shared All games navigation remain.
+replacement reset control. The workshop banner, help panel, intro and pair-summary text are removed.
+The theme switch, equation, objects/roads, shared capacity slider and All games
+navigation remain.
 Theme changes retain counts and DOM identities. `a` and `b` still set examples.
 
 Checks:
@@ -251,3 +251,23 @@ Checks:
 - Root and test Counting Play engine/theme suites remain required.
 
 Only test/ changes. Root production games and assets remain unchanged.
+
+### Live capacity and compact Play layouts
+
+Both Play games and their chooser cards share a touch, drag and keyboard
+accessible 20/50/100 segmented slider. Increasing the limit preserves objects
+and does not reserve unused rows. Garages size to their contents; subtraction
+keeps a clear gap between paired and unmatched groups.
+
+Lowering the limit quietly dissolves excess objects into amber embers and
+pale smoke, then updates the equation and compacts the layout. Subtraction
+clamps each operand independently (100−70 becomes 20−20 at limit 20); addition
+clamps the total, removing the newest objects first. Retained objects keep
+their identities. Controls lock during removal. Reduced motion skips the
+effect. Addition's normal moves retain narration; limit changes are silent.
+
+`NODE_PATH=/tmp/garage-test-deps/node_modules node test/play-capacity.test.cjs`
+verifies 100→20 removal, surviving identities, concurrent tap rejection,
+compact layout, updated math/URL, keyboard and drag selection, and retained
+normal-move narration. The subtraction UI suite also verifies 160 excess
+objects dissolve from two full garages at 100→20.

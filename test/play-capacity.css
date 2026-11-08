@@ -1,0 +1,15 @@
+/* The same three-stop slider in both Play games and their chooser cards. */
+.capacity-picker{--capacity-step:0;position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:0;width:min(240px,100%);padding:4px;border:1px solid #d5ded0;border-radius:18px;background:#dce8df;isolation:isolate;touch-action:pan-y;user-select:none}
+.capacity-picker .capacity-highlight{position:absolute;z-index:-1;left:4px;top:4px;bottom:4px;width:calc((100% - 8px)/3);border-radius:13px;background:#fffaf0;box-shadow:0 2px 7px #234b6025;transform:translateX(calc(var(--capacity-step)*100%));transition:transform .24s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.capacity-picker button{min-width:0;min-height:44px;padding:6px 12px;border:0;border-radius:13px;background:transparent;color:#50666e;font:800 16px/1.2 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer}
+.capacity-picker button[aria-checked=true]{color:#174e67}.capacity-picker button:focus-visible{outline:3px solid #1668d6;outline-offset:-3px}.capacity-picker button:disabled{cursor:default;opacity:.6}
+.play-limit{display:flex;justify-content:center;margin:8px 0 0}.home-capacity.capacity-picker{margin-top:18px;display:grid;float:none;border:1px solid #d5ded0;padding:4px;gap:0}.home-capacity.capacity-picker button{background:transparent;border:0;color:#50666e;min-width:0}.home-capacity.capacity-picker button[aria-checked=true]{color:#174e67}
+body[data-theme=mermaids] .capacity-picker{background:#bbddd8;border-color:#a7cfcd}
+/* Animate children, opacity and filters; never replace a positioned unit's transform. */
+.capacity-burning{animation:capacity-burn .6s ease-in forwards;pointer-events:none}
+.capacity-embers{fill:#ffb844;animation:capacity-embers .6s ease-out forwards}
+.capacity-smoke{fill:#e9eff0;stroke:#9eb8bc;stroke-width:.4;animation:capacity-smoke .6s ease-out forwards;opacity:0}
+@keyframes capacity-burn{0%{opacity:1;filter:none}35%{opacity:1;filter:sepia(.7) brightness(1.6) drop-shadow(0 0 3px #ffbd55)}100%{opacity:0;filter:brightness(1.6)}}
+@keyframes capacity-smoke{0%{opacity:0;transform:translateY(0)}30%{opacity:.9}100%{opacity:0;transform:translateY(-25px)}}
+@keyframes capacity-embers{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.capacity-picker .capacity-highlight{transition:none}.capacity-burning,.capacity-smoke,.capacity-embers{animation:none}}
