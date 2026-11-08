@@ -1,4 +1,4 @@
-/* Cancellation Garage: independent test game, shared Quest art and narrator. */
+/* Subtraction Play: independent test game, silent free play with shared Quest art. */
 (function(root){
   'use strict';
   const E=root.CancellationGarage,doc=root.document,$=id=>doc.getElementById(id),NS='http://www.w3.org/2000/svg';
@@ -8,86 +8,74 @@
   let state={blue:startCount('a',10),gold:startCount('b',0),max},serial=0,busy=false;
   let ids={blue:Array.from({length:state.blue},()=>++serial),gold:Array.from({length:state.gold},()=>++serial)};
   const nodes=new Map(),positions=new Map(),routes=[];
-  const THEMES={cars:[['castle','Castle'],['tree','Magic Tree'],['hill','Sunny Hill'],['track','Race Track'],['volcano','Volcano'],['wash','Car Wash'],['station','Gas Station'],['bridge','Bridge']],mermaids:[['palace','Palace'],['whirlpool','Whirlpool'],['turtle','Turtle Rock'],['cove','Dolphin Cove'],['reef','Coral Reef'],['shell','Giant Shell'],['wreck','Shipwreck'],['chest','Treasure Chest']]};
-  const specs=[['entry',10,'left',0],['entry',1,'left',1],['down',10,'right',0],['down',1,'right',1],['up',10,'left',2],['up',1,'left',3],['exit',10,'right',2],['exit',1,'right',3]];
+  const specs=[['entry',10],['entry',1],['down',10],['down',1],['up',10],['up',1],['exit',10],['exit',1]];
   const names=()=>theme==='cars'?['Blue','Gold','cars']:['Teal','Pink','mermaids'];
   const symbol=side=>theme==='cars'?'car-'+side:'mermaid-'+(side==='blue'?'teal':'pink');
   const el=(tag,attrs={})=>{const n=doc.createElementNS(NS,tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);return n;};
   const caption=n=>Math.floor(n/10)+(Math.floor(n/10)===1?' ten':' tens')+' · '+n%10+(n%10===1?' one':' ones');
   const markup=n=>String(n).split('').map((v,i,a)=>'<span class="d-'+(a.length-i>2?'hun':a.length-i===2?'tens':'ones')+'">'+v+'</span>').join('');
   const reduced=()=>root.matchMedia&&root.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let soundOn=true;try{soundOn=root.localStorage.getItem('cp-sound')!=='off';}catch(e){}
-  function clearHighlight(){doc.querySelectorAll('.cancellation-garage .speaking').forEach(n=>n.classList.remove('speaking'));}
-  function highlight(item){
-    clearHighlight();const num=$(item.side==='blue'?'left':'right'),digit=num.querySelector(item.place==='tens'?'.d-tens':'.d-ones');
-    (digit||num).classList.add('speaking');$('cap-'+item.side).classList.add('speaking');$('num-'+item.side).classList.add('speaking');
-    const count=state[item.side],tens=Math.floor(count/10)*10;
-    ids[item.side].forEach((id,i)=>{if(item.place==='tens'?i<tens:i>=tens)nodes.get(id)?.classList.add('speaking');});
-  }
-  const narrator=root.CountingVoice.createNarrator({root,soundOn,highlight,clear:clearHighlight,onSoundChange:()=>paintSound(true)});
-  function paintSound(retry=false){const b=$('sound-toggle'),on=narrator.isOn();b.textContent=retry?'🔇 Tap to retry sound':on?'🔊 Sound on':'🔇 Muted';b.setAttribute('aria-pressed',String(on));}
-  $('sound-toggle').addEventListener('click',()=>{narrator.setSound(!narrator.isOn());try{root.localStorage.setItem('cp-sound',narrator.isOn()?'on':'off');}catch(e){}paintSound();if(narrator.isOn())narrator.preload();});
-  doc.addEventListener('visibilitychange',()=>{if(doc.hidden)narrator.stop();});
-  function routeGeometry(kind,n,side,slot){
-    const g=E.geometry(max),left=side==='left';
-    let x=left?40:380,y,d;
-    // Two nested U roads per side. The outer lane ends beyond the inner
-    // lane at both ends, so connectors never cross. Entry/exit sit outside
-    // the U roads. Buttons stay on their own road, above every hit area.
+  function routeGeometry(kind,n){
+    const g=E.geometry(max),c=g.center;
+    const left=kind==='up'||(['entry','exit'].includes(kind)&&n===10);
+    let x=left?48:432,y,d;
+    // Entry descends to the boundary; exits descend away from it.
+    // Transfers stay in compact nested U lanes beside the zero axis.
     if(kind==='entry'){
-      y=g.top+(n===10?4:76);
-      d=n===10?`M24 ${y} H58 Q86 ${y} 86 ${y+28} V${g.top+48}`:`M24 ${y} H86`;
+      y=34;d=left?`M48 ${y} V${c-134} Q48 ${c-116} 66 ${c-116} H106`:`M432 ${y} V${c-134} Q432 ${c-116} 414 ${c-116} H374`;
     }else if(kind==='exit'){
-      y=g.bottom+(n===10?-60:12);
-      d=n===10?`M334 ${y} H404`:`M334 ${g.bottom-12} H348 Q360 ${g.bottom-12} 360 ${g.bottom} Q360 ${y} 372 ${y} H404`;
+      y=g.bottom+38;d=left?`M106 ${c+116} H66 Q48 ${c+116} 48 ${c+134} V${y}`:`M374 ${c+116} H414 Q432 ${c+116} 432 ${c+134} V${y}`;
     }else if(kind==='down'&&n===10){
-      y=g.top+48;
-      d=`M334 ${y} H394 Q412 ${y} 412 ${y+18} V${g.center+76} Q412 ${g.center+94} 394 ${g.center+94} H334`;
+      y=c-80;d=`M374 ${y} H454 Q472 ${y} 472 ${y+18} V${c+62} Q472 ${c+80} 454 ${c+80} H374`;
     }else if(kind==='down'){
-      x=380;y=g.center;
-      d=`M334 ${y-38} H362 Q380 ${y-38} 380 ${y-20} V${y+20} Q380 ${y+38} 362 ${y+38} H334`;
+      y=c+12;d=`M374 ${c-34} H414 Q432 ${c-34} 432 ${c-16} V${c+16} Q432 ${c+34} 414 ${c+34} H374`;
     }else if(n===10){
-      y=g.center+94;
-      d=`M86 ${y} H26 Q8 ${y} 8 ${y-18} V${g.top+66} Q8 ${g.top+48} 26 ${g.top+48} H86`;
+      y=c+80;d=`M106 ${y} H26 Q8 ${y} 8 ${y-18} V${c-62} Q8 ${c-80} 26 ${c-80} H106`;
     }else{
-      x=40;y=g.center;
-      d=`M86 ${y+38} H58 Q40 ${y+38} 40 ${y+20} V${y-20} Q40 ${y-38} 58 ${y-38} H86`;
+      y=c-12;d=`M106 ${c+34} H66 Q48 ${c+34} 48 ${c+16} V${c-16} Q48 ${c-34} 66 ${c-34} H106`;
     }
     return {x,y,d};
+  }
+  function buttonUnits(side,n,cx,cy){
+    return Array.from({length:n},(_,i)=>{
+      const w=n===1?32:11,h=n===1?23:9;
+      const x=n===1?cx-16:cx-27.5+(i%5)*11;
+      const y=n===1?cy-22:cy-23+Math.floor(i/5)*12;
+      return `<svg class="route-unit" x="${x}" y="${y}" width="${w}" height="${h}" viewBox="0 0 44 30"><use href="#${symbol(side)}"/></svg>`;
+    }).join('');
   }
   function build(){
     const g=E.geometry(max),[blue,gold,things]=names();
     doc.querySelector('.equation').setAttribute('aria-label',blue+' minus '+gold+' equals difference');
-    doc.body.dataset.theme=theme;$('world-line').textContent=(theme==='cars'?"Ayan's Car World":"Aliya's Mermaid World")+' · Cancellation Garage';
+    doc.body.dataset.theme=theme;$('world-line').textContent=(theme==='cars'?"Ayan's Car World":"Aliya's Mermaid World")+' · Subtraction Play';
     doc.querySelectorAll('.theme-pill').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.theme===theme)));
-    doc.querySelector('.garage-intro').textContent='Pairs cancel. '+blue+' rises. '+gold+' falls.';
-    $('garage-map').setAttribute('viewBox',`0 0 420 ${g.height}`);
-    $('scenery').innerHTML=`<path d="M82 54 Q150 18 334 54" fill="none" stroke="#fff7cf" stroke-width="5" opacity=".6"/><path d="M82 ${g.bottom} Q180 ${g.bottom+38} 334 ${g.bottom}" fill="none" stroke="#80bba1" stroke-width="6" opacity=".5"/>`;
+    $('garage-map').setAttribute('viewBox',`0 0 480 ${g.height}`);
+    $('scenery').innerHTML=`<path d="M104 48 Q240 20 376 48" fill="none" stroke="#fff7cf" stroke-width="5" opacity=".6"/><path d="M104 ${g.bottom} Q240 ${g.bottom+28} 376 ${g.bottom}" fill="none" stroke="#80bba1" stroke-width="6" opacity=".5"/>`;
     $('shells').replaceChildren();
     for(const side of ['blue','gold']){
       const top=side==='blue'?g.top:g.center+1,header=side==='blue'?g.top+20:g.bottom-9;
-      $('shells').append(el('rect',{x:84,y:top,width:252,height:g.half-1,rx:18,class:'garage-shell '+side}));
-      const label=el('text',{x:94,y:header,class:'garage-label'});label.textContent=(side==='blue'?blue+' +':gold+' −')+' '+things;$('shells').append(label);
-      const num=el('text',{x:324,y:header+1,'text-anchor':'end',class:'garage-number',id:'num-'+side,fill:side==='blue'?'var(--left)':'var(--right)'});$('shells').append(num);
-      const cap=el('text',{x:94,y:side==='blue'?header+17:header-19,class:'garage-caption',id:'cap-'+side});$('shells').append(cap);
+      $('shells').append(el('rect',{x:104,y:top,width:272,height:g.half-1,rx:18,class:'garage-shell '+side}));
+      const label=el('text',{x:116,y:header,class:'garage-label'});label.textContent=(side==='blue'?blue+' +':gold+' −')+' '+things;$('shells').append(label);
+      const num=el('text',{x:364,y:header+1,'text-anchor':'end',class:'garage-number',id:'num-'+side,fill:side==='blue'?'var(--left)':'var(--right)'});$('shells').append(num);
+      const cap=el('text',{x:116,y:side==='blue'?header+17:header-19,class:'garage-caption',id:'cap-'+side});$('shells').append(cap);
     }
-    $('shells').append(el('path',{d:`M86 ${g.center} H334`,class:'garage-midline'}));
+    $('shells').append(el('path',{d:`M106 ${g.center} H374`,class:'garage-midline'}));
     // A quiet zero-axis, with the actual cars mirrored above and below.
     $('roads').replaceChildren();$('controls').replaceChildren();routes.length=0;
-    specs.forEach(([kind,n,side,slot],i)=>{
-      const geo=routeGeometry(kind,n,side,slot),[art,name]=THEMES[theme][i];
+    specs.forEach(([kind,n],i)=>{
+      const geo=routeGeometry(kind,n);
+      const source=kind==='up'||kind==='exit'?'gold':'blue';
       const path=el('path',{d:geo.d,class:'garage-road',id:'road-'+i});$('roads').append(path,el('path',{d:geo.d,class:'garage-edge'}));
       const button=el('g',{class:'garage-route',role:'button',tabindex:'0','data-kind':kind,'data-amount':n,'data-route':i});
-      const action=kind==='entry'?'+'+n:kind==='exit'?'−'+n:(kind==='up'?'↑':'↓')+n;
-      button.innerHTML=`<circle cx="${geo.x}" cy="${geo.y}" r="30" fill="transparent"/><circle class="landmark-disc" cx="${geo.x}" cy="${geo.y}" r="24"/><image class="route-art" href="art/landmarks/${art}.png" x="${geo.x-10}" y="${geo.y-20}" width="20" height="20"/><text class="route-action" x="${geo.x}" y="${geo.y+12}">${action}</text><text class="route-name" x="${geo.x}" y="${geo.y+21}">${name}</text>`;
+      const action=kind==='entry'?'+'+n+' ↓':kind==='exit'?'−'+n+' ↓':(kind==='up'?'↑ ':'↓ ')+n;
+      button.innerHTML=`<rect class="route-target" x="${geo.x-34}" y="${geo.y-34}" width="68" height="68" rx="17"/><rect class="route-plate" x="${geo.x-31}" y="${geo.y-31}" width="62" height="62" rx="16"/><g aria-hidden="true">${buttonUnits(source,n,geo.x,geo.y)}</g><text class="route-action" x="${geo.x}" y="${geo.y+24}">${action}</text>`;
       const label=kind==='entry'?'Add to '+blue:kind==='exit'?'Take away from '+gold:kind==='up'?gold+' to '+blue:blue+' to '+gold;
-      button.setAttribute('aria-label',name+': '+label+', '+n+' '+(n===1?things.slice(0,-1):things));
+      button.setAttribute('aria-label',label+', '+n+' '+(n===1?things.slice(0,-1):things));
       const route={button,path,kind,n,geo,index:i};routes.push(route);
       const hit=el('path',{d:geo.d,class:'garage-road-hit','aria-hidden':'true'});hit.addEventListener('click',()=>drive(route));$('roads').append(hit);
       button.addEventListener('click',()=>drive(route));button.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();drive(route);}});
       $('controls').append(button);
     });
-    $('capacity').value=String(max);
   }
   function syncCounts(){
     $('left').innerHTML=markup(state.blue);$('right').innerHTML=markup(state.gold);
@@ -98,7 +86,7 @@
     for(const side of ['blue','gold']){$('num-'+side).textContent=state[side];$('cap-'+side).textContent=caption(state[side]);}
     updateControls();
   }
-  function updateControls(){routes.forEach(r=>r.button.setAttribute('aria-disabled',String(busy||!E.canMove(state,r.kind,r.n))));$('clear').disabled=busy;$('capacity').disabled=busy;doc.querySelectorAll('.theme-pill').forEach(b=>b.disabled=busy);$('garage-map').setAttribute('aria-busy',String(busy));}
+  function updateControls(){routes.forEach(r=>r.button.setAttribute('aria-disabled',String(busy||!E.canMove(state,r.kind,r.n))));doc.querySelectorAll('.theme-pill').forEach(b=>b.disabled=busy);$('garage-map').setAttribute('aria-busy',String(busy));}
   function unitNode(id,side){
     let n=nodes.get(id);if(!n){n=el('g',{'data-id':id});n.append(el('rect',{x:-11,y:-9,width:22,height:18,rx:5,class:'unit-halo'}));const icon=el('svg',{x:-10,y:-7,width:20,height:14,viewBox:'0 0 44 30'});icon.append(el('use'));n.append(icon);nodes.set(id,n);$('units').append(n);}
     n.querySelector('use').setAttribute('href','#'+symbol(side));n.dataset.side=side;return n;
@@ -147,32 +135,25 @@
     const g=E.geometry(max),pairs=Math.min(state.blue,state.gold),host=$('effects');host.replaceChildren();
     if(pairs===pairedBefore||reduced())return;
     const group=el('g',{class:'garage-flash'});
-    for(let i=0;i<Math.min(10,Math.abs(pairs-pairedBefore));i++){const x=106+i*22+(i>=5?8:0);group.append(el('circle',{cx:x,cy:g.center,r:5,fill:'#ffe58b'}));}
+    for(let i=0;i<Math.min(10,Math.abs(pairs-pairedBefore));i++){const x=136+i*22+(i>=5?8:0);group.append(el('circle',{cx:x,cy:g.center,r:5,fill:'#ffe58b'}));}
     host.append(group);group.addEventListener('animationend',()=>group.remove(),{once:true});
   }
   async function drive(route){
     if(busy||!E.canMove(state,route.kind,route.n))return;
-    busy=true;updateControls();narrator.preload();
+    busy=true;updateControls();
     const before={...state},old=new Map(positions),source=route.kind==='up'||route.kind==='exit'?'gold':'blue',dest=route.kind==='up'?'blue':'gold';
     let moving;
-    if(route.kind==='entry'){moving=Array.from({length:route.n},()=>++serial);ids.blue.push(...moving);moving.forEach(id=>{unitNode(id,'blue');old.set(id,{x:4,y:route.geo.y});});}
+    if(route.kind==='entry'){moving=Array.from({length:route.n},()=>++serial);ids.blue.push(...moving);moving.forEach(id=>{unitNode(id,'blue');old.set(id,{x:route.geo.x,y:route.geo.y-20});});}
     else{moving=ids[source].splice(-route.n);if(route.kind!=='exit')ids[dest].push(...moving);}
     state=E.move(state,route.kind,route.n);
     try{
       await animate(route,moving,old);burst(route,Math.min(before.blue,before.gold));
       const [blue,gold]=names();$('feedback').textContent=`${blue} ${state.blue} minus ${gold} ${state.gold} equals ${state.blue-state.gold}.`;
-      await narrator.speakMove(state,route.kind==='up'||route.kind==='down'?'transfer':route.kind,route.n);
-    }finally{busy=false;clearHighlight();updateControls();}
+    }finally{busy=false;updateControls();}
   }
   function updateURL(){const u=new URL(root.location.href);u.searchParams.set('theme',theme);u.searchParams.set('max',max);u.searchParams.delete('a');u.searchParams.delete('b');root.history.replaceState(null,'',u);}
-  doc.querySelectorAll('.theme-pill').forEach(b=>b.addEventListener('click',()=>{if(busy)return;narrator.stop();theme=b.dataset.theme;build();render();updateURL();}));
-  $('clear').addEventListener('click',()=>{if(busy)return;narrator.stop();state={blue:0,gold:0,max};ids={blue:[],gold:[]};render();$('feedback').textContent='Both garages are empty. Zero minus zero equals zero.';updateURL();});
-  $('capacity').addEventListener('change',()=>{
-    if(busy)return;const next=E.capacity($('capacity').value);
-    if(state.blue>next||state.gold>next){$('capacity').value=String(max);$('feedback').textContent='Move cars out before choosing a smaller garage.';return;}
-    max=next;state={...state,max};build();render();updateURL();
-  });
-  build();render();paintSound();
+  doc.querySelectorAll('.theme-pill').forEach(b=>b.addEventListener('click',()=>{if(busy)return;theme=b.dataset.theme;build();render();updateURL();}));
+  build();render();
   // Read-only state receipt for regression tests and troubleshooting.
   root.CancellationGarageView={snapshot:()=>({...state,difference:state.blue-state.gold,busy,theme})};
 })(window);

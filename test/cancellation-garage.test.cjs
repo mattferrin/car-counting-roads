@@ -17,7 +17,7 @@ for(const max of [20,50,100])for(let blue=0;blue<=max;blue++)for(let gold=0;gold
   for(const side of ['blue','gold']){
     const positions=[];
     for(let i=0;i<s[side];i++){
-      const p=E.position(s,side,i);assert.equal(p.paired,i<matched);assert.ok(p.x>=94&&p.x<=326);
+      const p=E.position(s,side,i);assert.equal(p.paired,i<matched);assert.ok(p.x>=116&&p.x<=364);
       assert.ok(side==='blue'?p.y>g.top+45&&p.y<g.center-8:p.y>g.center+8&&p.y<g.bottom-43);
       for(const q of positions)assert.ok(Math.abs(p.x-q.x)>=20||Math.abs(p.y-q.y)>=18,`${JSON.stringify(s)} ${side}: overlapping objects`);
       positions.push(p);

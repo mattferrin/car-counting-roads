@@ -209,50 +209,45 @@ The corresponding digit, place-value caption, rows, and individual characters gl
 
 `node test/counting-voice.test.cjs` covers changed-place plans, exact per-side recording paths, voice order, source-end sequencing, mute cancellation, visibility interruption, the 100-unit fallback, and watchdog recovery.
 
-## Cancellation Garage (fourth game, test only)
+## Addition and subtraction: Quest and Play
 
-`cancellation-garage.html?theme=cars&max=20` (or `theme=mermaids`).
-Free play: blue minus gold, including negative differences. The garages are
-stacked; matched units are mirrored at the zero boundary and remain visible.
-Blue excess rises; gold excess falls. Each object remains individually countable,
-with a gap between groups of five and ten objects per row.
+The chooser names the four games **Addition Quest**, **Addition Play**,
+**Subtraction Quest**, and **Subtraction Play**. Quests follow steps; Play lets
+children explore freely. Existing URLs and internal engine names remain stable.
 
-Eight landmark road buttons: +10/+1 into blue, down 10/down 1 from blue to gold,
-up 10/up 1 from gold to blue, and −10/−1 out of gold. The user's follow-up
-explicitly replaces automatic transfer amounts with separately chosen tens/ones.
-Each garage has its own 20/50/100 capacity so every subtraction a−b within that
-range is reachable. Transfers change the signed difference by twice the amount;
-entry and exit each increase it by the amount. Pairing never deletes objects.
+### Subtraction Play (formerly Cancellation Garage)
 
-Reuses the existing Quest stylesheets, local landmark PNGs, car/mermaid SVG
-symbols and CountingVoice narrator. Blue uses boy clips, gold girl clips.
-Changed-place narration starts after road travel and settling; transfers count
-blue then gold, with event-driven highlights and the shared mute/watchdog logic.
-No goals, forced steps, success screen or progression. Theme switches preserve
-counts and DOM identity. URL `a` and `b` set exact examples; `max` is capacity per
-garage. Shrinking capacity is refused if existing objects would be lost.
+`cancellation-garage.html?theme=cars&max=20` (or `theme=mermaids`). Blue minus
+gold, including negative differences. Stacked garages keep matched objects
+mirrored at the zero boundary. Pairs stay visible. Blue excess rises; gold
+excess falls. Every object is individually countable, five separated from five
+in each row of ten. Each garage has its own 20/50/100 capacity, selected from
+this game's chooser card, with the same controls as Addition Play.
+
+Eight roads: +10/+1 enter blue; ↑10/↑1 transfer gold to blue; ↓10/↓1 transfer
+blue to gold; −10/−1 leave gold. Buttons show the actual one or ten characters,
+without landmark pictures. Entry roads descend and turn into blue through
+rounded right angles; two nested sideways U roads sit at each side of the
+central boundary, with ten outside and one inside. +10/−10 share the left
+column at the top/bottom, and +1/−1 share the right column. Exit roads turn
+out of gold and descend to the bottom buttons. Road hit areas
+sit behind button plates so another road cannot intercept a button tap.
+
+This game is intentionally silent: no sound control, voice module, speech
+synthesis, audio initialization, or spoken-count highlighting. There is no
+replacement reset control. The workshop banner, help panel, intro and in-game
+capacity controls are removed at Matt's request. Only the theme switch,
+equation, objects/roads, pair summary and shared All games navigation remain.
+Theme changes retain counts and DOM identities. `a` and `b` still set examples.
 
 Checks:
 - `node test/cancellation-garage.test.cjs`: 105,944 moves, 1,158,970 individual
-  positions, every reachable subtraction example, bounds, no overlapping units,
-  mirrored pairs, signed transitions, transfer conservation and immutable state.
+  positions, all subtraction examples reachable, bounds, no parked-object
+  overlap, mirrored pairs, signed transitions, conservation and immutability.
 - `NODE_PATH=/tmp/garage-test-deps/node_modules node test/cancellation-garage-ui.test.cjs`:
-  eight controls, voice order, event-based highlighting, duplicate taps, mute,
-  themes, DOM identity, all 200 units, positive/negative/zero and capacity changes.
-- `node test.cjs`, `node test-themes.cjs` and both equivalents under test/ pass.
-- CountingVoice, Counting Play layout, Addition/Cancellation engines and layout
-  suites pass unchanged.
-- Browser preview checked at 320 and 390 CSS-pixel iframe widths, both themes;
-  observed a gold-to-blue move changing 3−7 → 4−6 → 5−5, with mirrored pairs.
+  eight buttons with exactly one/ten characters, no audio dependency, duplicate
+  taps, 200 objects, signed transitions, themes, identities, consistent chooser
+  labels and independent 20/50/100 selections for both free-play games.
+- Root and test Counting Play engine/theme suites remain required.
 
-Limits: actual iPhone Safari sound latency still needs a physical-device check.
-Only test/ files are changed. All 112 production paths/modes/blob hashes match
-baseline 2e4643f9741883c49aa1c479cd556e98e4cc4784. The raw prior SVG prototype was
-not available in this checkout; recovered behavior and the user's explicit
-mechanics/follow-up are the behavioral contract.
-
-Road clarity revision: transfer roads are nested rounded U routes with separate
-inner/outer lanes; entry and exit are short independent paths. No freehand
-serpentine curves. All button discs are in a separate foreground layer above
-road hit areas, so a neighboring road cannot intercept a button tap. Transparent
-30-unit-radius targets preserve at least 44 CSS pixels at a 320-pixel width.
+Only test/ changes. Root production games and assets remain unchanged.

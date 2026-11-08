@@ -1,4 +1,4 @@
-/* Counting Play: connected ten- and one-unit roads, shared Quest presentation. */
+/* Addition Play: connected ten- and one-unit roads, shared Quest presentation. */
 (function(root){
   'use strict';
   const params=new URLSearchParams(root.location?.search),rawMax=params.get('max'),requested=Number(rawMax);
@@ -27,8 +27,12 @@
   if(!root.document)return;
   const doc=root.document,$=id=>doc.getElementById(id),NS='http://www.w3.org/2000/svg';
   doc.querySelectorAll('[data-max]').forEach(button=>button.addEventListener('click',()=>{
-    doc.querySelectorAll('[data-max]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
-    doc.querySelectorAll('[data-counting="true"]').forEach(a=>{a.href='index.html?theme='+(a.classList.contains('mermaids')?'mermaids':'cars')+'&max='+button.dataset.max;});
+    const card=button.closest('.choose-game');
+    card.querySelectorAll('[data-max]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+    card.querySelectorAll('[data-counting="true"],[data-garage="true"]').forEach(a=>{
+      const target=a.dataset.garage==='true'?'cancellation-garage.html':'index.html';
+      a.href=target+'?theme='+(a.classList.contains('mermaids')?'mermaids':'cars')+'&max='+button.dataset.max;
+    });
   }));
   if(!params.has('theme')&&!params.has('max')){$('home').hidden=false;return;}
   $('game').hidden=false;
@@ -195,7 +199,7 @@
   function setTheme(value){
     theme=value;doc.body.dataset.theme=theme;
     const title=theme==='mermaids'?"Aliya's Mermaid World":"Ayan's Car World";
-    doc.title=title+' · Counting Play';$('world-line').textContent=title+' · Counting Play';
+    doc.title=title+' · Addition Play';$('world-line').textContent=title+' · Addition Play';
     $('game').querySelector('.equation').setAttribute('aria-label',names()[0]+' plus '+names()[1]+' equals total');
     const nextLimit=LIMIT<50?50:LIMIT<100?100:20;$('bigger-world').textContent='Try '+nextLimit;$('bigger-world').href='?theme='+theme+'&max='+nextLimit;
     root.history.replaceState(null,'','?'+new URLSearchParams({theme,max:String(LIMIT)}));

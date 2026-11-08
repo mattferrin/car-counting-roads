@@ -1,4 +1,4 @@
-/* Cancellation Quest — game UI.
+/* Subtraction Quest — game UI.
  * The maths lives in cancellation-engine.js. This file only renders the
  * engine's states, flies the objects, speaks the place-value counts and
  * plays the effects. It never invents a move: every tap plays exactly
@@ -923,7 +923,7 @@
     $all('.theme-pill').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.theme === theme));
     });
-    $('.world-line').textContent = THEMES[theme].label + ' · Cancellation Quest';
+    $('.world-line').textContent = THEMES[theme].label + ' · Subtraction Quest';
     buildLandmarks();
     renderWho();
     if (solution) {
@@ -1022,7 +1022,7 @@
     $all('.level-pill').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.level === level));
     });
-    $('.world-line').textContent = THEMES[theme].label + ' · Cancellation Quest';
+    $('.world-line').textContent = THEMES[theme].label + ' · Subtraction Quest';
     buildLandmarks();
     renderWho();
     if (specific) newProblem(specific.a, specific.b, { announce: false });

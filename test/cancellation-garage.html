@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Cancellation Garage — Counting Worlds (Test)</title><meta name="description" content="Free play with positive and negative differences. Match cars in the cancellation garage, move tens and ones, and see what remains."><link rel="stylesheet" href="cancellation-quest.css?v=14"><link rel="stylesheet" href="storybook.css?v=14"><link rel="stylesheet" href="cancellation-garage.css?v=1"></head><body data-theme="cars"><svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Subtraction Play — Counting Worlds (Test)</title><meta name="description" content="Free play with positive and negative differences. Match cars in the cancellation garage, move tens and ones, and see what remains."><link rel="stylesheet" href="cancellation-quest.css?v=14"><link rel="stylesheet" href="storybook.css?v=14"><link rel="stylesheet" href="cancellation-garage.css?v=2"></head><body data-theme="cars"><svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="car-blue" viewBox="0 0 44 26">
       <rect x="3" y="12" width="38" height="8" rx="4" fill="#2f7fe0"/>
@@ -17,23 +17,20 @@
     <symbol id="mermaid-teal" viewBox="0 0 44 30"><image href="art/mermaid-selector-M.svg" width="44" height="30"/></symbol>
     <symbol id="mermaid-pink" viewBox="0 0 44 30"><image href="art/mermaid-selector-M.svg" width="44" height="30"/></symbol>
   </defs>
-</svg><aside class="test-banner">🧪 Test version · Daddy’s workshop <a href="../">Play the stable games →</a></aside><main id="game" class="page cancellation-garage">  <header class="eqbar">
-    <p class="world-line" id="world-line">Ayan's Car World · Cancellation Garage</p>
+</svg><main id="game" class="page cancellation-garage">  <header class="eqbar">
+    <p class="world-line" id="world-line">Ayan's Car World · Subtraction Play</p>
     <div class="equation" role="heading" aria-label="Blue minus Gold equals difference">
       <span id="left">10</span><span class="op">−</span><span id="right">0</span><span class="op">=</span><span id="total" class="garage-result">10</span>
     </div>
     <div class="toggles">
       <div class="theme-switch" role="group" aria-label="Choose a world"><button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true"><svg viewBox="0 0 44 26" width="22" height="13" style="vertical-align:-2px" aria-hidden="true"><use href="#car-blue"/></svg> Ayan</button>
       <button type="button" class="pill theme-pill" data-theme="mermaids" aria-pressed="false"><img src="art/mermaid-selector-M.svg" width="20" height="14" style="vertical-align:-2px" alt=""> Aliya</button></div>
-      <button type="button" class="pill sound" id="sound-toggle" aria-pressed="true">🔊 Sound on</button>
     </div>
   </header>
 
-<p class="garage-intro">Pairs cancel. Blue rises. Gold falls.</p>
-<div class="garage-board"><svg id="garage-map" viewBox="0 0 420 510" role="group" aria-label="Cancellation Garage: eight roads for tens and ones"><g id="scenery" aria-hidden="true"></g><g id="roads"></g><g id="shells"></g><g id="pairs" aria-hidden="true"></g><g id="units" aria-hidden="true"></g><g id="controls"></g><g id="effects" aria-hidden="true"></g></svg></div>
+<div class="garage-board"><svg id="garage-map" viewBox="0 0 480 590" role="group" aria-label="Subtraction Play: eight roads for tens and ones"><g id="scenery" aria-hidden="true"></g><g id="roads"></g><g id="shells"></g><g id="pairs" aria-hidden="true"></g><g id="units" aria-hidden="true"></g><g id="controls"></g><g id="effects" aria-hidden="true"></g></svg></div>
 <p id="pair-summary" class="pair-summary"></p><p id="feedback" class="game-announcements" role="status" aria-live="polite"></p>
-<div class="garage-options"><label>Room in each garage <select id="capacity" aria-label="Capacity per garage"><option>20</option><option>50</option><option>100</option></select></label><button id="clear" class="pill">Start empty</button></div>
-<details class="garage-help"><summary>How to explore</summary><p>Add blue cars from the left. Take gold cars out on the right. The arrow roads move one or ten between garages. Each blue–gold pair makes zero; the cars stay visible. Blue leftovers mean a positive answer. Gold leftovers mean a negative answer.</p><p>Moving one car between garages changes Blue − Gold by two. Try making 3 − 7, then move cars back and forth.</p></details>  <footer class="quest-footer">
+  <footer class="quest-footer">
     <nav class="footer-nav" aria-label="Game navigation">
       <a class="footer-home" href="index.html">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
@@ -41,4 +38,4 @@
       </a>
     </nav>
   </footer>
-</main><script src="counting-voice.js?v=21"></script><script src="cancellation-garage-engine.js?v=1"></script><script src="cancellation-garage.js?v=1"></script></body></html>
+</main><script src="cancellation-garage-engine.js?v=2"></script><script src="cancellation-garage.js?v=2"></script></body></html>
