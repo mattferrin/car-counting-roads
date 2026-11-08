@@ -1,0 +1,46 @@
+/* Silent Subtraction Play; reuse the Quest palettes, symbols and theme switch. */
+.cancellation-garage{max-width:600px}
+.garage-result{background:#e1efda;border-radius:9px;padding:0 .15em;color:#215b31}
+.garage-result.negative{background:#fff0ce;color:#956700}
+.garage-board{margin:4px -10px 0}
+.garage-board>svg{display:block;width:100%;height:auto;touch-action:pan-y;overflow:visible}
+.garage-shell{fill:#fff9ec;stroke:white;stroke-width:3}
+.garage-shell.blue{fill:#edf5fd}.garage-shell.gold{fill:#fff3d7}
+body[data-theme=mermaids] .garage-shell.blue{fill:#e2f7f0}
+body[data-theme=mermaids] .garage-shell.gold{fill:#fff0f7}
+.garage-label{font-size:12px;font-weight:800;fill:var(--world-ink)}
+.garage-number{font-size:20px;font-weight:850}
+.garage-caption{font-size:9px;fill:#3a565e}
+.garage-midline{stroke:#63818d;stroke-width:2;stroke-dasharray:4 4}
+.garage-road{fill:none;stroke:#657b89;stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
+.garage-edge{fill:none;stroke:#eff3df;stroke-width:1.2;stroke-dasharray:3 5;stroke-linecap:round}
+.garage-road-hit{fill:none;stroke:transparent;stroke-width:24;pointer-events:stroke}
+.garage-route{cursor:pointer}.route-target{fill:transparent}
+.route-plate{fill:#fffaf0;stroke:#fff;stroke-width:2.5;filter:drop-shadow(0 3px 2px #294b582b)}
+.route-unit{pointer-events:none}
+.route-action{font-size:20px;font-weight:850;text-anchor:middle;fill:#22303c;pointer-events:none}
+.garage-route[aria-disabled=true]{filter:saturate(.4);cursor:default}
+.garage-route[aria-disabled=true] .route-action{fill:#80909a}
+.garage-route[aria-disabled=true] .route-unit{opacity:.55}
+.garage-route:focus-visible{outline:none}
+.garage-route:focus-visible .route-plate{stroke:#1668d6;stroke-width:4}
+.garage-unit{pointer-events:none}
+.garage-unit .unit-halo{fill:var(--left);opacity:.07}
+.garage-unit.gold .unit-halo{fill:var(--right)}
+.garage-unit.paired{opacity:.53}
+.garage-unit.paired .unit-halo{opacity:.17}
+.garage-unit.excess{filter:drop-shadow(0 1px 2px #294b5829)}
+.pair-link{stroke:#7c929d;stroke-width:1;stroke-dasharray:2 3;opacity:.32}
+.pair-spark{fill:#fff6bb;stroke:#d4ae40;stroke-width:1}
+.cancellation-garage .pill{min-height:36px}
+.cancellation-garage .quest-footer{width:148px}
+.cancellation-garage .footer-nav a{min-height:66px;padding:6px;gap:3px}
+.cancellation-garage .footer-nav svg{width:30px;height:30px}
+.garage-flash{animation:garage-flash .6s ease-out forwards;transform-box:fill-box;transform-origin:center}
+@keyframes garage-flash{from{opacity:1;scale:.7}to{opacity:0;scale:1.8}}
+body[data-theme=mermaids] .garage-road{stroke:#3795a6}
+body[data-theme=mermaids] .garage-edge{stroke:#d9ffff;stroke-dasharray:none}
+body[data-theme=mermaids] .route-plate{fill:#e5f8f5}
+body[data-theme=mermaids] .garage-result.negative{background:#ffe5f0;color:#a02b69}
+@media(prefers-reduced-motion:reduce){.garage-flash{animation:none}}
+@media(max-width:360px){.cancellation-garage .pill{padding:5px 7px;font-size:13px}.cancellation-garage .eqbar{padding:6px}.cancellation-garage .toggles{gap:6px}}
