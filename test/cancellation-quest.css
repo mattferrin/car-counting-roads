@@ -348,7 +348,7 @@ body[data-theme="mermaids"] .side .rowband.one { background: rgba(217,189,122,.6
  * own colour (blue/gold cars, teal/pink mermaids; the existing
  * --left/--right already resolve per theme) that pulses gently only
  * while the fragment really plays, plus a small waveform strip under
- * the digit (five bars, same side colour). Both are driven by
+ * the digit (seven bars, same side colour). Both are driven by
  * emphasize()/clearEmphasis(), which fire on real audio start/end,
  * never on timers; the other side stays completely still. The
  * background highlight above is kept: it still reads well with the
@@ -372,30 +372,41 @@ body[data-theme="mermaids"] .side .rowband.one { background: rgba(217,189,122,.6
 }
 /* The waveform sits in the digit's descender space, directly beneath
  * the glyph — an underline, not a neighbour: digits have no
- * descenders, so the 6px strip never covers the number and never
+ * descenders, so the strip never covers the number and never
  * pushes the caption below. Under the whole number (the "zero tens"
  * case, where the speaking place has no digit on screen) it is a
- * short strip under the number's left edge, where the digits start;
- * under the answer it hangs just below its box, in the bar's padding. */
+ * short strip under the number's left edge, where the digits start.
+ * Under the answer it sits inside the answer pill, just under the
+ * glyphs, spanning exactly the digits — the pill's side padding is
+ * outside it — so it reads as an underline of the number itself,
+ * not a strip floating below the box. The seven bars are
+ * centre-anchored and vary in height (short at the edges, tall in
+ * the middle), the way a real audio waveform swells around its
+ * centre line, so it reads as sound at a glance rather than as
+ * decoration. */
 .side .bignum { position: relative; }
 .voice-wave {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 6px;
-  display: flex; align-items: flex-end; justify-content: center; gap: 2px;
+  position: absolute; left: 0; right: 0; bottom: 0; height: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 2px;
   pointer-events: none;
 }
 .voice-wave i {
-  display: block; width: 2px; height: 100%; border-radius: 2px;
+  display: block; width: 3px; height: 100%; border-radius: 3px;
   background: var(--speak-color);
-  transform: scaleY(.35); transform-origin: bottom;
+  transform: scaleY(.35); transform-origin: center;
   animation: voice-wave .7s ease-in-out infinite;
 }
-.voice-wave i:nth-child(2) { animation-delay: .12s; }
-.voice-wave i:nth-child(3) { animation-delay: .24s; }
-.voice-wave i:nth-child(4) { animation-delay: .36s; }
-.voice-wave i:nth-child(5) { animation-delay: .48s; }
+.voice-wave i:nth-child(1) { height: 35%; animation-delay: 0s; }
+.voice-wave i:nth-child(2) { height: 60%; animation-delay: .08s; }
+.voice-wave i:nth-child(3) { height: 85%; animation-delay: .16s; }
+.voice-wave i:nth-child(4) { height: 100%; animation-delay: .24s; }
+.voice-wave i:nth-child(5) { height: 85%; animation-delay: .32s; }
+.voice-wave i:nth-child(6) { height: 60%; animation-delay: .4s; }
+.voice-wave i:nth-child(7) { height: 35%; animation-delay: .48s; }
 @keyframes voice-wave { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
 .bignum > .voice-wave { left: 0; right: auto; width: 76px; }
-.equation .speaking > .voice-wave { bottom: -6px; }
+.equation .speaking > .voice-wave { bottom: 0; }
+.equation .q.speaking > .voice-wave { left: .12em; right: .12em; }
 /* The progress line only ever carries text mid-move ("Watch them
  * move together…", "Listen to the count…"); at load and at solved
  * it is empty, so it reserves no height — the caption sits ~22px

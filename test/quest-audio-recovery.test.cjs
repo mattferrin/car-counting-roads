@@ -18,7 +18,9 @@
  * motion keeps the indicator static; (h) the boot gate — the places
  * stay off the page until the voices actually load, then the toggle,
  * status, next move and caption all transition at once, and a muted
- * game opens immediately.
+ * game opens immediately; (i) the answer underline — when the answer
+ * itself is spoken, the waveform is a direct child of the answer
+ * pill, spanning the digits inside it, with seven bars.
  */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -135,7 +137,7 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
   assert(leftDigit.classList.contains('speak-left'), game + ': glow in the left side colour');
   const wave = leftDigit.querySelector('.voice-wave');
   assert(wave, game + ': waveform under the speaking digit');
-  assert.equal(wave.querySelectorAll('i').length, 5, game + ': five waveform bars');
+  assert.equal(wave.querySelectorAll('i').length, 7, game + ': seven waveform bars');
   assert(wave.classList.contains('speak-left'), game + ': waveform carries the left side colour');
   assert(!d.querySelector('#right-num .speaking'), game + ': other side stays still');
   assert(!d.querySelector('#right-num .voice-wave'), game + ': no waveform on the other side');
@@ -356,6 +358,37 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
     m.close(); checks++;
   }
 
+  // (i) The answer underline: when the answer itself is spoken, the
+  // waveform is a direct child of the answer pill — spanning the
+  // digits inside it, not floating below the box — with seven bars.
+  // The answer's tens/ones waves are children of the digit spans,
+  // so only the 'answer' fragment puts the wave directly under #eq-q.
+  // 78-35 cancels one ten per tap (four moves), so keep tapping
+  // whenever the game is ready until the answer is spoken.
+  {
+    const t = boot('cancellation', 78, 35, { audio: true, speech: 'speaking' });
+    const d = t.d;
+    await flush(); // the load-time preload settles before any tap
+    let wave = null;
+    for (let i = 0; i < 200 && !wave; i++) {
+      await flush();
+      wave = d.querySelector('#eq-q > .voice-wave');
+      if (wave) break;
+      const s = t.starts.find((x) => x.onended && !x.ended);
+      if (s) { s.ended = true; s.onended(); continue; }
+      if (t.d.body.dataset.phase === 'ready') {
+        d.querySelector('.landmark').click();
+        t.resolveResume();
+        continue;
+      }
+      if (t.d.body.dataset.phase === 'complete') break;
+    }
+    assert(wave, 'answer wave appears as a direct child of the answer pill');
+    assert.equal(wave.querySelectorAll('i').length, 7, 'answer wave has seven bars');
+    assert(d.querySelector('#eq-q').classList.contains('speaking'), 'answer pill glows while the answer is spoken');
+    t.close(); checks++;
+  }
+
   // (g) CSS: the speaking scale is gone, the indicator rules exist,
   // and reduced motion keeps the indicator static.
   for (const game of ['cancellation', 'addition']) {
@@ -366,14 +399,17 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
     assert(css.includes('speak-pulse'), game + ': outline pulse present');
     assert(css.includes('--speak-color'), game + ': side-coloured speaking state');
     assert(css.includes('body[data-audio="loading"] .landmark-strip { display: none; }'), game + ': loading gate hides the places');
+    assert(css.includes('.voice-wave i:nth-child(7)'), game + ': seven-bar waveform');
+    assert(css.includes('align-items: center'), game + ': waveform bars centre-anchored');
+    assert(css.includes('.equation .q.speaking > .voice-wave'), game + ': answer wave spans the digits inside the pill');
     const rm = css.split('@media (prefers-reduced-motion: reduce)').slice(1).join('\n');
     assert(rm && rm.includes('.voice-wave i') && rm.includes('animation: none'), game + ': reduced-motion waveform static');
     assert(rm && rm.includes('speak-left') && rm.includes('animation: none'), game + ': reduced-motion outline steady');
     const html = fs.readFileSync(path.join(__dirname, game + '-quest.html'), 'utf8');
-    assert(html.includes(game + '-quest.css?v=18'), game + ': stylesheet cache-busted');
-    assert(html.includes(game + '-quest.js?v=19'), game + ': script cache-busted');
+    assert(html.includes(game + '-quest.css?v=19'), game + ': stylesheet cache-busted');
+    assert(html.includes(game + '-quest.js?v=20'), game + ': script cache-busted');
     checks++;
   }
 
-  console.log(`Quest audio recovery passed: ${checks} cases — first-tap race, in-flight dedup, transient retry, prompt never-starts finish, terminal watchdog/late fetch, speaking glow + waveform sync, zero-tens underline, no speaking scale, static reduced motion, boot gate.`);
+  console.log(`Quest audio recovery passed: ${checks} cases — first-tap race, in-flight dedup, transient retry, prompt never-starts finish, terminal watchdog/late fetch, speaking glow + waveform sync, zero-tens underline, no speaking scale, static reduced motion, boot gate, answer underline.`);
 })().catch((e) => { console.error(e); process.exitCode = 1; });

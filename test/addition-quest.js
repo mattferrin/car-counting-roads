@@ -383,7 +383,7 @@
     $all('.speaking').forEach(function (n) { n.classList.remove('speaking'); n.classList.remove('speak-left'); n.classList.remove('speak-right'); });
   }
 
-  /* The waveform strip under the number being spoken: five small bars
+  /* The waveform strip under the number being spoken: seven small bars
    * in the speaking side's colour, animated while the fragment really
    * plays. It is attached in emphasize() — which fires on clip start /
    * speech onstart — and removed by clearEmphasis() on end, so it is
@@ -400,7 +400,7 @@
     // the speaking digit, so it cannot inherit the digit's colour.
     wave.classList.add('speak-' + side);
     wave.setAttribute('aria-hidden', 'true');
-    for (var i = 0; i < 5; i++) wave.appendChild(document.createElement('i'));
+    for (var i = 0; i < 7; i++) wave.appendChild(document.createElement('i'));
     numEl.appendChild(wave);
   }
   /* Which objects a fragment names: N tens are the first N rows of ten in
