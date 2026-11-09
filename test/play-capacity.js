@@ -28,18 +28,49 @@
       else if(e.key==='Home')index=0;else if(e.key==='End')index=2;else return;
       e.preventDefault();choose(VALUES[index]);buttons[index].focus();
     });
-    element.addEventListener('pointerdown',e=>{if(options.isBusy?.()||e.button!==0)return;drag={id:e.pointerId,x:e.clientX,moved:false};});
+    function positionAt(clientX){
+      const {left,width}=element.getBoundingClientRect();
+      return Math.max(0,Math.min(VALUES.length-1,(clientX-left)/width*VALUES.length-.5));
+    }
+    function clearDrag(e){
+      if(drag?.id!==e.pointerId)return;
+      drag=null;
+      element.classList.remove('is-dragging');
+      element.style.removeProperty('--capacity-preview');
+    }
+    element.addEventListener('pointerdown',e=>{
+      if(e.button!==0||e.isPrimary===false||drag)return;
+      suppressClick=false;
+      if(options.isBusy?.())return;
+      drag={id:e.pointerId,x:e.clientX,moved:false};
+      // Keep receiving moves outside the picker while preserving clicks on the pressed button.
+      e.target.setPointerCapture?.(e.pointerId);
+    });
     element.addEventListener('pointermove',e=>{
       if(!drag||drag.id!==e.pointerId)return;
-      if(Math.abs(e.clientX-drag.x)>6){drag.moved=true;try{element.setPointerCapture(e.pointerId);}catch(err){}}
+      if(!drag.moved){
+        if(Math.abs(e.clientX-drag.x)<=6)return;
+        drag.moved=true;
+        element.classList.add('is-dragging');
+      }
+      element.style.setProperty('--capacity-preview',positionAt(e.clientX));
     });
     element.addEventListener('pointerup',e=>{
-      if(!drag||drag.id!==e.pointerId)return;const moved=drag.moved;drag=null;if(!moved)return;
-      const r=element.getBoundingClientRect(),index=Math.max(0,Math.min(2,Math.floor((e.clientX-r.left)/r.width*3)));
-      suppressClick=true;choose(VALUES[index]);e.preventDefault();root.setTimeout(()=>{suppressClick=false;},0);
+      if(!drag||drag.id!==e.pointerId)return;
+      const moved=drag.moved;
+      clearDrag(e);
+      if(!moved)return;
+      suppressClick=true;
+      choose(VALUES[Math.round(positionAt(e.clientX))]);
     });
-    element.addEventListener('pointercancel',()=>{drag=null;});
-    element.addEventListener('click',e=>{if(suppressClick){suppressClick=false;e.preventDefault();e.stopImmediatePropagation();}},true);
+    element.addEventListener('pointercancel',clearDrag);
+    element.addEventListener('lostpointercapture',clearDrag);
+    element.addEventListener('click',e=>{
+      if(!suppressClick||e.detail===0)return;
+      suppressClick=false;
+      e.preventDefault();
+      e.stopPropagation();
+    },true);
     refresh();return {refresh,value:()=>value};
   }
   function dissolve(nodes){
