@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Addition Quest — Ayan &amp; Aliya's Counting Worlds</title>
+<link rel="icon" href="./favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png" sizes="180x180">
+<link rel="manifest" href="./site.webmanifest?v=2">
+<meta name="apple-mobile-web-app-title" content="Count Ones">
 <meta name="description" content="An addition game for kids: move everything from the smaller side to the bigger side, tens first then ones, and watch what is left become the answer.">
 <!-- Asset cache-busting: every local CSS/JS URL below carries ?v=N.
      Bump N on ALL of them together on every deploy, so a phone can
@@ -11,27 +15,15 @@
      intentionally unversioned (63 shared clips; re-downloading them
      every deploy would be wasteful). -->
 <link rel="stylesheet" href="addition-quest.css?v=16">
-<link rel="stylesheet" href="storybook.css?v=27">
+<link rel="stylesheet" href="storybook.css?v=28">
 </head>
 <body data-theme="cars">
 <!-- Inline SVG symbols: every car is one car, every mermaid is one mermaid.
      No x10 badges anywhere: a group of ten is ten separate symbols in a row. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="car-blue" viewBox="0 0 44 26">
-      <rect x="3" y="12" width="38" height="8" rx="4" fill="#2f7fe0"/>
-      <path d="M12 12 C12 5 16 2.5 22 2.5 C28 2.5 32 5 32 12 Z" fill="#2f7fe0"/>
-      <path d="M16.5 11 C16.5 7 18.5 5.5 22 5.5 C25.5 5.5 27.5 7 27.5 11 Z" fill="#cfeaff"/>
-      <circle cx="13" cy="20" r="4.2" fill="#22303c"/><circle cx="13" cy="20" r="1.8" fill="#d7e3ef"/>
-      <circle cx="31" cy="20" r="4.2" fill="#22303c"/><circle cx="31" cy="20" r="1.8" fill="#d7e3ef"/>
-    </symbol>
-    <symbol id="car-gold" viewBox="0 0 44 26">
-      <rect x="3" y="12" width="38" height="8" rx="4" fill="#f2b705"/>
-      <path d="M12 12 C12 5 16 2.5 22 2.5 C28 2.5 32 5 32 12 Z" fill="#f2b705"/>
-      <path d="M16.5 11 C16.5 7 18.5 5.5 22 5.5 C25.5 5.5 27.5 7 27.5 11 Z" fill="#fff3c4"/>
-      <circle cx="13" cy="20" r="4.2" fill="#22303c"/><circle cx="13" cy="20" r="1.8" fill="#d7e3ef"/>
-      <circle cx="31" cy="20" r="4.2" fill="#22303c"/><circle cx="31" cy="20" r="1.8" fill="#d7e3ef"/>
-    </symbol>
+    <symbol id="car-blue" viewBox="0 0 44 26"><path d="M3 10Q3 6 8 6H32L38 11Q41 12 41 15V19H3Z" fill="#2f7fe0"/><path d="M7 9H18V13H7Z M21 9H29V13H21Z M32 10H35L37 13H32Z" fill="#cfeaff"/><rect x="10" y="14" width="23" height="2" rx="0.5" fill="#65b8ff"/><path d="M8 5V2H33V5" fill="none" stroke="#354957" stroke-width="1.5"/><rect x="18" y="2" width="7" height="1.5" rx="0.3" fill="#e6a756"/><path d="M4 17H40" stroke="#1556a0" stroke-width=".65" opacity=".6"/><circle cx="12" cy="20" r="3.8" fill="#22303c"/><circle cx="12" cy="20" r="1.55" fill="#d7e3ef"/><circle cx="33" cy="20" r="3.8" fill="#22303c"/><circle cx="33" cy="20" r="1.55" fill="#d7e3ef"/><rect x="39" y="15" width="2" height="2.2" rx=".7" fill="#fff4c1"/></symbol>
+    <symbol id="car-gold" viewBox="0 0 44 26"><path d="M3 10Q3 6 8 6H32L38 11Q41 12 41 15V19H3Z" fill="#f2b705"/><path d="M7 9H18V13H7Z M21 9H29V13H21Z M32 10H35L37 13H32Z" fill="#fff3c4"/><rect x="10" y="14" width="23" height="2" rx="0.5" fill="#ffdb50"/><path d="M8 5V2H33V5" fill="none" stroke="#354957" stroke-width="1.5"/><rect x="18" y="2" width="7" height="1.5" rx="0.3" fill="#e6a756"/><path d="M4 17H40" stroke="#c28200" stroke-width=".65" opacity=".6"/><circle cx="12" cy="20" r="3.8" fill="#22303c"/><circle cx="12" cy="20" r="1.55" fill="#d7e3ef"/><circle cx="33" cy="20" r="3.8" fill="#22303c"/><circle cx="33" cy="20" r="1.55" fill="#d7e3ef"/><rect x="39" y="15" width="2" height="2.2" rx=".7" fill="#fff4c1"/></symbol>
     <symbol id="mermaid-teal" viewBox="0 0 460 266"><image href="art/classic-e-mermaid.png?v=1" width="460" height="266"/></symbol>
     <symbol id="mermaid-pink" viewBox="0 0 460 266"><image href="art/classic-e-mermaid.png?v=1" width="460" height="266"/></symbol>
   </defs>
@@ -44,7 +36,7 @@
       <span id="eq-a">47</span><span class="op">+</span><span id="eq-b">26</span><span class="op">=</span><span class="q" id="eq-q">?</span>
     </div>
     <div class="toggles">
-      <div class="theme-switch" role="group" aria-label="Choose a world"><button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true"><svg viewBox="0 0 44 26" width="22" height="13" style="vertical-align:-2px" aria-hidden="true"><use href="#car-blue"/></svg> Ayan</button>
+      <div class="theme-switch" role="group" aria-label="Choose a world"><button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true"><svg viewBox="0 0 44 26" width="22" height="13" style="vertical-align:-2px" aria-hidden="true"><use href="#car-gold"/></svg> Ayan</button>
       <button type="button" class="pill theme-pill" data-theme="mermaids" aria-pressed="false"><img src="art/classic-e-mermaid.png?v=1" width="20" height="14" style="width:20px;height:14px;vertical-align:-2px;object-fit:contain" alt="" aria-hidden="true"> Aliya</button></div>
       <button type="button" class="pill sound" id="sound-toggle" aria-pressed="true">🔊 Sound on</button>
     </div>

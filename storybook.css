@@ -9,6 +9,9 @@
   --world-pink: #d63384;
 }
 body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   background: radial-gradient(ellipse at 10% 0%, #fff4c7 0%, transparent 42%),
     linear-gradient(180deg, #b5ddec 0%, #dcebd6 48%, #a2c68c 100%);
   background-attachment: fixed;
