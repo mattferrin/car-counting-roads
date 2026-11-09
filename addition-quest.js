@@ -408,14 +408,14 @@
     for (var i = 0; i < ids.length; i++) {
       var obj = el('span', 'obj'); obj.dataset.id = ids[i];
       if (emoji) { obj.classList.add('emoji'); obj.textContent = emoji; }
-      else obj.innerHTML = '<svg viewBox="' + (sym.indexOf('mermaid') === 0 ? '0 0 44 30' : '0 0 44 26') + '" aria-hidden="true"><use href="#' + sym + '"></use></svg>';
+      else obj.innerHTML = '<svg viewBox="' + (sym.indexOf('mermaid') === 0 ? '0 0 460 266' : '0 0 44 26') + '" aria-hidden="true"><use href="#' + sym + '"></use></svg>';
       grid.appendChild(obj);
     }
   }
 
   function rowHeightFor(grid) {
     var width = grid.clientWidth / 10;
-    return theme === 'mermaids' ? Math.max(20, width * 30 / 44 + 8) : Math.max(22, width * 0.65 + 10);
+    return theme === 'mermaids' ? Math.max(20, width * 266 / 460 + 8) : Math.max(22, width * 0.65 + 10);
   }
 
   /* Lay both pools out from the plan at `step` (default: the current
