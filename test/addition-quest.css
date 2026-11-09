@@ -105,6 +105,11 @@ body[data-theme="mermaids"] .side { background: rgba(232,248,250,.94); }
 .side.right .who .dot { background: var(--right); }
 .side .who small { font-weight: 600; color: var(--soft-ink); }
 .side .bignum {
+  /* Inline-block so the number's box hugs its digits: the whole-number
+   * waveform (the "zero tens" case) then spans exactly the number,
+   * never a fixed width wider than the digits. The digits themselves
+   * do not move — the box starts at the same left edge. */
+  display: inline-block;
   font-size: clamp(28px, 8vw, 38px); font-weight: 800; line-height: 1.05;
   font-variant-numeric: tabular-nums; margin: 0;
 }
@@ -375,8 +380,9 @@ body[data-theme="mermaids"] .side .rowband.one { background: rgba(217,189,122,.6
  * the glyph — an underline, not a neighbour: digits have no
  * descenders, so the strip never covers the number and never
  * pushes the caption below. Under the whole number (the "zero tens"
- * case, where the speaking place has no digit on screen) it is a
- * short strip under the number's left edge, where the digits start.
+ * case, where the speaking place has no digit on screen) it spans
+ * the number itself: the number's box hugs its digits, so the strip
+ * is exactly as wide as the number, never wider.
  * Under the answer it sits inside the answer pill, just under the
  * glyphs, spanning exactly the digits — the pill's side padding is
  * outside it — so it reads as an underline of the number itself,
@@ -405,7 +411,6 @@ body[data-theme="mermaids"] .side .rowband.one { background: rgba(217,189,122,.6
 .voice-wave i:nth-child(6) { height: 60%; animation-delay: .4s; }
 .voice-wave i:nth-child(7) { height: 35%; animation-delay: .48s; }
 @keyframes voice-wave { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
-.bignum > .voice-wave { left: 0; right: auto; width: 76px; }
 .equation .speaking > .voice-wave { bottom: 0; }
 .equation .q.speaking > .voice-wave { left: .12em; right: .12em; }
 /* The progress line only ever carries text mid-move ("Watch them

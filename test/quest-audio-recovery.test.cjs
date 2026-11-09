@@ -402,12 +402,14 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
     assert(css.includes('.voice-wave i:nth-child(7)'), game + ': seven-bar waveform');
     assert(css.includes('align-items: center'), game + ': waveform bars centre-anchored');
     assert(css.includes('.equation .q.speaking > .voice-wave'), game + ': answer wave spans the digits inside the pill');
+    assert(!css.includes('width: 76px'), game + ': fixed zero-wave width removed');
+    assert(/\.side \.bignum \{[^}]*display: inline-block/.test(css), game + ': number box hugs its digits');
     const rm = css.split('@media (prefers-reduced-motion: reduce)').slice(1).join('\n');
     assert(rm && rm.includes('.voice-wave i') && rm.includes('animation: none'), game + ': reduced-motion waveform static');
     assert(rm && rm.includes('speak-left') && rm.includes('animation: none'), game + ': reduced-motion outline steady');
     const html = fs.readFileSync(path.join(__dirname, game + '-quest.html'), 'utf8');
-    assert(html.includes(game + '-quest.css?v=19'), game + ': stylesheet cache-busted');
-    assert(html.includes(game + '-quest.js?v=20'), game + ': script cache-busted');
+    assert(html.includes(game + '-quest.css?v=20'), game + ': stylesheet cache-busted');
+    assert(html.includes(game + '-quest.js?v=21'), game + ': script cache-busted');
     checks++;
   }
 
