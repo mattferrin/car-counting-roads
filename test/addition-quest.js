@@ -108,16 +108,117 @@
    * to the device's speech — the captions always show the same words
    * either way. Clips live in audio/boy|girl/, shared with
    * Cancellation Quest; nothing is copied or re-recorded. */
-  var clipBuffers = {};   // "boy:tens-8" -> AudioBuffer, false = missing
-  var clipsPreloading = false;
+  var clipBuffers = {};   // "boy:tens-8" -> AudioBuffer, false = missing clip
+  var clipLoads = {};     // "boy:tens-8" -> in-flight fetch/decode, shared
   var clipSources = [];   // live buffer sources, so stopSpeech can cut them
+  var audioProven = false;   // true once audio has really played this session
+  var audioDegraded = false; // true when a fragment never started / watchdog fired
+  var unlockPromise = null;  // in-flight (or cached) gesture unlock
+  var unlockRefused = false; // the last unlock was refused: retry on the next tap, not per fragment
+
+  /* First-load audio, hardened (Nov 8): the first tap in a fresh
+   * in-app browser used to race an unawaited resume() against a
+   * synchronous `state === 'running'` check, so the clip was skipped,
+   * device speech never started either, and the 8s watchdog held the
+   * game hostage until it flipped sound off. Now the tap unlocks
+   * audio and narration AWAITS that unlock (bounded) and AWAITS the
+   * exact clip's in-flight load (bounded) before falling back to
+   * speech; a fragment whose audio never starts finishes promptly
+   * instead of hanging the move. */
+  var RESUME_WAIT_MS = 800;  // longest an unlock may hold up narration
+  var LOAD_WAIT_MS = 1200;   // longest a fragment waits on its clip
+  var START_WAIT_MS = 2500;  // longest a fragment waits to actually start
+  var WATCHDOG_MS = 8000;    // last resort only, for audio that started but never ended
 
   function ensureAudioCtx() {
     try {
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+      var Ctor = window.AudioContext || window.webkitAudioContext;
+      if (!Ctor) return null;
+      if (!audioCtx || audioCtx.state === 'closed') audioCtx = new Ctor();
       return audioCtx;
     } catch (e) { return null; }
+  }
+
+  /* Gesture unlock: create the context if needed and AWAIT resume()
+   * (bounded, so a refused resume never hangs the game). Called
+   * synchronously from the tap so iOS counts it as a gesture; the
+   * returned promise is shared, so narration awaiting it later gets
+   * the same resume. Once the context is running the resolved promise
+   * is cached. A refused resume is kept settled for the rest of the
+   * move — the fragments share it and fall back to speech at once
+   * instead of each re-racing the resume — and the next tap retries
+   * it (resetUnlock, called from the tap and the sound retry). */
+  function unlockAudio() {
+    if (unlockPromise) return unlockPromise;
+    if (unlockRefused) return Promise.resolve(audioCtx);
+    unlockPromise = (async function () {
+      var ctx = ensureAudioCtx();
+      if (!ctx) return null;
+      if (ctx.state !== 'running') {
+        try {
+          await Promise.race([ctx.resume(), new Promise(function (res) { setTimeout(res, RESUME_WAIT_MS); })]);
+        } catch (e) {}
+      }
+      return ctx;
+    })().then(function (ctx) {
+      if (!ctx || ctx.state !== 'running') unlockRefused = true;
+      else warmClips();
+      return ctx;
+    }, function () { unlockPromise = null; unlockRefused = true; return null; });
+    return unlockPromise;
+  }
+
+  function resetUnlock() { unlockRefused = false; unlockPromise = null; }
+
+  /* Warm the clips, but only once the context is actually running:
+   * sweeping 63 fetches on a suspended or refused context just
+   * re-fires them on every fragment when they fail. The unlock's
+   * own success calls this; a tap with a running context calls it
+   * too, so a transient failure retries on the next tap. */
+  function warmClips() { if (audioCtx && audioCtx.state === 'running') preloadClips(); }
+
+  function waitFor(promise, ms) {
+    return Promise.race([promise, new Promise(function (res) { setTimeout(function () { res(null); }, ms); })]);
+  }
+
+  /* The sound toggle is the only audio status on the page. Four
+   * states, all honest: muted is the user's choice; "getting ready"
+   * until audio has provably played once this session; the plain
+   * on-state once it has; and "isn't playing" when a fragment never
+   * started (the stored preference is untouched — tapping retries). */
+  function updateSoundToggle() {
+    var toggle = $('#sound-toggle');
+    if (!toggle) return;
+    var label = !soundOn ? '🔇 Sound off — tap to turn on' :
+      audioDegraded ? '🔇 Sound isn\'t playing — tap to retry' :
+      audioProven ? '🔊 Sound on' : '⏳ Getting sound ready…';
+    toggle.textContent = label;
+    toggle.setAttribute('aria-pressed', String(soundOn));
+    toggle.classList.toggle('ready', soundOn && !audioProven && !audioDegraded);
+  }
+  function markProven() {
+    if (audioProven && !audioDegraded) return;
+    audioProven = true; audioDegraded = false;
+    updateSoundToggle();
+    paintStatus();
+  }
+  function markDegraded() {
+    if (audioDegraded) return;
+    audioDegraded = true;
+    updateSoundToggle();
+  }
+
+  /* The progress line while narrating: plain once audio has proven
+   * itself, and while it has not, a quiet pointer at the one thing
+   * the game cannot see — the device volume. There is no browser API
+   * that reads the hardware volume, so this says only what is true:
+   * the game is counting out loud, and if nothing is heard the
+   * device volume is the place to check. */
+  function paintStatus() {
+    var status = $('#progress-status');
+    if (!status) return;
+    status.textContent = phase === 'narrating' ? (audioProven ? 'Listen to the count…' : 'Counting out loud — if you can\'t hear it, check the device volume.') :
+      phase === 'moving' ? 'Watch them move over…' : phase === 'celebrating' ? 'You found the answer!' : '';
   }
 
   function stopSpeech() {
@@ -185,15 +286,15 @@
     'hundreds-0', 'hundreds-1', 'hundreds-2', 'hundreds-3', 'hundreds-4', 'hundreds-5', 'hundreds-6', 'hundreds-7', 'hundreds-8', 'hundreds-9',
     'zero'];
 
-  /* Fetch + decode every clip in the background; playback uses whatever is
-   * ready and falls back to device speech for the rest. Fetching is silent
-   * (no gesture needed); only playing needs the tap that already happened. */
+  /* Fetch + decode every clip in the background; playback uses whatever
+   * is ready and falls back to device speech for the rest. Only runs
+   * once a gesture has created the context — creating it at page load
+   * left it suspended on iOS. Idempotent: loadClip dedups, so calling
+   * it again after a transient failure simply retries what is missing. */
   function preloadClips() {
-    if (clipsPreloading) return;
-    clipsPreloading = true;
     if (typeof fetch !== 'function') return;
-    var ctx = ensureAudioCtx();
-    if (!ctx) return;
+    var ctx = audioCtx;
+    if (!ctx || ctx.state === 'closed') return;
     ['boy', 'girl'].forEach(function (kind) {
       CLIP_FRAGS.forEach(function (f) { loadClip(ctx, kind, f); });
     });
@@ -201,12 +302,23 @@
   }
   function loadClip(ctx, kind, frag) {
     var key = kind + ':' + frag;
-    fetch('audio/' + kind + '/' + frag + '.mp3').then(function (r) {
-      if (!r.ok) throw new Error('missing clip ' + key);
+    if (clipBuffers[key] !== undefined) return Promise.resolve(clipBuffers[key]);
+    if (clipLoads[key]) return clipLoads[key];
+    if (typeof fetch !== 'function') return Promise.resolve(null);
+    clipLoads[key] = fetch('audio/' + kind + '/' + frag + '.mp3').then(function (r) {
+      if (!r.ok) { var e = new Error('missing clip ' + key); e.missing = true; throw e; }
       return r.arrayBuffer();
     }).then(function (buf) { return ctx.decodeAudioData(buf); })
-    .then(function (decoded) { clipBuffers[key] = decoded; })
-    .catch(function () { clipBuffers[key] = false; });
+    .then(function (decoded) { delete clipLoads[key]; clipBuffers[key] = decoded; return decoded; })
+    .catch(function (err) {
+      delete clipLoads[key];
+      // Only a real HTTP miss is cached as missing. A transient
+      // network/decode failure clears the entry, so the next tap
+      // retries instead of staying silent until refresh.
+      if (err && err.missing) clipBuffers[key] = false;
+      return null;
+    });
+    return clipLoads[key];
   }
 
   /* One side's count, spoken in its voice. Clips when every fragment is
@@ -215,7 +327,29 @@
    * full count for the answer); p.text is the same words, for the
    * device-speech fallback and for nothing else. */
   function clearEmphasis() {
-    $all('.speaking').forEach(function (n) { n.classList.remove('speaking'); });
+    $all('.voice-wave').forEach(function (n) { n.remove(); });
+    $all('.speaking').forEach(function (n) { n.classList.remove('speaking'); n.classList.remove('speak-left'); n.classList.remove('speak-right'); });
+  }
+
+  /* The waveform strip under the number being spoken: five small bars
+   * in the speaking side's colour, animated while the fragment really
+   * plays. It is attached in emphasize() — which fires on clip start /
+   * speech onstart — and removed by clearEmphasis() on end, so it is
+   * exactly synchronized with the audio, never on a timer. It sits
+   * under the speaking digit itself, or under the whole number when
+   * the speaking place has no digit on screen (the "zero tens"
+   * caption fallback) — never under the caption or the objects. */
+  function attachWave(numEl, side) {
+    if (!numEl || numEl.querySelector('.voice-wave')) return;
+    var wave = document.createElement('span');
+    wave.className = 'voice-wave';
+    // The wave carries its own side colour: when it underlines the
+    // whole number (the "zero tens" case) its host is the number, not
+    // the speaking digit, so it cannot inherit the digit's colour.
+    wave.classList.add('speak-' + side);
+    wave.setAttribute('aria-hidden', 'true');
+    for (var i = 0; i < 5; i++) wave.appendChild(document.createElement('i'));
+    numEl.appendChild(wave);
   }
   /* Which objects a fragment names: N tens are the first N rows of ten in
    * that side's pool, N ones are the last N single objects, N hundreds
@@ -239,6 +373,8 @@
       // The whole answer first: the full number, and every object left in
       // the pool — then its tens, then its ones, in that order.
       eqQ.classList.add('speaking');
+      eqQ.classList.add('speak-' + side);
+      attachWave(eqQ, side);
       $all('.obj', grid).forEach(function (n) { n.classList.add('speaking'); });
       var answerLine = $('.dest-voice', captionBar);
       if (answerLine) answerLine.classList.add('speaking');
@@ -249,6 +385,12 @@
     var cap = p.kind === 'boy' ? leftCap : rightCap;
     var digit = $(cls, num) || (frag === 'tens-0' ? $('.t', cap) : null) || num;
     digit.classList.add('speaking');
+    digit.classList.add('speak-' + side);
+    // The waveform underlines the speaking digit itself; when the
+    // speaking place has no digit on screen (zero tens), it underlines
+    // the whole number instead. The side class puts the glow/outline
+    // and the waveform in that side's own colour.
+    attachWave(num.contains(digit) ? digit : num, side);
     var line = p.answer ? $('.dest-voice', captionBar) :
       $((p.kind === 'girl') ? '.right-voice' : '.left-voice', captionBar);
     if (line) line.classList.add('speaking');
@@ -258,54 +400,91 @@
 
   // Each short recorded fragment completes via onended. Synthesized
   // fragments use actual start/boundary/end events, never guessed timing.
+  // The fragment AWAITS the gesture unlock and its clip's in-flight load
+  // (both bounded) before choosing clip vs speech — on a cold first load
+  // the context is still suspended at tap time and the clip still
+  // fetching, and checking either synchronously is the race that used
+  // to silence the first move. If nothing actually starts within ~2.5s,
+  // the fragment finishes anyway (marking audio degraded, never the
+  // stored preference) so the move completes and the captions carry the
+  // words; a degraded move's later fragments skip waiting and show the
+  // words. The 8s watchdog is a last resort only, for audio that started
+  // but never ended, and finishing is terminal: a late onended after a
+  // retry starts nothing.
   function playFragment(p, frag, token) {
     if (!soundOn || token !== speechToken) return Promise.resolve();
     return new Promise(function (resolve) {
-      var finished = false, src = null, utterance = null;
+      var finished = false, started = false, src = null, utterance = null;
       var watchdog = setTimeout(function () {
-        // Failure recovery only, not synchronization. Stop failed audio
-        // before releasing the queue so it cannot overlap the next phrase.
-        soundOn = false;
-        var toggle = $('#sound-toggle');
-        if (toggle) { toggle.textContent = '🔇 Tap to retry sound'; toggle.setAttribute('aria-pressed', 'false'); }
+        markDegraded();
         finish(true);
-      }, 8000);
+      }, WATCHDOG_MS);
+      var startTimer = setTimeout(function () {
+        if (started || finished) return;
+        markDegraded();
+        finish(true);
+      }, START_WAIT_MS);
       function finish(abort) {
         if (finished) return;
         finished = true;
         clearTimeout(watchdog);
+        clearTimeout(startTimer);
         if (abort) {
           if (src) { try { src.stop(); } catch (e) {} }
-          if (utterance) { try { window.speechSynthesis.cancel(); } catch (e) {} }
+          if (utterance && window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) {} }
         }
-        if (src) { src.disconnect(); clipSources = clipSources.filter(function (s) { return s !== src; }); }
+        if (src) { try { src.disconnect(); } catch (e) {} clipSources = clipSources.filter(function (s) { return s !== src; }); }
         cancelPlayback = null;
         clearEmphasis();
         resolve();
       }
       cancelPlayback = function () { finish(true); };
-      var ctx = ensureAudioCtx();
-      var buffer = clipBuffers[p.kind + ':' + frag];
-      if (ctx && ctx.state === 'running' && buffer) {
-        try {
-          src = ctx.createBufferSource(); src.buffer = buffer;
-          src.connect(ctx.destination); clipSources.push(src);
-          src.onended = function () { finish(false); };
-          src.start(); emphasize(p, frag);
-          return;
-        } catch (e) { finish(true); return; }
+      function markStarted() {
+        if (started || finished) return;
+        started = true;
+        clearTimeout(startTimer);
+        markProven();
       }
-      if (!('speechSynthesis' in window)) { finish(false); return; }
-      try {
-        utterance = new SpeechSynthesisUtterance(FRAG_WORDS[frag]);
-        var vs = pickVoices();
-        utterance.lang = 'en-US'; utterance.rate = 0.88;
-        utterance.pitch = p.kind === 'boy' ? 0.85 : 1.3;
-        if (vs[p.kind]) utterance.voice = vs[p.kind];
-        utterance.onstart = utterance.onboundary = function () { if (!finished) emphasize(p, frag); };
-        utterance.onend = utterance.onerror = function () { finish(false); };
-        window.speechSynthesis.speak(utterance);
-      } catch (e) { finish(true); }
+      function speechFallback() {
+        if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== 'function') { finish(false); return; }
+        try {
+          utterance = new window.SpeechSynthesisUtterance(FRAG_WORDS[frag]);
+          var vs = pickVoices();
+          utterance.lang = 'en-US'; utterance.rate = 0.88;
+          utterance.pitch = p.kind === 'boy' ? 0.85 : 1.3;
+          if (vs[p.kind]) utterance.voice = vs[p.kind];
+          utterance.onstart = utterance.onboundary = function () { if (!finished) { markStarted(); emphasize(p, frag); } };
+          utterance.onend = utterance.onerror = function () { finish(false); };
+          window.speechSynthesis.speak(utterance);
+        } catch (e) { finish(true); }
+      }
+      (async function () {
+        var ctx = null, buffer = null;
+        if (audioDegraded) {
+          // Degraded: use only a clip that is already buffered — never
+          // wait on a load or a resume, and never queue speech that may
+          // never start. The words are already on screen.
+          ctx = audioCtx;
+          if (ctx && ctx.state === 'running') buffer = clipBuffers[p.kind + ':' + frag] || null;
+        } else {
+          try {
+            ctx = await unlockAudio();
+            if (ctx && ctx.state === 'running') buffer = await waitFor(loadClip(ctx, p.kind, frag), LOAD_WAIT_MS);
+          } catch (e) { buffer = null; }
+        }
+        if (finished || !soundOn || token !== speechToken) { finish(false); return; }
+        if (ctx && ctx.state === 'running' && buffer) {
+          try {
+            src = ctx.createBufferSource(); src.buffer = buffer;
+            src.connect(ctx.destination); clipSources.push(src);
+            src.onended = function () { finish(false); };
+            src.start(); markStarted(); emphasize(p, frag);
+            return;
+          } catch (e) { finish(true); return; }
+        }
+        if (audioDegraded) { finish(false); return; }
+        speechFallback();
+      })();
     });
   }
 
@@ -328,6 +507,8 @@
   /* Play phrases in order: [{kind, frags, text}]. Captions are set by
    * the caller at the same time, so words and screen agree. */
   async function playPhrases(list) {
+    audioDegraded = false; // each narration gets one honest attempt;
+    // a fragment that never starts degrades only the rest of this move
     var token = speechToken;
     for (var p of list) {
       for (var frag of p.frags) {
@@ -499,9 +680,7 @@
     phase = value; animating = value !== 'ready' && value !== 'complete';
     document.body.dataset.phase = phase;
     updateControls();
-    var status = $('#progress-status');
-    if (status) status.textContent = phase === 'narrating' ? 'Listen to the count…' :
-      phase === 'moving' ? 'Watch them move over…' : phase === 'celebrating' ? 'You found the answer!' : '';
+    paintStatus();
   }
 
   function updateControls() {
@@ -900,7 +1079,9 @@
   async function doMove(waypoint) {
     // Landmarks are the only trigger: no button, no source tap.
     if (!waypoint || animating || solved || stepIndex >= solution.moves.length) return;
-    ensureAudioCtx();
+    if (unlockRefused) resetUnlock(); // a fresh tap retries the unlock
+    unlockAudio(); // start the gesture unlock now; narration awaits it
+    warmClips();
     var moveToken = ++flightToken;
     waypoint.el.setAttribute('data-flight-target','');
     setPhase('moving');
@@ -1206,15 +1387,23 @@
     var specific = parseParams();
     soundOn = read('sound', 'on') !== 'off';
     var soundBtn = $('#sound-toggle');
-    soundBtn.textContent = soundOn ? '🔊 Sound on' : '🔇 Muted';
-    soundBtn.setAttribute('aria-pressed', String(soundOn));
+    updateSoundToggle();
     soundBtn.addEventListener('click', function () {
+      if (soundOn && audioDegraded) {
+        // Retry, not mute: re-unlock, clear the degraded flag, re-warm
+        // the clips. The next tap after this one mutes as usual.
+        audioDegraded = false;
+        resetUnlock();
+        updateSoundToggle();
+        unlockAudio();
+        warmClips();
+        return;
+      }
       soundOn = !soundOn;
       store('sound', soundOn ? 'on' : 'off');
-      soundBtn.textContent = soundOn ? '🔊 Sound on' : '🔇 Muted';
-      soundBtn.setAttribute('aria-pressed', String(soundOn));
       if (!soundOn) stopSpeech();
-      else preloadClips();
+      else { audioDegraded = false; resetUnlock(); unlockAudio(); warmClips(); }
+      updateSoundToggle();
     });
 
     $all('.theme-pill').forEach(function (b) {
@@ -1232,6 +1421,11 @@
     newMysteryBtn.addEventListener('click', function () { if (!animating && solved) newRandomProblem(); });
     window.addEventListener('resize', function () { if (!animating) layoutPools(false); });
     document.addEventListener('visibilitychange', function () { if (document.hidden) stopSpeech(); });
+    // Warm audio on the first tap anywhere, so the landmark tap that
+    // follows is not the first gesture the context ever sees. A refused
+    // unlock gets a fresh attempt here, so it may already be running
+    // by the time the landmark is tapped.
+    document.addEventListener('pointerdown', function () { if (soundOn) { if (unlockRefused) resetUnlock(); unlockAudio(); } });
 
     document.body.dataset.theme = theme;
     $all('.theme-pill').forEach(function (b) {

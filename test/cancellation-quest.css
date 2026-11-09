@@ -82,6 +82,10 @@ button:focus-visible, summary:focus-visible { outline: 3px solid #ffbf47; outlin
   min-height: 28px;
 }
 .pill.sound { min-width: 46px; }
+/* Before audio has provably played once this session the toggle reads
+ * "Getting sound ready…": dimmed so it looks pending, but still
+ * tappable to retry. */
+.pill.sound.ready { opacity: .72; }
 .pill:disabled { opacity: .45; cursor: default; }
 
 /* ---- Quantity panels ---- */
@@ -336,7 +340,59 @@ body[data-theme="mermaids"] .side .rowband.one { background: rgba(217,189,122,.6
 .side .caption { min-height: 20px; }
 .side .who { min-height: 20px; }
 .speaking { filter: brightness(1.2); background: #fff0a6; border-radius: 6px; box-shadow: 0 0 12px #ffc845; }
-.bignum .speaking, .equation .speaking { display: inline-block; transform: scale(1.16); }
+/* Speaking indicator: the number being spoken keeps its size — no
+ * scale, no bounce — and is marked by a soft outline in its side's
+ * own colour (blue/gold cars, teal/pink mermaids; the existing
+ * --left/--right already resolve per theme) that pulses gently only
+ * while the fragment really plays, plus a small waveform strip under
+ * the digit (five bars, same side colour). Both are driven by
+ * emphasize()/clearEmphasis(), which fire on real audio start/end,
+ * never on timers; the other side stays completely still. The
+ * background highlight above is kept: it still reads well with the
+ * outline. */
+.bignum .speaking, .equation .speaking { display: inline-block; position: relative; }
+.bignum .speaking.speak-left, .equation .speaking.speak-left { --speak-color: var(--left); }
+.bignum .speaking.speak-right, .equation .speaking.speak-right { --speak-color: var(--right); }
+/* The waveform carries its own side colour too, so it reads in the
+ * right colour even when its host is the whole number rather than
+ * the speaking digit. */
+.voice-wave.speak-left { --speak-color: var(--left); }
+.voice-wave.speak-right { --speak-color: var(--right); }
+.bignum .speaking.speak-left, .bignum .speaking.speak-right,
+.equation .speaking.speak-left, .equation .speaking.speak-right {
+  box-shadow: 0 0 0 2px var(--speak-color), 0 0 10px 1px var(--speak-color);
+  animation: speak-pulse 1.1s ease-in-out infinite;
+}
+@keyframes speak-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--speak-color), 0 0 8px 1px var(--speak-color); }
+  50% { box-shadow: 0 0 0 3px var(--speak-color), 0 0 16px 3px var(--speak-color); }
+}
+/* The waveform sits in the digit's descender space, directly beneath
+ * the glyph — an underline, not a neighbour: digits have no
+ * descenders, so the 6px strip never covers the number and never
+ * pushes the caption below. Under the whole number (the "zero tens"
+ * case, where the speaking place has no digit on screen) it is a
+ * short strip under the number's left edge, where the digits start;
+ * under the answer it hangs just below its box, in the bar's padding. */
+.side .bignum { position: relative; }
+.voice-wave {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 6px;
+  display: flex; align-items: flex-end; justify-content: center; gap: 2px;
+  pointer-events: none;
+}
+.voice-wave i {
+  display: block; width: 2px; height: 100%; border-radius: 2px;
+  background: var(--speak-color);
+  transform: scaleY(.35); transform-origin: bottom;
+  animation: voice-wave .7s ease-in-out infinite;
+}
+.voice-wave i:nth-child(2) { animation-delay: .12s; }
+.voice-wave i:nth-child(3) { animation-delay: .24s; }
+.voice-wave i:nth-child(4) { animation-delay: .36s; }
+.voice-wave i:nth-child(5) { animation-delay: .48s; }
+@keyframes voice-wave { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+.bignum > .voice-wave { left: 0; right: auto; width: 76px; }
+.equation .speaking > .voice-wave { bottom: -6px; }
 /* The progress line only ever carries text mid-move ("Watch them
  * move together…", "Listen to the count…"); at load and at solved
  * it is empty, so it reserves no height — the caption sits ~22px
@@ -347,5 +403,10 @@ button:disabled { cursor: default; }
 .mini:disabled, .new-mystery:disabled { opacity: .5; }
 .parents .mini { min-height: 44px; }
 @media (prefers-reduced-motion: reduce) {
-  .bignum .speaking, .equation .speaking { transform: none; }
+  /* Speaking indicator, still: the outline stays steady with no
+   * pulse, and the waveform bars stay visible at a fixed mid height
+   * instead of animating. */
+  .bignum .speaking.speak-left, .bignum .speaking.speak-right,
+  .equation .speaking.speak-left, .equation .speaking.speak-right { animation: none; }
+  .voice-wave i { animation: none; transform: scaleY(.55); }
 }
