@@ -82,6 +82,10 @@ button:focus-visible, summary:focus-visible { outline: 3px solid #ffbf47; outlin
   min-height: 28px;
 }
 .pill.sound { min-width: 46px; }
+/* Before audio has provably played once this session the toggle reads
+ * "Getting sound ready…": dimmed so it looks pending, but still
+ * tappable to retry. */
+.pill.sound.ready { opacity: .72; }
 .pill:disabled { opacity: .45; cursor: default; }
 
 /* ---- Quantity panels ---- */
@@ -98,6 +102,11 @@ body[data-theme="mermaids"] .side { background: rgba(232,248,250,.94); }
 .side.right .who .dot { background: var(--right); }
 .side .who small { font-weight: 600; color: var(--soft-ink); }
 .side .bignum {
+  /* Inline-block so the number's box hugs its digits: the whole-number
+   * waveform (the "zero tens" case) then spans exactly the number,
+   * never a fixed width wider than the digits. The digits themselves
+   * do not move — the box starts at the same left edge. */
+  display: inline-block;
   font-size: clamp(28px, 8vw, 38px); font-weight: 800; line-height: 1.05;
   font-variant-numeric: tabular-nums; margin: 0;
 }
@@ -155,6 +164,9 @@ body[data-theme="mermaids"] .side.right .ten-row { border-color: rgba(214, 51, 1
   display: flex; gap: 6px; margin-top: 6px; background: transparent;
   box-shadow: none; padding: 2px;
 }
+/* While the voices load, the places are not on the page at all: nothing
+ * to tap until audio is ready (see startPreloadGate in the quest JS). */
+body[data-audio="loading"] .landmark-strip { display: none; }
 .above-strip {
   background: transparent;
 }
@@ -336,7 +348,70 @@ body[data-theme="mermaids"] .side .rowband.one { background: rgba(217,189,122,.6
 .side .caption { min-height: 20px; }
 .side .who { min-height: 20px; }
 .speaking { filter: brightness(1.2); background: #fff0a6; border-radius: 6px; box-shadow: 0 0 12px #ffc845; }
-.bignum .speaking, .equation .speaking { display: inline-block; transform: scale(1.16); }
+/* Speaking indicator: the number being spoken keeps its size — no
+ * scale, no bounce — and is marked by a soft outline in its side's
+ * own colour (blue/gold cars, teal/pink mermaids; the existing
+ * --left/--right already resolve per theme) that pulses gently only
+ * while the fragment really plays, plus a small waveform strip under
+ * the digit (seven bars, same side colour). Both are driven by
+ * emphasize()/clearEmphasis(), which fire on real audio start/end,
+ * never on timers; the other side stays completely still. The
+ * background highlight above is kept: it still reads well with the
+ * outline. */
+.bignum .speaking, .equation .speaking { display: inline-block; position: relative; }
+.bignum .speaking.speak-left, .equation .speaking.speak-left { --speak-color: var(--left); }
+.bignum .speaking.speak-right, .equation .speaking.speak-right { --speak-color: var(--right); }
+/* The waveform carries its own side colour too, so it reads in the
+ * right colour even when its host is the whole number rather than
+ * the speaking digit. */
+.voice-wave.speak-left { --speak-color: var(--left); }
+.voice-wave.speak-right { --speak-color: var(--right); }
+.bignum .speaking.speak-left, .bignum .speaking.speak-right,
+.equation .speaking.speak-left, .equation .speaking.speak-right {
+  box-shadow: 0 0 0 2px var(--speak-color), 0 0 10px 1px var(--speak-color);
+  animation: speak-pulse 1.1s ease-in-out infinite;
+}
+@keyframes speak-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--speak-color), 0 0 8px 1px var(--speak-color); }
+  50% { box-shadow: 0 0 0 3px var(--speak-color), 0 0 16px 3px var(--speak-color); }
+}
+/* The waveform sits in the digit's descender space, directly beneath
+ * the glyph — an underline, not a neighbour: digits have no
+ * descenders, so the strip never covers the number and never
+ * pushes the caption below. Under the whole number (the "zero tens"
+ * case, where the speaking place has no digit on screen) it spans
+ * the number itself: the number's box hugs its digits, so the strip
+ * is exactly as wide as the number, never wider.
+ * Under the answer it sits inside the answer pill, just under the
+ * glyphs, spanning exactly the digits — the pill's side padding is
+ * outside it — so it reads as an underline of the number itself,
+ * not a strip floating below the box. The seven bars are
+ * centre-anchored and vary in height (short at the edges, tall in
+ * the middle), the way a real audio waveform swells around its
+ * centre line, so it reads as sound at a glance rather than as
+ * decoration. */
+.side .bignum { position: relative; }
+.voice-wave {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 2px;
+  pointer-events: none;
+}
+.voice-wave i {
+  display: block; width: 3px; height: 100%; border-radius: 3px;
+  background: var(--speak-color);
+  transform: scaleY(.35); transform-origin: center;
+  animation: voice-wave .7s ease-in-out infinite;
+}
+.voice-wave i:nth-child(1) { height: 35%; animation-delay: 0s; }
+.voice-wave i:nth-child(2) { height: 60%; animation-delay: .08s; }
+.voice-wave i:nth-child(3) { height: 85%; animation-delay: .16s; }
+.voice-wave i:nth-child(4) { height: 100%; animation-delay: .24s; }
+.voice-wave i:nth-child(5) { height: 85%; animation-delay: .32s; }
+.voice-wave i:nth-child(6) { height: 60%; animation-delay: .4s; }
+.voice-wave i:nth-child(7) { height: 35%; animation-delay: .48s; }
+@keyframes voice-wave { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+.equation .speaking > .voice-wave { bottom: 0; }
+.equation .q.speaking > .voice-wave { left: .12em; right: .12em; }
 /* The progress line only ever carries text mid-move ("Watch them
  * move together…", "Listen to the count…"); at load and at solved
  * it is empty, so it reserves no height — the caption sits ~22px
@@ -347,5 +422,10 @@ button:disabled { cursor: default; }
 .mini:disabled, .new-mystery:disabled { opacity: .5; }
 .parents .mini { min-height: 44px; }
 @media (prefers-reduced-motion: reduce) {
-  .bignum .speaking, .equation .speaking { transform: none; }
+  /* Speaking indicator, still: the outline stays steady with no
+   * pulse, and the waveform bars stay visible at a fixed mid height
+   * instead of animating. */
+  .bignum .speaking.speak-left, .bignum .speaking.speak-right,
+  .equation .speaking.speak-left, .equation .speaking.speak-right { animation: none; }
+  .voice-wave i { animation: none; transform: scaleY(.55); }
 }
