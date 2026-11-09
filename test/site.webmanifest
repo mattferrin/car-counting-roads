@@ -1,6 +1,6 @@
 {
-  "name": "+1s (Test)",
-  "short_name": "+1s Test",
+  "name": "Count Ones",
+  "short_name": "Count Ones",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
