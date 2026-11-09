@@ -15,7 +15,10 @@
  * (f) the speaking indicator — side-coloured glow + waveform under the
  * speaking digit, exactly synced with real audio start/end, other side
  * still; (g) the speaking scale is gone from the CSS and reduced
- * motion keeps the indicator static.
+ * motion keeps the indicator static; (h) the boot gate — the places
+ * stay off the page until the voices actually load, then the toggle,
+ * status, next move and caption all transition at once, and a muted
+ * game opens immediately.
  */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -72,6 +75,7 @@ function boot(game, a, b, opts) {
     cancel() { cancels.push(1); },
     speak(u) { spoken.push(u); spokenAll.push(u); if (opts.speech !== 'stuck') u.onstart && u.onstart(); },
   };
+  if (opts.soundOff) w.localStorage.setItem(game === 'cancellation' ? 'cq-sound' : 'aq-sound', 'off');
   for (const name of [game + '-engine.js', game + '-layout.js', game + '-quest.js']) w.eval(fs.readFileSync(path.join(__dirname, name), 'utf8'));
   return {
     w, d, starts, requests, spoken, spokenAll, cancels, startTimers, watchdogs, fetchDeferreds,
@@ -108,6 +112,11 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
   const d = t.d;
   assert.equal(d.querySelector('#sound-toggle').textContent, READY, game + ': toggle starts in ready state');
   assert(d.querySelector('#sound-toggle').classList.contains('ready'), game + ': ready toggle looks pending');
+  assert(d.querySelector('.landmark').disabled, game + ': landmarks locked while the voices load');
+  assert.equal(d.querySelector('#progress-status').textContent, 'Getting the voices ready…', game + ': status says loading');
+  await flush(); // the load-time preload settles before any tap
+  assert.equal(d.querySelector('#sound-toggle').textContent, '🔊 Sound on', game + ': toggle transitions once the voices load');
+  assert(!d.querySelector('.landmark').disabled, game + ': landmarks open once the voices load');
   d.querySelector(landmark).click();
   await flush();
   assert.equal(d.body.dataset.phase, 'narrating', game + ': narrating while the resume is pending');
@@ -153,26 +162,34 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
   await firstTapRace('addition', 47, 26, '[data-landmark="volcano"]', 'audio/boy/tens-5.mp3');
   checks++;
 
-  // (b) Preload + playback share one in-flight fetch per clip.
+  // (b) Preload runs at page load and playback shares its fetches: all
+  // 63 clips are requested before any tap, the places stay locked
+  // while the load is held, and once it settles the first clip plays
+  // from the preloaded buffer with no second fetch.
   {
     const t = boot('cancellation', 78, 35, { audio: true, speech: 'speaking', holdFetch: true });
     const d = t.d;
+    assert.equal(t.requests.length, 63, 'all 63 clips fetch at page load');
+    assert(d.querySelector('.landmark').disabled, 'landmarks locked while the preload is held');
+    assert.equal(d.querySelector('#progress-status').textContent, 'Getting the voices ready…');
+    d.querySelector('.landmark').click();
+    await flush();
+    assert.equal(d.body.dataset.phase, 'ready', 'locked landmarks do not start a move');
+    assert.equal(t.starts.length, 0, 'nothing plays before the voices load');
+    for (const def of t.fetchDeferreds.values()) def.resolve({ ok: true, arrayBuffer: async () => ({}) });
+    await flush();
+    assert.equal(d.querySelector('#sound-toggle').textContent, '🔊 Sound on', 'toggle transitions once the preload settles');
+    assert(!d.querySelector('.landmark').disabled, 'landmarks open once the voices load');
     d.querySelector('.landmark').click();
     await flush();
     t.resolveResume();
     await flush();
     const first = 'audio/boy/tens-6.mp3', second = 'audio/girl/tens-2.mp3';
     assert.equal(t.requests.filter((p) => p === first).length, 1, 'preload + playback share one in-flight fetch');
-    assert.equal(t.starts.length, 0, 'clip waits for its fetch');
-    t.fetchDeferreds.get(first).resolve({ ok: true, arrayBuffer: async () => ({}) });
-    await flush();
-    assert.equal(t.starts.length, 1, 'clip plays once its fetch lands');
+    assert.equal(t.starts.length, 1, 'clip plays from the preloaded buffer once resumed');
     t.starts[0].onended();
     await flush();
     assert.equal(t.requests.filter((p) => p === second).length, 1, 'second fragment also deduped');
-    t.fetchDeferreds.get(second).resolve({ ok: true, arrayBuffer: async () => ({}) });
-    await flush();
-    assert.equal(t.starts.length, 2, 'second clip plays');
     t.starts[1].onended();
     await settle(t);
     assert.equal(d.body.dataset.phase, 'ready');
@@ -180,21 +197,25 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
   }
 
   // (c) A transient fetch failure retries on the next tap instead of
-  // caching false — and the retried clip plays.
+  // caching false — and the retried clip plays. The boot preload
+  // fetches once and opens degraded; each tap's honest attempt fetches
+  // again.
   {
     const t = boot('cancellation', 78, 35, { audio: true, speech: 'speaking', failFetch: true });
     const d = t.d;
+    await flush();
+    assert.equal(d.querySelector('#sound-toggle').textContent, RETRY, 'failed preload opens degraded with retry');
     d.querySelector('.landmark').click();
     await flush();
     t.resolveResume();
     await settle(t);
-    assert.equal(t.requests.filter((p) => p === 'audio/boy/tens-6.mp3').length, 1, 'failed clip fetched once on the first tap');
+    assert.equal(t.requests.filter((p) => p === 'audio/boy/tens-6.mp3').length, 2, 'boot preload + first tap fetch the failed clip');
     assert(t.spokenAll.length > 0, 'first move fell back to speech');
     assert.equal(t.starts.length, 0, 'no clip while every fetch fails');
     t.setFailFetch(false);
     d.querySelector('.landmark').click();
     await flush();
-    assert.equal(t.requests.filter((p) => p === 'audio/boy/tens-6.mp3').length, 2, 'transient failure retries on the next tap');
+    assert.equal(t.requests.filter((p) => p === 'audio/boy/tens-6.mp3').length, 3, 'transient failure retries on the next tap');
     assert.equal(t.starts.length, 1, 'retried clip plays');
     t.starts[0].onended();
     await settle(t);
@@ -208,7 +229,9 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
   {
     const t = boot('cancellation', 78, 35, { audio: false, speech: 'stuck' });
     const d = t.d;
-    assert.equal(d.querySelector('#sound-toggle').textContent, READY);
+    // No AudioContext at all: there are no clips to load, so the gate
+    // opens at once (speech is the fallback) instead of waiting.
+    assert.equal(d.querySelector('#sound-toggle').textContent, '🔊 Sound on');
     d.querySelector('.landmark').click();
     await flush();
     assert.equal(d.body.dataset.phase, 'narrating');
@@ -224,11 +247,11 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
     assert.equal(t.cancels.length, cancelsBefore + 1, 'stuck utterance cancelled so it cannot speak late');
     assert.equal(d.querySelector('#sound-toggle').textContent, RETRY);
     d.querySelector('#sound-toggle').click(); await flush();
-    assert.equal(d.querySelector('#sound-toggle').textContent, READY, 'retry clears degraded');
+    assert.equal(d.querySelector('#sound-toggle').textContent, '🔊 Sound on', 'retry clears degraded');
     d.querySelector('#sound-toggle').click(); await flush();
     assert.equal(d.querySelector('#sound-toggle').textContent, MUTED, 'mute after retry');
     d.querySelector('#sound-toggle').click(); await flush();
-    assert.equal(d.querySelector('#sound-toggle').textContent, READY, 'unmute returns to ready');
+    assert.equal(d.querySelector('#sound-toggle').textContent, '🔊 Sound on', 'unmute returns to on');
     t.close(); checks++;
   }
 
@@ -254,11 +277,18 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
     t.close(); checks++;
   }
 
-  // (e2) A hung load is terminal too: the start timer finishes the
-  // fragment, and the fetch landing late caches but starts nothing.
+  // (e2) A hung load is terminal too: the preload timeout opens the
+  // game degraded, the start timer finishes the fragment whose clip
+  // never lands, and the fetch landing late caches but starts nothing.
   {
     const t = boot('cancellation', 78, 35, { audio: true, speech: 'speaking', holdFetch: true });
     const d = t.d;
+    assert(d.querySelector('.landmark').disabled, 'landmarks locked while the preload hangs');
+    assert.equal(t.watchdogs.length, 1, 'preload timeout armed while the load hangs');
+    t.watchdogs[0](); // the 8s preload fallback opens the game degraded
+    await flush();
+    assert(!d.querySelector('.landmark').disabled, 'preload timeout opens the game');
+    assert.equal(d.querySelector('#sound-toggle').textContent, RETRY, 'hung preload opens degraded with retry');
     d.querySelector('.landmark').click();
     await flush();
     t.resolveResume();
@@ -279,6 +309,7 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
   {
     const t = boot('cancellation', 25, 15, { audio: true, speech: 'speaking' });
     const d = t.d;
+    await flush(); // the load-time preload settles before any tap
     d.querySelector('.landmark').click();
     await flush();
     t.resolveResume();
@@ -297,6 +328,34 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
     t.close(); checks++;
   }
 
+  // (h) The boot gate: the places stay off the page until the voices
+  // actually load, then the toggle, status, next move and caption all
+  // transition at once; a muted game opens immediately.
+  {
+    const t = boot('cancellation', 78, 35, { audio: true, speech: 'speaking' });
+    const d = t.d;
+    assert.equal(d.querySelector('#sound-toggle').textContent, READY, 'toggle starts loading');
+    assert(d.querySelector('.landmark').disabled, 'landmarks locked while loading');
+    assert.equal(d.body.dataset.audio, 'loading', 'page marks itself loading');
+    assert.equal(d.querySelector('#progress-status').textContent, 'Getting the voices ready…', 'status says loading');
+    assert.equal(d.querySelector('#next-chip').textContent, 'Getting the voices ready…', 'next move says loading');
+    assert(d.querySelector('#captions').textContent.includes('Getting the voices ready'), 'caption says loading');
+    await flush();
+    assert.equal(d.querySelector('#sound-toggle').textContent, '🔊 Sound on', 'toggle transitions once loaded');
+    assert(!d.querySelector('.landmark').disabled, 'landmarks open once loaded');
+    assert.equal(d.body.dataset.audio, 'ready', 'page marks itself ready');
+    assert(d.querySelector('#next-chip').textContent.includes('tap a place'), 'next move invites a tap once loaded');
+    assert(d.querySelector('#captions').textContent.includes('Tap a place'), 'caption invites a tap once loaded');
+    t.close(); checks++;
+    // Muted opens at once: there is no audio to wait for.
+    const m = boot('cancellation', 78, 35, { audio: true, speech: 'speaking', soundOff: true });
+    const md = m.d;
+    assert.equal(md.querySelector('#sound-toggle').textContent, MUTED, 'muted toggle at boot');
+    assert(!md.querySelector('.landmark').disabled, 'muted landmarks open at boot');
+    assert.equal(md.body.dataset.audio, 'ready', 'muted page marks itself ready');
+    m.close(); checks++;
+  }
+
   // (g) CSS: the speaking scale is gone, the indicator rules exist,
   // and reduced motion keeps the indicator static.
   for (const game of ['cancellation', 'addition']) {
@@ -306,14 +365,15 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
     assert(css.includes('.voice-wave'), game + ': waveform rule present');
     assert(css.includes('speak-pulse'), game + ': outline pulse present');
     assert(css.includes('--speak-color'), game + ': side-coloured speaking state');
+    assert(css.includes('body[data-audio="loading"] .landmark-strip { display: none; }'), game + ': loading gate hides the places');
     const rm = css.split('@media (prefers-reduced-motion: reduce)').slice(1).join('\n');
     assert(rm && rm.includes('.voice-wave i') && rm.includes('animation: none'), game + ': reduced-motion waveform static');
     assert(rm && rm.includes('speak-left') && rm.includes('animation: none'), game + ': reduced-motion outline steady');
     const html = fs.readFileSync(path.join(__dirname, game + '-quest.html'), 'utf8');
-    assert(html.includes(game + '-quest.css?v=17'), game + ': stylesheet cache-busted');
-    assert(html.includes(game + '-quest.js?v=18'), game + ': script cache-busted');
+    assert(html.includes(game + '-quest.css?v=18'), game + ': stylesheet cache-busted');
+    assert(html.includes(game + '-quest.js?v=19'), game + ': script cache-busted');
     checks++;
   }
 
-  console.log(`Quest audio recovery passed: ${checks} cases — first-tap race, in-flight dedup, transient retry, prompt never-starts finish, terminal watchdog/late fetch, speaking glow + waveform sync, zero-tens underline, no speaking scale, static reduced motion.`);
+  console.log(`Quest audio recovery passed: ${checks} cases — first-tap race, in-flight dedup, transient retry, prompt never-starts finish, terminal watchdog/late fetch, speaking glow + waveform sync, zero-tens underline, no speaking scale, static reduced motion, boot gate.`);
 })().catch((e) => { console.error(e); process.exitCode = 1; });

@@ -162,6 +162,9 @@ body[data-theme="mermaids"] .side.right .ten-row { border-color: rgba(214, 51, 1
   display: flex; gap: 6px; margin-top: 6px; background: transparent;
   box-shadow: none; padding: 2px;
 }
+/* While the voices load, the places are not on the page at all: nothing
+ * to tap until audio is ready (see startPreloadGate in the quest JS). */
+body[data-audio="loading"] .landmark-strip { display: none; }
 .above-strip {
   background: transparent;
 }

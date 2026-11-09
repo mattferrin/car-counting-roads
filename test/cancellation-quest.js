@@ -106,6 +106,7 @@
   var clipSources = [];   // live buffer sources, so stopSpeech can cut them
   var audioProven = false;   // true once audio has really played this session
   var audioDegraded = false; // true when a fragment never started / watchdog fired
+  var clipsReady = false;    // true once the load-time clip preload has settled (or there is nothing to load)
   var unlockPromise = null;  // in-flight (or cached) gesture unlock
   var unlockRefused = false; // the last unlock was refused: retry on the next tap, not per fragment
 
@@ -122,6 +123,7 @@
   var LOAD_WAIT_MS = 1200;   // longest a fragment waits on its clip
   var START_WAIT_MS = 2500;  // longest a fragment waits to actually start
   var WATCHDOG_MS = 8000;    // last resort only, for audio that started but never ended
+  var PRELOAD_WAIT_MS = 8000; // longest the game waits for the voices to load before opening anyway
 
   function ensureAudioCtx() {
     try {
@@ -176,18 +178,19 @@
 
   /* The sound toggle is the only audio status on the page. Four
    * states, all honest: muted is the user's choice; "getting ready"
-   * until audio has provably played once this session; the plain
-   * on-state once it has; and "isn't playing" when a fragment never
-   * started (the stored preference is untouched — tapping retries). */
+   * only while the voices are actually still loading at boot; the
+   * plain on-state once they have loaded; and "isn't playing" when
+   * loading failed or a fragment never started (the stored
+   * preference is untouched — tapping retries). */
   function updateSoundToggle() {
     var toggle = $('#sound-toggle');
     if (!toggle) return;
     var label = !soundOn ? '🔇 Sound off — tap to turn on' :
       audioDegraded ? '🔇 Sound isn\'t playing — tap to retry' :
-      audioProven ? '🔊 Sound on' : '⏳ Getting sound ready…';
+      clipsReady ? '🔊 Sound on' : '⏳ Getting sound ready…';
     toggle.textContent = label;
     toggle.setAttribute('aria-pressed', String(soundOn));
-    toggle.classList.toggle('ready', soundOn && !audioProven && !audioDegraded);
+    toggle.classList.toggle('ready', soundOn && !clipsReady && !audioDegraded);
   }
   function markProven() {
     if (audioProven && !audioDegraded) return;
@@ -210,7 +213,8 @@
   function paintStatus() {
     var status = $('#progress-status');
     if (!status) return;
-    status.textContent = phase === 'narrating' ? (audioProven ? 'Listen to the count…' : 'Counting out loud — if you can\'t hear it, check the device volume.') :
+    status.textContent = !clipsReady && soundOn ? 'Getting the voices ready…' :
+      phase === 'narrating' ? (audioProven ? 'Listen to the count…' : 'Counting out loud — if you can\'t hear it, check the device volume.') :
       phase === 'moving' ? 'Watch them move together…' : phase === 'celebrating' ? 'You found the answer!' : '';
   }
 
@@ -281,18 +285,67 @@
     'zero'];
 
   /* Fetch + decode every clip in the background; playback uses whatever
-   * is ready and falls back to device speech for the rest. Only runs
-   * once a gesture has created the context — creating it at page load
-   * left it suspended on iOS. Idempotent: loadClip dedups, so calling
-   * it again after a transient failure simply retries what is missing. */
+   * is ready and falls back to device speech for the rest. Runs at page
+   * load: creating the context then leaves it suspended on iOS, which
+   * is fine for decoding — only playing needs the resume a tap gives.
+   * Idempotent: loadClip dedups, so calling it again after a transient
+   * failure simply retries what is missing. Returns the per-clip
+   * promises so the boot gate can wait for them to settle. */
   function preloadClips() {
-    if (typeof fetch !== 'function') return;
-    var ctx = audioCtx;
-    if (!ctx || ctx.state === 'closed') return;
+    if (typeof fetch !== 'function') return [];
+    var ctx = ensureAudioCtx();
+    if (!ctx || ctx.state === 'closed') return [];
+    var jobs = [];
     ['boy', 'girl'].forEach(function (kind) {
-      CLIP_FRAGS.forEach(function (f) { loadClip(ctx, kind, f); });
+      CLIP_FRAGS.forEach(function (f) { jobs.push(loadClip(ctx, kind, f)); });
     });
-    loadClip(ctx, 'girl', 'answer');
+    jobs.push(loadClip(ctx, 'girl', 'answer'));
+    return jobs;
+  }
+
+  /* The boot gate (Nov 8): the game opens only once the voices have
+   * actually loaded — the toggle used to say "getting ready" from
+   * first paint while nothing was loading at all (the old preload
+   * needed a context no gesture had created yet), and the places were
+   * tappable the whole time, so the first tap was the moment anything
+   * changed. Now the places stay off the page until the preload
+   * settles, then the display transitions (toggle, status, next move
+   * and caption all change at once) so it is obvious nobody is
+   * waiting any more. A slow or failed load never bricks the game:
+   * after PRELOAD_WAIT_MS it opens anyway, degraded, with the words
+   * on screen and a retry on the toggle. No audio support, or no
+   * fetch, opens at once — speech is the fallback there, and there
+   * is nothing to wait for. */
+  var preloadGateArmed = false;
+  function anyDecoded() {
+    for (var k in clipBuffers) if (clipBuffers[k]) return true;
+    return false;
+  }
+  function onClipsReady(ok) {
+    if (clipsReady) return;
+    clipsReady = true;
+    if (!ok) markDegraded();
+    document.body.dataset.audio = 'ready';
+    updateSoundToggle();
+    updateLandmarkState();
+    renderNextMove();
+    paintStatus();
+    if (!solved && solution && solution.moves.length > 0 && stepIndex === 0) setIntroCaption();
+  }
+  function startPreloadGate() {
+    if (preloadGateArmed) return;
+    preloadGateArmed = true;
+    if (typeof fetch !== 'function' || !ensureAudioCtx()) { onClipsReady(true); return; }
+    var jobs = preloadClips();
+    var settled = false;
+    var timer = setTimeout(function () { done(); }, PRELOAD_WAIT_MS);
+    function done() {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      onClipsReady(anyDecoded());
+    }
+    Promise.all(jobs).then(done);
   }
   function loadClip(ctx, kind, frag) {
     var key = kind + ':' + frag;
@@ -687,6 +740,7 @@
 
   function renderNextMove() {
     renderCancelled();
+    if (!clipsReady && soundOn) { nextChip.textContent = 'Getting the voices ready…'; return; }
     if (solved || stepIndex >= solution.moves.length) {
       nextChip.innerHTML = 'All cancelled! 🎉';
       return;
@@ -785,10 +839,10 @@
 
   function updateLandmarkState() {
     $all('.landmark').forEach(function (b) {
-      b.disabled = animating || solved;
-      b.classList.toggle('nudge', !animating && !solved && stepIndex === 0);
+      b.disabled = animating || solved || !clipsReady;
+      b.classList.toggle('nudge', clipsReady && !animating && !solved && stepIndex === 0);
     });
-    $all('.theme-pill, .level-pill, .test-problem').forEach(function (b) { b.disabled = animating; });
+    $all('.theme-pill, .level-pill, .test-problem').forEach(function (b) { b.disabled = animating || !clipsReady; });
     newMysteryBtn.disabled = animating || !solved;
   }
 
@@ -932,7 +986,7 @@
 
   /* ---------- one cancellation tap ---------- */
   async function onLandmark(btn, lm) {
-    if (animating || solved || stepIndex >= solution.moves.length) return;
+    if (!clipsReady || animating || solved || stepIndex >= solution.moves.length) return;
     if (unlockRefused) resetUnlock(); // a fresh tap retries the unlock
     unlockAudio(); // start the gesture unlock now; narration awaits it
     warmClips();
@@ -1047,6 +1101,15 @@
     try { history.replaceState(null, '', q); } catch (e) {}
   }
 
+  /* The instruction caption for a fresh problem — also restored by
+   * onClipsReady, which replaces the loading caption set at boot. */
+  function setIntroCaption() {
+    setCaption([
+      { cls: 'note', text: 'Tap a place below to cancel ' + E.describeMove(solution.moves[0]) + ' from each side.' },
+      { cls: 'note', text: 'The two voices will count the place that just changed — tens first, then ones.' }
+    ]);
+  }
+
   function newProblem(a, b, opts) {
     if (animating) return;
     opts = opts || {};
@@ -1086,10 +1149,7 @@
       setPhase('narrating');
       sayCounts().finally(function () { setPhase('ready'); });
     } else {
-      setCaption([
-        { cls: 'note', text: 'Tap a place below to cancel ' + E.describeMove(solution.moves[0]) + ' from each side.' },
-        { cls: 'note', text: 'The two voices will count the place that just changed — tens first, then ones.' }
-      ]);
+      setIntroCaption();
     }
   }
 
@@ -1172,6 +1232,11 @@
     soundOn = read('sound', 'on') !== 'off';
     var soundBtn = $('#sound-toggle');
     updateSoundToggle();
+    // The loading gate: the places stay off the page until the voices
+    // have loaded (see startPreloadGate). Muted opens at once — there
+    // is no audio to wait for.
+    document.body.dataset.audio = soundOn ? 'loading' : 'ready';
+    if (!soundOn) clipsReady = true;
     soundBtn.addEventListener('click', function () {
       if (soundOn && audioDegraded) {
         // Retry, not mute: re-unlock, clear the degraded flag, re-warm
@@ -1185,7 +1250,11 @@
       }
       soundOn = !soundOn;
       store('sound', soundOn ? 'on' : 'off');
-      if (!soundOn) stopSpeech();
+      if (!soundOn) {
+        stopSpeech();
+        // Muting ends the wait: there is no audio to load any more.
+        if (!clipsReady) { clipsReady = true; document.body.dataset.audio = 'ready'; updateLandmarkState(); renderNextMove(); paintStatus(); }
+      }
       else { audioDegraded = false; resetUnlock(); unlockAudio(); warmClips(); }
       updateSoundToggle();
     });
@@ -1229,7 +1298,8 @@
       window.speechSynthesis.getVoices();
       window.speechSynthesis.onvoiceschanged = function () {};
     }
-    if (soundOn) preloadClips();
+    if (soundOn) startPreloadGate();
+    if (soundOn && !clipsReady) setCaption([{ cls: 'note', text: 'Getting the voices ready…' }]);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
