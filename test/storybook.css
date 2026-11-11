@@ -58,6 +58,20 @@ body[data-theme="mermaids"] .landmark { background: #f6fcf5;
 .theme-switch.is-dragging .theme-highlight { transition: none; }
 .theme-switch[data-preview="mermaids"] .theme-highlight { background: #d2f2f2; border-color: #0e7d8c; }
 @media (prefers-reduced-motion: reduce) { .theme-switch .theme-highlight { transition: none; } }
+/* Theme change: the whole page cross-fades and slides in the direction
+ * the toggle travelled — the new theme enters from the side it lives on
+ * (mermaids from the right, cars from the left). Only active while the
+ * theme switch runs a View Transition; anything else switches instantly. */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .38s; animation-timing-function: cubic-bezier(.2,.8,.2,1); }
+html[data-theme-transition="to-mermaids"]::view-transition-old(root) { animation-name: vt-theme-out-left; }
+html[data-theme-transition="to-mermaids"]::view-transition-new(root) { animation-name: vt-theme-in-from-right; }
+html[data-theme-transition="to-cars"]::view-transition-old(root) { animation-name: vt-theme-out-right; }
+html[data-theme-transition="to-cars"]::view-transition-new(root) { animation-name: vt-theme-in-from-left; }
+@keyframes vt-theme-out-left { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(-48px); } }
+@keyframes vt-theme-in-from-right { from { opacity: 0; transform: translateX(48px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes vt-theme-out-right { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(48px); } }
+@keyframes vt-theme-in-from-left { from { opacity: 0; transform: translateX(-48px); } to { opacity: 1; transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } }
 .pill.theme-pill { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; background: transparent; border: 2px solid transparent; color: #6b7a80; }
 .pill.theme-pill svg { filter: none; opacity: .65; }
 .pill.theme-pill[data-theme="cars"][aria-pressed="true"] { color: #1668d6; }

@@ -52,6 +52,17 @@ const tick=()=>new Promise(r=>setImmediate(r));
  assert.equal(theme(),'cars','tapping the current side is a no-op');
  mermaids.click();await tick();
  assert.equal(theme(),'mermaids','tapping still works after a cancelled drag');
+ // View Transition: the page cross-fades in the toggle's direction, and
+ // the marker clears once the transition finishes.
+ let vtCalls=[];
+ d.startViewTransition=cb=>{vtCalls.push(d.documentElement.dataset.themeTransition);cb();return {finished:Promise.resolve()};};
+ w.matchMedia=()=>({matches:false});
+ cars.click();await tick();
+ assert.equal(vtCalls[0],'to-cars');assert.equal(theme(),'cars');
+ assert.equal(d.documentElement.getAttribute('data-theme-transition'),null);
+ mermaids.click();await tick();
+ assert.equal(vtCalls[1],'to-mermaids');assert.equal(theme(),'mermaids');
+ assert.equal(d.documentElement.getAttribute('data-theme-transition'),null);
  dom.window.close();
  console.log('Shared theme switch passed: tap, keyboard, and finger-drag switch cars/mermaids with a following highlight; drag previews without committing; cancelled drags and post-drag clicks cannot undo the choice.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

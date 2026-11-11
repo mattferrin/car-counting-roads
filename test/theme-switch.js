@@ -24,7 +24,24 @@
     function choose(next){
       if(VALUES.indexOf(next)<0||next===value||(options.isBusy&&options.isBusy()))return;
       var old=value;value=next;refresh();
-      try{var pending=options.onChange(next);if(pending&&pending.catch)pending.catch(function(){value=old;refresh();});}catch(e){value=old;refresh();throw e;}
+      function apply(){
+        try{var pending=options.onChange(next);if(pending&&pending.catch)pending.catch(function(){value=old;refresh();});}catch(e){value=old;refresh();throw e;}
+      }
+      // The whole page cross-fades and slides in the direction the toggle
+      // travelled: the new theme enters from the side it lives on (cars on
+      // the left, mermaids on the right). Browsers without View Transitions
+      // — or with reduced motion on — just switch at once, as before.
+      var doc=root.document;
+      var reduce=!!(root.matchMedia&&root.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      if(reduce||!doc||typeof doc.startViewTransition!=='function'){apply();return;}
+      var direction=next==='mermaids'?'to-mermaids':'to-cars';
+      doc.documentElement.dataset.themeTransition=direction;
+      function clear(){if(doc.documentElement.dataset.themeTransition===direction)delete doc.documentElement.dataset.themeTransition;}
+      var transition;
+      try{transition=doc.startViewTransition(function(){apply();});}
+      catch(e){clear();apply();return;}
+      if(transition&&transition.finished&&transition.finished.then)transition.finished.then(clear,clear);
+      else clear();
     }
     function sync(next){
       if(VALUES.indexOf(next)<0)return;
