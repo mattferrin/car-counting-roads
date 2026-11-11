@@ -629,13 +629,15 @@
     return parts.join(' · ');
   }
 
-  function buildGrid(grid, count, sym, emoji) {
+  function buildGrid(grid, count, sym, emoji, nextSym) {
     // Created only at problem/theme initialization. Survivors retain DOM identity.
     grid.innerHTML = '';
     for (var i = 0; i < count; i++) {
       var obj = el('span', 'obj'); obj.dataset.id = i;
       if (emoji) { obj.classList.add('emoji'); obj.textContent = emoji; }
-      else obj.innerHTML = '<svg viewBox="' + (sym.indexOf('mermaid') === 0 ? '0 0 460 266' : '0 0 44 26') + '" aria-hidden="true"><use href="#' + sym + '"></use></svg>';
+      // The other theme's character rides along, hidden: while the toggle
+      // is dragged it wipes in from the finger's side.
+      else obj.innerHTML = '<svg viewBox="' + (sym.indexOf('mermaid') === 0 ? '0 0 460 266' : '0 0 44 26') + '" aria-hidden="true"><use href="#' + sym + '"></use></svg>' + (nextSym ? '<svg class="obj-next" viewBox="' + (nextSym.indexOf('mermaid') === 0 ? '0 0 460 266' : '0 0 44 26') + '" aria-hidden="true"><use href="#' + nextSym + '"></use></svg>' : '');
       grid.appendChild(obj);
     }
   }
@@ -656,14 +658,17 @@
       // an empty row is unpainted so the scene shows through. Rebuilt
       // on every layout so the bands track the rows and counts at
       // every step. These are <div>/<svg> decoration, never .obj.
-      var deco = grid.querySelectorAll('.scene, .rowband');
+      var deco = grid.querySelectorAll('.scene, .rowband, .rowband-next');
       for (var di = 0; di < deco.length; di++) deco[di].remove();
       var perRow = {};
       positions.forEach(function (p) { perRow[p.y] = (perRow[p.y] || 0) + 1; });
-      var decoHtml = SCENE_SVG[theme];
+      // The other theme's scene and bands ride along, hidden, so the
+      // whole panel backdrop wipes with the drag.
+      var decoHtml = SCENE_SVG[theme] + SCENE_SVG[theme === 'cars' ? 'mermaids' : 'cars'].replace('class="scene"', 'class="scene scene-next"');
       for (var ry = 0; ry < layout.rows; ry++) {
         var bandCls = perRow[ry] === 10 ? 'ten' : perRow[ry] ? 'one' : 'empty';
         decoHtml += '<div class="rowband ' + bandCls + '" style="top:' + (ry * rowHeight) + 'px;height:' + rowHeight + 'px"></div>';
+        decoHtml += '<div class="rowband-next ' + bandCls + '" style="top:' + (ry * rowHeight) + 'px;height:' + rowHeight + 'px"></div>';
       }
       grid.insertAdjacentHTML('afterbegin', decoHtml);
 
@@ -704,8 +709,9 @@
     var T = THEMES[theme];
     var leftWho = $('.side.left .who-label');
     var rightWho = $('.side.right .who-label');
-    if (leftWho) leftWho.textContent = T.leftColor + ' ' + T.things;
-    if (rightWho) rightWho.textContent = T.rightColor + ' ' + T.things;
+    var OT = THEMES[theme === 'cars' ? 'mermaids' : 'cars'];
+    if (leftWho) { leftWho.textContent = T.leftColor + ' ' + T.things; leftWho.dataset.next = OT.leftColor + ' ' + OT.things; }
+    if (rightWho) { rightWho.textContent = T.rightColor + ' ' + T.things; rightWho.dataset.next = OT.rightColor + ' ' + OT.things; }
   }
 
   function renderSide(which, value, flash) {
@@ -724,7 +730,10 @@
     cap.innerHTML = captionHtml(value);
     // Mermaid objects are the N1 SVG now, not the picker emoji —
     // the emoji field stays for Aliya's theme BUTTON only.
-    if (!flash) buildGrid(grid, value, sym, theme === 'mermaids' ? null : T.emoji);
+    if (!flash) {
+      var OT = THEMES[theme === 'cars' ? 'mermaids' : 'cars'];
+      buildGrid(grid, value, sym, theme === 'mermaids' ? null : T.emoji, which === 'left' ? OT.leftSym : OT.rightSym);
+    }
   }
 
   function renderEquation() {
@@ -834,7 +843,7 @@
         // while the toggle is dragged it wipes in from the finger's side.
         var next = theirs[i] ? '<img class="art-next" src="art/landmarks/' + theirs[i].id + '.png?v=5" width="28" height="28" alt="" draggable="false">' : '';
         b.innerHTML = '<span class="art" aria-hidden="true">' + '<img src="art/landmarks/' + lm.id + '.png?v=5" width="28" height="28" alt="" draggable="false">' + next + '</span>' +
-          '<span class="name">' + lm.name + '</span>' +
+          '<span class="name" data-next="' + (theirs[i] ? theirs[i].name : '') + '">' + lm.name + '</span>' +
           '<span class="hint">' + lm.hint + '</span>';
         b.addEventListener('click', function () { onLandmark(b, lm); });
         zone.el.appendChild(b);
@@ -1166,11 +1175,17 @@
   }
 
   /* ---------- theme / level / sound ---------- */
+  function paintWorldLine() {
+    var wl = $('.world-line');
+    if (!wl) return;
+    wl.textContent = THEMES[theme].label + ' · Subtraction Quest';
+    wl.dataset.next = THEMES[theme === 'cars' ? 'mermaids' : 'cars'].label + ' · Subtraction Quest';
+  }
   function setTheme(t, keepProblem) {
     if (animating) return;
     theme = THEMES[t] ? t : 'cars';
     document.body.dataset.theme = theme;
-    $('.world-line').textContent = THEMES[theme].label + ' · Subtraction Quest';
+    paintWorldLine();
     buildLandmarks();
     renderWho();
     if (solution) {
@@ -1286,7 +1301,7 @@
     $all('.level-pill').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.level === level));
     });
-    $('.world-line').textContent = THEMES[theme].label + ' · Subtraction Quest';
+    paintWorldLine();
     buildLandmarks();
     renderWho();
     if (specific) newProblem(specific.a, specific.b, { announce: false });

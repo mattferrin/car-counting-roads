@@ -85,9 +85,7 @@ body[data-blend-target="cars"]::before { opacity: 1; background: radial-gradient
  * theme's picture, hidden, and the drag reveals it from the finger's
  * side with a soft edge — no hard swap. */
 .landmark .art { position: relative; display: inline-block; }
-.landmark .art-next { position: absolute; inset: 0; width: 28px; height: 28px; border-radius: 8px; pointer-events: none; opacity: 0; }
-body[data-blend-target="mermaids"] .landmark .art-next { opacity: 1; -webkit-mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 15%), transparent calc(var(--theme-wipe, 0) * 100%)); mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 15%), transparent calc(var(--theme-wipe, 0) * 100%)); }
-body[data-blend-target="cars"] .landmark .art-next { opacity: 1; -webkit-mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 15%)); mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 15%)); }
+.landmark .art-next { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
 .pill.theme-pill { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; background: transparent; border: 2px solid transparent; color: #6b7a80; }
 .pill.theme-pill svg { filter: none; opacity: .65; }
 .pill.theme-pill[data-theme="cars"][aria-pressed="true"] { color: #1668d6; }
@@ -188,3 +186,55 @@ body:is([data-phase="narrating"],[data-phase="celebrating"]) .landmark-strip{vis
 
 /* Nonselected destinations keep their slots while the chosen target is in use. */
 body[data-phase="moving"] .landmark:not([data-flight-target]){visibility:hidden;pointer-events:none}
+
+/* ---- Full-theme finger wipe -----------------------------------------
+ * Every theme-dependent surface carries its incoming twin, hidden, and
+ * the drag reveals it from the finger's side with a soft edge — the
+ * background, the cars and mermaids themselves, the panel scenes and
+ * row bands, the landmark pictures and names, the panel labels, the
+ * world line and the footer dock. Flat tints (panel and button
+ * backgrounds) blend uniformly instead: --side-bg / --landmark-bg,
+ * lerped by the same drag progress in theme-switch.js. The two wipe
+ * masks below are the whole trick: the incoming layer is visible on
+ * the side the finger came from, up to the finger's position, with a
+ * 15% feather so nothing swaps on a hard line. */
+.side { background: var(--side-bg, rgba(255,251,236,.94)); }
+body[data-theme="mermaids"] .side { background: var(--side-bg, rgba(232,248,250,.94)); }
+.landmark { background: var(--landmark-bg, rgba(255,255,255,.92)); }
+body[data-theme="mermaids"] .landmark { background: var(--landmark-bg, #f6fcf5); }
+/* Quest objects, panel scenes and row bands: the incoming twin rides
+ * along inside the same box, masked by the drag. */
+.grid > .obj .obj-next { position: absolute; inset: 0 1px; width: auto; height: auto; opacity: 0; pointer-events: none; }
+.grid .scene-next { opacity: 0; }
+.grid .rowband-next { position: absolute; left: -3px; right: -3px; z-index: 1; pointer-events: none; opacity: 0; }
+.side .rowband-next.ten { background: rgba(22,104,214,.13); border: 2px solid rgba(22,104,214,.45); border-radius: 12px; left: -4px; right: -4px; }
+.side.right .rowband-next.ten { background: rgba(201,138,4,.14); border-color: rgba(201,138,4,.5); }
+.side .rowband-next.one { background: rgba(109,185,90,.38); border-radius: 0 0 12px 12px; }
+body[data-blend-target="mermaids"] .side.right .rowband-next.ten { background: rgba(214,51,132,.12); border-color: rgba(214,51,132,.5); }
+body[data-blend-target="mermaids"] .side .rowband-next.one { background: rgba(217,189,122,.62); }
+body[data-blend-target="mermaids"] .grid > .obj .obj-next, body[data-blend-target="mermaids"] .grid .scene-next, body[data-blend-target="mermaids"] .grid .rowband-next, body[data-blend-target="mermaids"] .landmark .art-next { opacity: 1; -webkit-mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 15%), transparent calc(var(--theme-wipe, 0) * 100%)); mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 15%), transparent calc(var(--theme-wipe, 0) * 100%)); }
+body[data-blend-target="cars"] .grid > .obj .obj-next, body[data-blend-target="cars"] .grid .scene-next, body[data-blend-target="cars"] .grid .rowband-next, body[data-blend-target="cars"] .landmark .art-next { opacity: 1; -webkit-mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 15%)); mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 15%)); }
+/* Theme text wipes the same way: the next label rides in a ::after over
+ * the current one, painted on the current surface so the old words
+ * never show through. The label itself is data-next, set by the game
+ * when the theme changes. */
+.landmark .name { position: relative; }
+.landmark .name::after { content: attr(data-next); position: absolute; inset: 0; background: var(--landmark-bg, rgba(255,255,255,.92)); opacity: 0; pointer-events: none; }
+.side .who-label { position: relative; }
+.side .who-label::after { content: attr(data-next); position: absolute; inset: 0; background: var(--side-bg, rgba(255,251,236,.94)); opacity: 0; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.world-line { position: relative; }
+.world-line::after { content: attr(data-next); position: absolute; inset: 0; background: #fffaf0; opacity: 0; pointer-events: none; }
+body[data-blend-target="mermaids"] .landmark .name::after, body[data-blend-target="mermaids"] .side .who-label::after, body[data-blend-target="mermaids"] .world-line::after { opacity: 1; -webkit-mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 15%), transparent calc(var(--theme-wipe, 0) * 100%)); mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 15%), transparent calc(var(--theme-wipe, 0) * 100%)); }
+body[data-blend-target="cars"] .landmark .name::after, body[data-blend-target="cars"] .side .who-label::after, body[data-blend-target="cars"] .world-line::after { opacity: 1; -webkit-mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 15%)); mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 15%)); }
+/* Footer dock: the nav shell and the Home button each carry the other
+ * theme's colour underneath, wiped the same way. The ::before sits
+ * behind the links (negative z-index inside a stacking context) so it
+ * tints the shell without covering the text. */
+.footer-nav { position: relative; z-index: 0; }
+.footer-nav::before { content: ""; position: absolute; inset: -1px; border-radius: 27px; opacity: 0; pointer-events: none; z-index: -1; }
+.footer-home { position: relative; z-index: 0; }
+.footer-home::before { content: ""; position: absolute; inset: -1px; border-radius: 20px; opacity: 0; pointer-events: none; z-index: -1; }
+body[data-blend-target="mermaids"] .footer-nav::before { opacity: 1; background: #184c5a; -webkit-mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 15%), transparent calc(var(--theme-wipe, 0) * 100%)); mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 15%), transparent calc(var(--theme-wipe, 0) * 100%)); }
+body[data-blend-target="mermaids"] .footer-home::before { opacity: 1; background: linear-gradient(145deg, #138c97, #086576); -webkit-mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 15%), transparent calc(var(--theme-wipe, 0) * 100%)); mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 15%), transparent calc(var(--theme-wipe, 0) * 100%)); }
+body[data-blend-target="cars"] .footer-nav::before { opacity: 1; background: #234b60; -webkit-mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 15%)); mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 15%)); }
+body[data-blend-target="cars"] .footer-home::before { opacity: 1; background: linear-gradient(145deg, #287bd2, #1556a1); -webkit-mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 15%)); mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 15%)); }

@@ -32,8 +32,11 @@
      * only when the drag commits: the game holds one set of objects at
      * a time. Landmark buttons carry the same wipe on their pictures. */
     var THEME_COLORS={cars:{left:[22,104,214],right:[201,138,4]},mermaids:{left:[14,125,140],right:[214,51,132]}};
+    var SIDE_BG={cars:[255,251,236],mermaids:[232,248,250]};
+    var LANDMARK_BG={cars:[255,255,255],mermaids:[246,252,245]};
     function lerpChannel(a,b,t){return Math.round(a+(b-a)*t);}
     function lerpColor(a,b,t){return 'rgb('+lerpChannel(a[0],b[0],t)+', '+lerpChannel(a[1],b[1],t)+', '+lerpChannel(a[2],b[2],t)+')';}
+    function lerpRgba(a,b,t,alpha){return 'rgba('+lerpChannel(a[0],b[0],t)+', '+lerpChannel(a[1],b[1],t)+', '+lerpChannel(a[2],b[2],t)+', '+alpha+')';}
     var blend=null,blendToken=0;
     function setBlend(pos){
       var doc=root.document;if(!doc||!doc.body)return;
@@ -44,6 +47,8 @@
       doc.body.style.setProperty('--theme-wipe',pos.toFixed(3));
       doc.body.style.setProperty('--left',lerpColor(from.left,to.left,t));
       doc.body.style.setProperty('--right',lerpColor(from.right,to.right,t));
+      doc.body.style.setProperty('--side-bg',lerpRgba(SIDE_BG[value],SIDE_BG[target],t,.94));
+      doc.body.style.setProperty('--landmark-bg',lerpRgba(LANDMARK_BG[value],LANDMARK_BG[target],t,.92));
       blend={target:target,p:pos};
     }
     function clearBlend(){
@@ -52,6 +57,8 @@
       doc.body.style.removeProperty('--theme-wipe');
       doc.body.style.removeProperty('--left');
       doc.body.style.removeProperty('--right');
+      doc.body.style.removeProperty('--side-bg');
+      doc.body.style.removeProperty('--landmark-bg');
       blend=null;
     }
     function tweenBlendToRest(){
