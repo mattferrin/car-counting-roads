@@ -12,7 +12,7 @@ function app(sub,query){
  const controls=()=>[...d.querySelectorAll(sub?'.garage-route':'.route')];
  const shown=()=>controls().map(n=>n.getAttribute('aria-hidden'));
  const check=()=>{
-  const blue=Number(d.querySelector('#left').textContent),gold=Number(d.querySelector('#right').textContent),max=Number(new URL(w.location).searchParams.get('max'));
+  const blue=Number(d.querySelector('#left').textContent),gold=Number(d.querySelector('#right').textContent),max=Number(new URL(w.location).searchParams.get('max')),th=new URL(w.location).searchParams.get('theme')||'cars';
   for(const c of controls()){
    const kind=c.dataset.kind,n=Number(c.dataset.amount);
    const valid=kind==='entry'?(sub?blue+n<=max:blue+gold+n<=max):(kind==='exit'?gold>=n:(kind==='top'||kind==='down')?blue>=n&&(!sub||gold+n<=max):gold>=n&&(!sub||blue+n<=max));
@@ -22,7 +22,43 @@ function app(sub,query){
    assert.equal(hit.style.pointerEvents,valid?'':'none');
   }
   assert.equal(d.querySelectorAll(sub?'.garage-road':'.road').length,8,'all useful roads retained');
-  for(const road of d.querySelectorAll(sub?'.garage-road,.garage-edge':'.road,.edge'))assert.equal(road.getAttribute('pointer-events'),'none');
+  for(const road of d.querySelectorAll(sub?'.garage-road,.garage-edge,.garage-road-next,.garage-edge-next':'.road,.edge,.road-next,.edge-next'))assert.equal(road.getAttribute('pointer-events'),'none');
+  // Every theme-dependent surface carries its incoming twin, hidden, so
+  // a drag can wipe it in from the finger's side.
+  assert.equal(d.querySelector('#world-line').dataset.next,(th==='cars'?"Aliya's Mermaid World":"Ayan's Car World")+(sub?' · Subtraction Play':' · Addition Play'));
+  if(sub){
+   assert.equal(d.querySelectorAll('.garage-road-next').length,8,'twin garage roads ride along');
+   assert.equal(d.querySelectorAll('.garage-edge-next').length,8);
+   assert.equal(d.querySelectorAll('.route-plate-next').length,8);
+   assert.equal(d.querySelectorAll('.garage-shell-next').length,2);
+   assert.deepEqual([...d.querySelectorAll('.garage-road-next')].map(p=>p.getAttribute('d')),[...d.querySelectorAll('.garage-road')].map(p=>p.getAttribute('d')));
+   assert.deepEqual([...d.querySelectorAll('.garage-edge-next')].map(p=>p.getAttribute('d')),[...d.querySelectorAll('.garage-edge')].map(p=>p.getAttribute('d')));
+   for(const u of d.querySelectorAll('.garage-unit')){
+    const side=u.classList.contains('gold')?'gold':'blue';
+    assert.equal(u.querySelector('.unit-next use').getAttribute('href'),'#'+(th==='cars'?'mermaid-'+(side==='blue'?'teal':'pink'):'car-'+side));
+    assert.equal(u.querySelector('svg:not(.unit-next) use').getAttribute('href'),'#'+(th==='cars'?'car-'+side:'mermaid-'+(side==='blue'?'teal':'pink')));
+   }
+  }else{
+   assert.equal(d.querySelectorAll('.road-next').length,8,'twin roads ride along');
+   assert.equal(d.querySelectorAll('.edge-next').length,8);
+   assert.equal(d.querySelectorAll('.route-plate-next').length,8);
+   assert.equal(d.querySelectorAll('.garage-shell-next').length,2);
+   assert.equal(d.querySelector('.garage-shell-next.blue').getAttribute('fill'),'url(#'+(th==='cars'?'pool-left':'garage-left')+')');
+   assert.equal(d.querySelectorAll('.count-band-next').length,d.querySelectorAll('.count-band').length);
+   assert.equal(d.querySelectorAll('.ones-band-next').length,d.querySelectorAll('.ones-band').length);
+   assert.equal(d.querySelectorAll('.garage-drive-next').length,th==='cars'?0:2);
+   assert.equal(d.querySelectorAll('.pool-sand-next').length,th==='cars'?2:0);
+   for(const r of controls()){
+    assert.equal(r.querySelector('.road-next').getAttribute('d'),r.querySelector('.road').getAttribute('d'));
+    assert.equal(r.querySelector('.edge-next').getAttribute('d'),r.querySelector('.edge').getAttribute('d'));
+   }
+   const garages=[...d.querySelectorAll('#garages > g')];
+   for(const u of d.querySelectorAll('.parked-unit')){
+    const side=garages.indexOf(u.parentElement)===0?'blue':'gold';
+    assert.equal(u.querySelector('.svg-next use').getAttribute('href'),'#'+(th==='cars'?'mermaid-'+(side==='blue'?'teal':'pink'):'car-'+(side==='blue'?'blue':'gold')));
+    assert.equal(u.querySelector('svg:not(.svg-next) use').getAttribute('href'),'#'+(th==='cars'?'car-'+(side==='blue'?'blue':'gold'):'mermaid-'+(side==='blue'?'teal':'pink')));
+   }
+  }
  };
  const drive=async(kind,n)=>{
   const c=controls().find(c=>c.dataset.kind===kind&&Number(c.dataset.amount)===n),before=shown();
