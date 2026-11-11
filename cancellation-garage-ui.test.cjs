@@ -10,7 +10,7 @@ function app(query=''){
  w.AudioContext=function(){throw Error('Audio must never initialize');};
  w.speechSynthesis={speak(){throw Error('Speech must never initialize');}};
  const errors=[];w.addEventListener('error',e=>errors.push(e.error));
- for(const f of ['play-controls.js','play-capacity.js','cancellation-garage-engine.js','cancellation-garage.js'])w.eval(at(f));
+ for(const f of ['play-controls.js','play-capacity.js','theme-switch.js','cancellation-garage-engine.js','cancellation-garage.js'])w.eval(at(f));
  return {w,d:w.document,errors,close:()=>w.close(),snapshot:()=>w.CancellationGarageView.snapshot()};
 }
 const tick=()=>new Promise(r=>setImmediate(r));
@@ -76,7 +76,7 @@ function roadCrossings(paths){const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)
  assert.equal(c.d.querySelector('[data-max="100"]').disabled,true);await new Promise(r=>setTimeout(r,750));await idle(c);check(c,20,20);assert.equal(c.snapshot().max,20);assert.notEqual(c.d.querySelector('#garage-map').getAttribute('viewBox'),tall);c.close();
  const duplicate=app();duplicate.d.querySelector('[data-kind="entry"][data-amount="10"]').dispatchEvent(new duplicate.w.MouseEvent('click'));duplicate.d.querySelector('[data-kind="entry"][data-amount="1"]').dispatchEvent(new duplicate.w.MouseEvent('click'));await idle(duplicate);check(duplicate,20,0);duplicate.close();
  // Both free-play chooser cards select their capacity independently.
- const home=new JSDOM(at('index.html'),{url:'https://example.test/test/index.html',runScripts:'outside-only'});home.window.eval(at('play-capacity.js'));home.window.eval(at('game.js'));
+ const home=new JSDOM(at('index.html'),{url:'https://example.test/test/index.html',runScripts:'outside-only'});home.window.eval(at('play-capacity.js'));home.window.eval(at('theme-switch.js'));home.window.eval(at('game.js'));
  const d=home.window.document,cards=Array.from(d.querySelectorAll('.choose-game'));
  assert.deepEqual(cards.map(c=>c.querySelector('h2').textContent),['Addition Quest','Addition Play','Subtraction Quest','Subtraction Play']);
  assert.equal(d.querySelector('.test-banner'),null);

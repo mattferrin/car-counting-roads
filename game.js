@@ -35,7 +35,7 @@
   }}));
   if(!params.has('theme')&&!params.has('max')){$('home').hidden=false;return;}
   $('game').hidden=false;
-  let theme=params.get('theme')==='mermaids'?'mermaids':'cars',state=initial(),busy=false,generation=0,serial=0,animation=0,capacityControl=null;
+  let theme=params.get('theme')==='mermaids'?'mermaids':'cars',state=initial(),busy=false,generation=0,serial=0,animation=0,capacityControl=null,themeControl=null;
   /* Spoken narration (CountingVoice): the digit being counted glows
    * in the equation and the matching garage caption glows with it.
    * The stored preference lives under 'cp-sound'; stop() silences
@@ -140,7 +140,7 @@
       $('garages').appendChild(garage);
     }
     capacityControl?.refresh();
-    doc.querySelectorAll('.theme-pill').forEach(b=>{b.disabled=busy;b.setAttribute('aria-pressed',String(b.dataset.theme===theme));});
+    themeControl?.refresh();
   }
   function finish(next,nextIds,oldPositions,movingSet,token,moveDesc){
     if(token!==generation)return;
@@ -151,9 +151,9 @@
       if(from&&!movingSet.has(id)&&(from.x!==to.x||from.y!==to.y))tweens.push({obj,from,to});
     }
     const ready=()=>{
-      if(token!==generation)return;busy=false;capacityControl?.refresh();
+      if(token!==generation)return;busy=false;capacityControl?.refresh();themeControl?.refresh();
       routeNodes.forEach(updateRoute);
-      doc.querySelectorAll('.theme-pill').forEach(b=>{b.disabled=false;});$('map').setAttribute('aria-busy','false');
+      $('map').setAttribute('aria-busy','false');
       const [left,right]=names();$('feedback').textContent=left+' '+state.blue+', '+right+' '+state.gold+'. '+(state.blue+state.gold)+' altogether.';
     };
     /* Buttons stay locked until the post-move narration ends: ready()
@@ -209,7 +209,6 @@
     root.history.replaceState(null,'','?'+new URLSearchParams({theme,max:String(LIMIT)}));
     buildTracks();render();
   }
-  doc.querySelectorAll('.theme-pill').forEach(b=>b.addEventListener('click',()=>{if(!busy)setTheme(b.dataset.theme);}));
   async function changeCapacity(next){
     if(busy)return;
     const excess=Math.max(0,state.blue+state.gold-next),removed=new Set([...ids.blue,...ids.gold].sort((a,b)=>b-a).slice(0,excess));
@@ -221,5 +220,6 @@
     finish({blue:kept.blue.length,gold:kept.gold.length},kept,old,new Set(),++generation,null);
   }
   capacityControl=root.PlayCapacity.create($('play-capacity'),{value:LIMIT,isBusy:()=>busy,onChange:changeCapacity});
+  themeControl=root.ThemeSwitch.create(doc.querySelector('.theme-switch'),{value:theme,isBusy:()=>busy,onChange:value=>{setTheme(value);}});
   setTheme(theme);
 })(typeof window==='undefined'?globalThis:window);

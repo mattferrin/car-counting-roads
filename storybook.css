@@ -49,11 +49,19 @@ body[data-theme="mermaids"] .landmark { background: #f6fcf5;
  * switch (cars/mermaids) is its own segmented bar, and sound is a
  * standalone button beside it with a clear gap between them. */
 .eqbar .toggles { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
-.eqbar .theme-switch { display: inline-flex; gap: 2px; background: rgba(255,255,255,.65); border: 1px solid #eadfc8; border-radius: 999px; padding: 2px; }
-.pill.theme-pill { background: transparent; border: 2px solid transparent; color: #6b7a80; }
+/* Two equal halves, so the sliding highlight always lands exactly on a
+ * pill — the same segmented-slider language as the capacity picker. */
+.eqbar .theme-switch { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 0; width: 210px; max-width: 100%; background: rgba(255,255,255,.65); border: 1px solid #eadfc8; border-radius: 999px; padding: 2px; touch-action: none; isolation: isolate; }
+/* The highlight glides under the finger (or snaps on tap) and carries the
+ * selected pill's tint and border, so the pills themselves stay flat. */
+.theme-switch .theme-highlight { position: absolute; z-index: -1; left: 2px; top: 2px; bottom: 2px; width: calc((100% - 4px) / 2); border-radius: 999px; background: #dbeafe; border: 2px solid #1668d6; box-shadow: 0 2px 7px #234b6025; transform: translateX(calc(var(--theme-preview, var(--theme-step, 0)) * 100%)); transition: transform .24s cubic-bezier(.2,.8,.2,1); pointer-events: none; }
+.theme-switch.is-dragging .theme-highlight { transition: none; }
+.theme-switch[data-preview="mermaids"] .theme-highlight { background: #d2f2f2; border-color: #0e7d8c; }
+@media (prefers-reduced-motion: reduce) { .theme-switch .theme-highlight { transition: none; } }
+.pill.theme-pill { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; background: transparent; border: 2px solid transparent; color: #6b7a80; }
 .pill.theme-pill svg { filter: none; opacity: .65; }
-.pill.theme-pill[data-theme="cars"][aria-pressed="true"] { background: #dbeafe; border-color: #1668d6; color: #1668d6; }
-.pill.theme-pill[data-theme="mermaids"][aria-pressed="true"] { background: #d2f2f2; border-color: #0e7d8c; color: #0e7d8c; }
+.pill.theme-pill[data-theme="cars"][aria-pressed="true"] { color: #1668d6; }
+.pill.theme-pill[data-theme="mermaids"][aria-pressed="true"] { color: #0e7d8c; }
 .pill.theme-pill[aria-pressed="true"] svg { filter: none; opacity: 1; }
 .pill.sound { background: #f2f7fc; border: 2px solid #d7e3ef; color: #22303c; }
 

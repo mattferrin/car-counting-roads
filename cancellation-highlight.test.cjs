@@ -28,7 +28,7 @@ function boot(query) {
   w.setTimeout = (f, ms) => ms === 8000 ? (watchdogs.push(f), 0) : timer(f, ms);
   w.SpeechSynthesisUtterance = function (text) { this.text = text; };
   w.speechSynthesis = { getVoices: () => [], cancel: () => { pending.length = 0; }, speak: u => { pending.push(u); u.onstart && u.onstart(); } };
-  for (const name of ['cancellation-engine.js', 'cancellation-layout.js', 'cancellation-quest.js'])
+  for (const name of ['cancellation-engine.js', 'cancellation-layout.js', 'theme-switch.js', 'cancellation-quest.js'])
     w.eval(fs.readFileSync(path.join(__dirname, name), 'utf8'));
   return { w, pending, watchdogs, anims, close: () => dom.window.close() };
 }
