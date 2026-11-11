@@ -75,24 +75,6 @@ const E=require('./addition-engine');
   const lms=[...d.querySelectorAll('.landmark')];
   assert.equal(lms.length,8);
   assert.deepEqual(lms.map(b=>b.querySelector('.name').textContent),['Castle','Magic Tree','Sunny Hill','Race Track','Volcano','Car Wash','Gas Station','Bridge']);
-  // Each landmark carries the other theme's picture, hidden, so a drag
-  // can wipe it in from the finger's side; the pairs match by strip spot.
-  assert.deepEqual(lms.map(b=>b.querySelector('.art img').getAttribute('src')),['art/landmarks/castle.png?v=5','art/landmarks/tree.png?v=5','art/landmarks/hill.png?v=5','art/landmarks/track.png?v=5','art/landmarks/volcano.png?v=5','art/landmarks/wash.png?v=5','art/landmarks/station.png?v=5','art/landmarks/bridge.png?v=5']);
-  assert.deepEqual(lms.map(b=>b.querySelector('.art-next').getAttribute('src')),['art/landmarks/palace.png?v=5','art/landmarks/whirlpool.png?v=5','art/landmarks/turtle.png?v=5','art/landmarks/cove.png?v=5','art/landmarks/reef.png?v=5','art/landmarks/shell.png?v=5','art/landmarks/wreck.png?v=5','art/landmarks/chest.png?v=5']);
-  // Every car carries its mermaid twin, hidden, and the panel backdrop
-  // carries the mermaid scene and bands; the names and labels know
-  // their mermaid twins too.
-  const lobjs=[...d.querySelectorAll('#left-grid .obj')];
-  assert.ok(lobjs.length>0);
-  assert.equal(lobjs[0].querySelector('svg use').getAttribute('href'),'#car-blue');
-  assert.equal(lobjs[0].querySelector('.obj-next use').getAttribute('href'),'#mermaid-teal');
-  assert.equal([...d.querySelectorAll('#right-grid .obj')][0].querySelector('.obj-next use').getAttribute('href'),'#mermaid-pink');
-  assert.equal(d.querySelectorAll('#left-grid .scene-next').length,1);
-  assert.ok(d.querySelectorAll('#left-grid .rowband-next').length>0);
-  assert.equal(d.querySelector('#left-grid .rowband-next').style.top,d.querySelector('#left-grid .rowband').style.top);
-  assert.equal(d.querySelector('.side.left .who-label').dataset.next,'Teal mermaids');
-  assert.equal(d.querySelector('.world-line').dataset.next,"Aliya's Mermaid World · Addition Quest");
-  assert.deepEqual(lms.map(b=>b.querySelector('.name').dataset.next),['Palace','Whirlpool','Turtle Rock','Dolphin Cove','Coral Reef','Giant Shell','Shipwreck','Treasure Chest']);
   for(let i=0;i<sol.moves.length;i++) {
    const lm=d.querySelector('[data-landmark="volcano"]');
    lm.click(); lm.click(); lm.click(); // rapid triple-tap must equal one move
@@ -266,17 +248,6 @@ const E=require('./addition-engine');
   const mlms=[...d.querySelectorAll('.landmark')];
   assert.equal(mlms.length,8);
   assert.deepEqual(mlms.map(b=>b.querySelector('.name').textContent),['Palace','Whirlpool','Turtle Rock','Dolphin Cove','Coral Reef','Giant Shell','Shipwreck','Treasure Chest']);
-  // After the switch the pictures swap sides: palace leads, castle rides along.
-  assert.deepEqual(mlms.map(b=>b.querySelector('.art img').getAttribute('src')),['art/landmarks/palace.png?v=5','art/landmarks/whirlpool.png?v=5','art/landmarks/turtle.png?v=5','art/landmarks/cove.png?v=5','art/landmarks/reef.png?v=5','art/landmarks/shell.png?v=5','art/landmarks/wreck.png?v=5','art/landmarks/chest.png?v=5']);
-  assert.deepEqual(mlms.map(b=>b.querySelector('.art-next').getAttribute('src')),['art/landmarks/castle.png?v=5','art/landmarks/tree.png?v=5','art/landmarks/hill.png?v=5','art/landmarks/track.png?v=5','art/landmarks/volcano.png?v=5','art/landmarks/wash.png?v=5','art/landmarks/station.png?v=5','art/landmarks/bridge.png?v=5']);
-  // After the switch the twins swap sides: mermaids lead, cars ride along.
-  const mobjs=[...d.querySelectorAll('#left-grid .obj')];
-  assert.ok(mobjs.length>0);
-  assert.equal(mobjs[0].querySelector('svg use').getAttribute('href'),'#mermaid-teal');
-  assert.equal(mobjs[0].querySelector('.obj-next use').getAttribute('href'),'#car-blue');
-  assert.equal(d.querySelector('.side.left .who-label').dataset.next,'Blue cars');
-  assert.equal(d.querySelector('.world-line').dataset.next,"Ayan's Car World · Addition Quest");
-  assert.deepEqual(mlms.map(b=>b.querySelector('.name').dataset.next),['Castle','Magic Tree','Sunny Hill','Race Track','Volcano','Car Wash','Gas Station','Bridge']);
   checks++; t.close();
  }
  // --- Speech-failure recovery (mirror of Cancellation Quest) -----------------

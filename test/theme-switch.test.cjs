@@ -5,8 +5,7 @@
  * keys move the highlight, a drag previews the landing side (tint follows
  * the finger) without changing the theme until release, a click
  * synthesized after a drag cannot undo it, and a cancelled drag leaves
- * the theme alone. While dragging, the incoming theme's sky wipes in
- * from its side and the side colours blend by the same progress. */
+ * the theme alone. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),{JSDOM}=require('jsdom');
 const read=f=>fs.readFileSync(__dirname+'/'+f,'utf8');
 const tick=()=>new Promise(r=>setImmediate(r));
@@ -53,46 +52,6 @@ const tick=()=>new Promise(r=>setImmediate(r));
  assert.equal(theme(),'cars','tapping the current side is a no-op');
  mermaids.click();await tick();
  assert.equal(theme(),'mermaids','tapping still works after a cancelled drag');
- // View Transition: the page cross-fades in the toggle's direction, and
- // the marker clears once the transition finishes.
- let vtCalls=[];
- d.startViewTransition=cb=>{vtCalls.push(d.documentElement.dataset.themeTransition);cb();return {finished:Promise.resolve()};};
- w.matchMedia=()=>({matches:false});
- cars.click();await tick();
- assert.equal(vtCalls[0],'to-cars');assert.equal(theme(),'cars');
- assert.equal(d.documentElement.getAttribute('data-theme-transition'),null);
- mermaids.click();await tick();
- assert.equal(vtCalls[1],'to-mermaids');assert.equal(theme(),'mermaids');
- assert.equal(d.documentElement.getAttribute('data-theme-transition'),null);
- // Finger-driven wipe: while dragging, the incoming theme's sky is
- // revealed from its side and the side colours blend by the same
- // progress; committing clears the blend, cancelling eases it back.
- const wipe=()=>d.body.style.getPropertyValue('--theme-wipe');
- const left=()=>d.body.style.getPropertyValue('--left');
- const right=()=>d.body.style.getPropertyValue('--right');
- const sideBg=()=>d.body.style.getPropertyValue('--side-bg');
- const landmarkBg=()=>d.body.style.getPropertyValue('--landmark-bg');
- assert.equal(d.body.dataset.blendTarget,undefined);
- pointer('pointerdown',190);pointer('pointermove',105);
- assert.equal(d.body.dataset.blendTarget,'cars');
- assert.equal(wipe(),'0.500');
- assert.equal(left(),'rgb(18, 115, 177)');
- assert.equal(right(),'rgb(208, 95, 68)');
- assert.equal(sideBg(),'rgba(244, 250, 243, 0.94)');
- assert.equal(landmarkBg(),'rgba(251, 254, 250, 0.92)');
- assert.equal(theme(),'mermaids','the wipe is a preview: the theme waits for release');
- pointer('pointermove',42);assert.equal(wipe(),'0.000');
- pointer('pointerup',42);await tick();
- assert.equal(theme(),'cars');
- assert.equal(d.body.dataset.blendTarget,undefined);
- assert.equal(wipe(),'');assert.equal(left(),'');assert.equal(right(),'');
- assert.equal(sideBg(),'');assert.equal(landmarkBg(),'');
- // A cancelled drag eases the wipe back instead of snapping it off.
- pointer('pointerdown',20);pointer('pointermove',105);
- assert.equal(d.body.dataset.blendTarget,'mermaids');assert.equal(wipe(),'0.500');
- pointer('pointercancel',105);await tick();await tick();
- assert.equal(theme(),'cars');
- assert.equal(d.body.dataset.blendTarget,undefined);assert.equal(wipe(),'');
  dom.window.close();
- console.log('Shared theme switch passed: tap, keyboard, and finger-drag switch cars/mermaids with a following highlight; the drag wipes the incoming theme in behind the finger and blends the side colours and panel tints by the same progress; committing clears the blend and cancelling eases it back.');
+ console.log('Shared theme switch passed: tap, keyboard, and finger-drag switch cars/mermaids with a following highlight; drag previews without committing; cancelled drags and post-drag clicks cannot undo the choice.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

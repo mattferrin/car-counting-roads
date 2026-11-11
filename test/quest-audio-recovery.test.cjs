@@ -409,7 +409,7 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
     assert(rm && rm.includes('speak-left') && rm.includes('animation: none'), game + ': reduced-motion outline steady');
     const html = fs.readFileSync(path.join(__dirname, game + '-quest.html'), 'utf8');
     assert(html.includes(game + '-quest.css?v=20'), game + ': stylesheet cache-busted');
-    assert(html.includes(game + '-quest.js?v=24'), game + ': script cache-busted');
+    assert(html.includes(game + '-quest.js?v=22'), game + ': script cache-busted');
     checks++;
   }
 

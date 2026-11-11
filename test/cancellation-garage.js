@@ -12,7 +12,6 @@
   const specs=[['entry',10],['entry',1],['down',10],['down',1],['up',10],['up',1],['exit',10],['exit',1]];
   const names=()=>theme==='cars'?['Blue','Gold','cars']:['Teal','Pink','mermaids'];
   const symbol=side=>theme==='cars'?'car-'+side:'mermaid-'+(side==='blue'?'teal':'pink');
-  const otherSymbol=side=>theme==='cars'?'mermaid-'+(side==='blue'?'teal':'pink'):'car-'+side;
   const el=(tag,attrs={})=>{const n=doc.createElementNS(NS,tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);return n;};
   const caption=n=>Math.floor(n/10)+(Math.floor(n/10)===1?' ten':' tens')+' · '+n%10+(n%10===1?' one':' ones');
   const markup=n=>String(n).split('').map((v,i,a)=>'<span class="d-'+(a.length-i>2?'hun':a.length-i===2?'tens':'ones')+'">'+v+'</span>').join('');
@@ -40,14 +39,13 @@
       const w=n===1?32:11,h=n===1?23:9;
       const x=n===1?cx-16:cx-27.5+(i%5)*11;
       const y=n===1?cy-22:cy-23+Math.floor(i/5)*12;
-      return `<svg class="route-unit" x="${x}" y="${y}" width="${w}" height="${h}" viewBox="${theme==='mermaids'?'0 0 460 266':'0 0 44 26'}"><use href="#${symbol(side)}"/></svg><svg class="route-unit-next" x="${x}" y="${y}" width="${w}" height="${h}" viewBox="${theme==='mermaids'?'0 0 44 26':'0 0 460 266'}"><use href="#${otherSymbol(side)}"/></svg>`;
+      return `<svg class="route-unit" x="${x}" y="${y}" width="${w}" height="${h}" viewBox="${theme==='mermaids'?'0 0 460 266':'0 0 44 26'}"><use href="#${symbol(side)}"/></svg>`;
     }).join('');
   }
   function build(){
     const g=E.geometry(state),[blue,gold,things]=names();
     doc.querySelector('.equation').setAttribute('aria-label',blue+' minus '+gold+' equals difference');
     doc.body.dataset.theme=theme;$('world-line').textContent=(theme==='cars'?"Ayan's Car World":"Aliya's Mermaid World")+' · Subtraction Play';
-    $('world-line').dataset.next=(theme==='cars'?"Aliya's Mermaid World":"Ayan's Car World")+' · Subtraction Play';
     themeControl?.refresh();
     $('garage-map').setAttribute('viewBox',`0 0 480 ${g.height}`);
     $('scenery').innerHTML=`<path d="M104 48 Q240 20 376 48" fill="none" stroke="#fff7cf" stroke-width="5" opacity=".6"/><path d="M104 ${g.bottom} Q240 ${g.bottom+28} 376 ${g.bottom}" fill="none" stroke="#80bba1" stroke-width="6" opacity=".5"/>`;
@@ -55,8 +53,6 @@
     for(const side of ['blue','gold']){
       const top=side==='blue'?g.top:g.center+1,header=side==='blue'?g.top+20:g.bottom-9;
       $('shells').append(el('rect',{x:104,y:top,width:272,height:(side==='blue'?g.blueHeight:g.goldHeight)-1,rx:18,id:'shell-'+side,class:'garage-shell '+side}));
-      // The other theme's shell rides along, hidden, so it wipes with the drag.
-      $('shells').append(el('rect',{x:104,y:top,width:272,height:(side==='blue'?g.blueHeight:g.goldHeight)-1,rx:18,id:'shell-next-'+side,class:'garage-shell-next '+side}));
       const label=el('text',{x:116,y:header,class:'garage-label',id:'label-'+side});label.textContent=(side==='blue'?blue+' +':gold+' −')+' '+things;$('shells').append(label);
       const num=el('text',{x:364,y:header+1,'text-anchor':'end',class:'garage-number',id:'num-'+side,fill:side==='blue'?'var(--left)':'var(--right)'});$('shells').append(num);
       const cap=el('text',{x:116,y:side==='blue'?header+17:header-19,class:'garage-caption',id:'cap-'+side});$('shells').append(cap);
@@ -67,14 +63,14 @@
     specs.forEach(([kind,n],i)=>{
       const geo=routeGeometry(kind,n);
       const source=kind==='up'||kind==='exit'?'gold':'blue';
-      const path=el('path',{d:geo.d,'pointer-events':'none',class:'garage-road',id:'road-'+i}),edge=el('path',{d:geo.d,'pointer-events':'none',class:'garage-edge'}),pathNext=el('path',{d:geo.d,'pointer-events':'none',class:'garage-road-next'}),edgeNext=el('path',{d:geo.d,'pointer-events':'none',class:'garage-edge-next'});$('roads').append(path,edge,pathNext,edgeNext);
+      const path=el('path',{d:geo.d,'pointer-events':'none',class:'garage-road',id:'road-'+i}),edge=el('path',{d:geo.d,'pointer-events':'none',class:'garage-edge'});$('roads').append(path,edge);
       const button=el('g',{class:'garage-route',role:'button',tabindex:'0','data-kind':kind,'data-amount':n,'data-route':i});
       const action=kind==='entry'?'+'+n+' ↓':kind==='exit'?'−'+n+' ↓':(kind==='up'?'↑ ':'↓ ')+n;
-      button.innerHTML=`<rect class="route-target" x="-34" y="-34" width="68" height="68" rx="17"/><rect class="route-plate" x="-31" y="-31" width="62" height="62" rx="16"/><rect class="route-plate-next" x="-31" y="-31" width="62" height="62" rx="16"/><g aria-hidden="true">${buttonUnits(source,n,0,0)}</g><text class="route-action" x="0" y="24">${action}</text>`;
+      button.innerHTML=`<rect class="route-target" x="-34" y="-34" width="68" height="68" rx="17"/><rect class="route-plate" x="-31" y="-31" width="62" height="62" rx="16"/><g aria-hidden="true">${buttonUnits(source,n,0,0)}</g><text class="route-action" x="0" y="24">${action}</text>`;
       button.setAttribute('transform',`translate(${geo.x} ${geo.y})`);
       const label=kind==='entry'?'Add to '+blue:kind==='exit'?'Take away from '+gold:kind==='up'?gold+' to '+blue:blue+' to '+gold;
       button.setAttribute('aria-label',label+', '+n+' '+(n===1?things.slice(0,-1):things));
-      const route={button,path,edge,pathNext,edgeNext,kind,n,geo,index:i};routes.push(route);
+      const route={button,path,edge,kind,n,geo,index:i};routes.push(route);
       const hit=el('path',{d:geo.d,class:'garage-road-hit','aria-hidden':'true'});hit.addEventListener('click',()=>drive(route));route.hit=hit;$('roads').append(hit);
       button.addEventListener('click',()=>drive(route));button.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();drive(route);}});
       $('controls').append(button);
@@ -86,13 +82,12 @@
     for(const side of ['blue','gold']){
       const top=side==='blue'?g.top:g.center+1,header=side==='blue'?g.top+20:g.bottom-9;
       $('shell-'+side).setAttribute('y',top);$('shell-'+side).setAttribute('height',(side==='blue'?g.blueHeight:g.goldHeight)-1);
-      $('shell-next-'+side).setAttribute('y',top);$('shell-next-'+side).setAttribute('height',(side==='blue'?g.blueHeight:g.goldHeight)-1);
       $('label-'+side).setAttribute('y',header);$('num-'+side).setAttribute('y',header+1);$('cap-'+side).setAttribute('y',side==='blue'?header+17:header-19);
     }
     $('zero-axis').setAttribute('d',`M106 ${g.center} H374`);
     routes.forEach(r=>{
       const geo=routeGeometry(r.kind,r.n,g);r.geo=geo;
-      for(const path of [r.path,r.edge,r.pathNext,r.edgeNext,r.hit])path.setAttribute('d',geo.d);
+      for(const path of [r.path,r.edge,r.hit])path.setAttribute('d',geo.d);
       r.button.setAttribute('transform',`translate(${geo.x} ${geo.y})`);
     });
   }
@@ -106,10 +101,8 @@
   }
   function updateControls(){routes.forEach(r=>root.PlayControls.update(r.button,E.canMove(state,r.kind,r.n),busy,[r.button],[r.hit]));$('garage-map').setAttribute('aria-busy',String(busy));capacityControl?.refresh();themeControl?.refresh();}
   function unitNode(id,side){
-    // The other theme's character rides along, hidden, so a drag wipes
-    // it in from the finger's side.
-    let n=nodes.get(id);if(!n){n=el('g',{'data-id':id});n.append(el('rect',{x:-11,y:-9,width:22,height:18,rx:5,class:'unit-halo'}));const icon=el('svg',{x:-10,y:-7,width:20,height:14,viewBox:theme==='mermaids'?'0 0 460 266':'0 0 44 26'});icon.append(el('use'));n.append(icon);const iconNext=el('svg',{x:-10,y:-7,width:20,height:14,viewBox:theme==='mermaids'?'0 0 44 26':'0 0 460 266',class:'unit-next'});iconNext.append(el('use'));n.append(iconNext);nodes.set(id,n);$('units').append(n);}
-    n.querySelector('use').setAttribute('href','#'+symbol(side));n.querySelector('.unit-next use').setAttribute('href','#'+otherSymbol(side));n.dataset.side=side;return n;
+    let n=nodes.get(id);if(!n){n=el('g',{'data-id':id});n.append(el('rect',{x:-11,y:-9,width:22,height:18,rx:5,class:'unit-halo'}));const icon=el('svg',{x:-10,y:-7,width:20,height:14,viewBox:theme==='mermaids'?'0 0 460 266':'0 0 44 26'});icon.append(el('use'));n.append(icon);nodes.set(id,n);$('units').append(n);}
+    n.querySelector('use').setAttribute('href','#'+symbol(side));n.dataset.side=side;return n;
   }
   function put(n,p){n.setAttribute('transform',`translate(${p.x} ${p.y})`);}
   function targets(){const result=new Map();for(const side of ['blue','gold'])ids[side].forEach((id,i)=>{const p=E.position(state,side,i);result.set(id,p);const n=unitNode(id,side);n.setAttribute('class','garage-unit '+side+' '+(p.paired?'paired':'excess'));n.dataset.index=i;});return result;}

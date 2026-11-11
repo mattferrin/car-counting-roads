@@ -21,32 +21,3 @@ body[data-theme="mermaids"] .road{stroke:#3b9eb0;stroke-width:31;stroke-opacity:
  * ones band, and the individual characters that place names. */
 .free-play .count-band.speaking,.free-play .ones-band.speaking{stroke:#ffc845;stroke-width:3}
 .free-play .parked-unit.speaking{filter:drop-shadow(0 0 4px #ffc845)}
-
-/* ---- Full-theme finger wipe -----------------------------------------
- * Every theme-dependent surface carries its incoming twin, hidden, and
- * the drag reveals it from the finger's side with a soft edge: the
- * characters (svg-next, one per svgUse), the roads and their centre
- * lines, the route plates, the garage shells, the count bands and the
- * pool sand / garage drive. The base rules below are the cars paint;
- * the mermaids paint lives under [data-blend-target="mermaids"]. */
-.svg-next{opacity:0;pointer-events:none}
-.road-next{fill:none;stroke:#657b89;stroke-width:29;stroke-linecap:round;stroke-linejoin:round;opacity:0;pointer-events:none}
-.route[data-amount="1"] .road-next{stroke-width:23}
-.edge-next{fill:none;stroke:#edf2dc;stroke-width:2;stroke-dasharray:5 7;stroke-linecap:round;stroke-linejoin:round;opacity:0;pointer-events:none}
-.route-plate-next{fill:#fffaf0;stroke:#fff;stroke-width:2;opacity:0;pointer-events:none}
-.garage-shell-next{stroke:#fff;stroke-width:3;opacity:0;pointer-events:none}
-.count-band-next{fill:#1668d619;stroke:#1668d650;stroke-width:1.5;opacity:0;pointer-events:none}
-.count-band-next.gold{fill:#c98a041c;stroke:#c98a0460}
-.ones-band-next{fill:#92bf6455;opacity:0;pointer-events:none}
-.garage-drive-next{fill:none;stroke:#e7d5a3;stroke-width:8;opacity:0;pointer-events:none}
-.pool-sand-next{fill:none;stroke:#d9bd7a;stroke-width:2;opacity:0;pointer-events:none}
-body[data-blend-target="mermaids"] .svg-next,body[data-blend-target="mermaids"] .road-next,body[data-blend-target="mermaids"] .edge-next,body[data-blend-target="mermaids"] .route-plate-next,body[data-blend-target="mermaids"] .garage-shell-next,body[data-blend-target="mermaids"] .count-band-next,body[data-blend-target="mermaids"] .ones-band-next,body[data-blend-target="mermaids"] .pool-sand-next{opacity:1;-webkit-mask-image:linear-gradient(to right,#000 calc(var(--theme-wipe,0)*100% - 15%),transparent calc(var(--theme-wipe,0)*100%));mask-image:linear-gradient(to right,#000 calc(var(--theme-wipe,0)*100% - 15%),transparent calc(var(--theme-wipe,0)*100%))}
-body[data-blend-target="mermaids"] .road-next{stroke:#3b9eb0;stroke-width:31;stroke-opacity:.75}
-body[data-blend-target="mermaids"] .route[data-amount="1"] .road-next{stroke-width:25}
-body[data-blend-target="mermaids"] .edge-next{stroke:#d9ffff;stroke-dasharray:none;stroke-opacity:.8;stroke-width:3}
-body[data-blend-target="mermaids"] .route-plate-next{fill:#e5f8f5}
-body[data-blend-target="mermaids"] .count-band-next.gold{fill:#d6338419;stroke:#d6338455}
-body[data-blend-target="mermaids"] .ones-band-next{fill:#d9bd7a60}
-body[data-blend-target="mermaids"] .pool-sand-next{opacity:.7}
-body[data-blend-target="cars"] .svg-next,body[data-blend-target="cars"] .road-next,body[data-blend-target="cars"] .edge-next,body[data-blend-target="cars"] .route-plate-next,body[data-blend-target="cars"] .garage-shell-next,body[data-blend-target="cars"] .count-band-next,body[data-blend-target="cars"] .ones-band-next,body[data-blend-target="cars"] .garage-drive-next{opacity:1;-webkit-mask-image:linear-gradient(to right,transparent calc(var(--theme-wipe,0)*100%),#000 calc(var(--theme-wipe,0)*100% + 15%));mask-image:linear-gradient(to right,transparent calc(var(--theme-wipe,0)*100%),#000 calc(var(--theme-wipe,0)*100% + 15%))}
-body[data-blend-target="cars"] .garage-drive-next{opacity:.5}
