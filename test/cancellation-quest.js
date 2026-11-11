@@ -74,6 +74,7 @@
 
   /* ---------- state ---------- */
   var theme = 'cars';
+  var themeControl = null;
   var level = 'easy';
   var soundOn = true;
   var solution = null;      // engine result for the current problem
@@ -842,7 +843,8 @@
       b.disabled = animating || solved || !clipsReady;
       b.classList.toggle('nudge', clipsReady && !animating && !solved && stepIndex === 0);
     });
-    $all('.theme-pill, .level-pill, .test-problem').forEach(function (b) { b.disabled = animating || !clipsReady; });
+    $all('.level-pill, .test-problem').forEach(function (b) { b.disabled = animating || !clipsReady; });
+    if (themeControl) themeControl.refresh();
     newMysteryBtn.disabled = animating || !solved;
   }
 
@@ -1163,9 +1165,6 @@
     if (animating) return;
     theme = THEMES[t] ? t : 'cars';
     document.body.dataset.theme = theme;
-    $all('.theme-pill').forEach(function (b) {
-      b.setAttribute('aria-pressed', String(b.dataset.theme === theme));
-    });
     $('.world-line').textContent = THEMES[theme].label + ' · Subtraction Quest';
     buildLandmarks();
     renderWho();
@@ -1259,9 +1258,7 @@
       updateSoundToggle();
     });
 
-    $all('.theme-pill').forEach(function (b) {
-      b.addEventListener('click', function () { setTheme(b.dataset.theme); });
-    });
+    themeControl = window.ThemeSwitch.create(document.querySelector('.theme-switch'), { value: theme, isBusy: function () { return animating || !clipsReady; }, onChange: function (t) { setTheme(t); } });
     $all('.level-pill').forEach(function (b) {
       b.addEventListener('click', function () { setLevel(b.dataset.level, true); });
     });
@@ -1281,9 +1278,6 @@
     document.addEventListener('pointerdown', function () { if (soundOn) { if (unlockRefused) resetUnlock(); unlockAudio(); } });
 
     document.body.dataset.theme = theme;
-    $all('.theme-pill').forEach(function (b) {
-      b.setAttribute('aria-pressed', String(b.dataset.theme === theme));
-    });
     $all('.level-pill').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.level === level));
     });

@@ -80,6 +80,7 @@
 
   /* ---------- state ---------- */
   var theme = 'cars';
+  var themeControl = null;
   var level = 'easy';
   var soundOn = true;
   var solution = null;      // engine result for the current problem
@@ -736,7 +737,8 @@
   }
 
   function updateControls() {
-    $all('.theme-pill, .level-pill, .test-problem').forEach(function (b) { b.disabled = animating || !clipsReady; });
+    $all('.level-pill, .test-problem').forEach(function (b) { b.disabled = animating || !clipsReady; });
+    if (themeControl) themeControl.refresh();
     if (newMysteryBtn) newMysteryBtn.disabled = animating || !solved;
     // Landmarks are the ONLY move trigger: locked while a move is in
     // flight or the problem is solved, and they nudge on the first
@@ -1381,9 +1383,6 @@
     if (animating) return;
     theme = THEMES[t] ? t : 'cars';
     document.body.dataset.theme = theme;
-    $all('.theme-pill').forEach(function (b) {
-      b.setAttribute('aria-pressed', String(b.dataset.theme === theme));
-    });
     $('.world-line').textContent = THEMES[theme].label + ' · Addition Quest';
     buildLandmarks();
     renderWho();
@@ -1473,9 +1472,7 @@
       updateSoundToggle();
     });
 
-    $all('.theme-pill').forEach(function (b) {
-      b.addEventListener('click', function () { setTheme(b.dataset.theme); });
-    });
+    themeControl = window.ThemeSwitch.create(document.querySelector('.theme-switch'), { value: theme, isBusy: function () { return animating || !clipsReady; }, onChange: function (t) { setTheme(t); } });
     $all('.level-pill').forEach(function (b) {
       b.addEventListener('click', function () { setLevel(b.dataset.level, true); });
     });
@@ -1495,9 +1492,6 @@
     document.addEventListener('pointerdown', function () { if (soundOn) { if (unlockRefused) resetUnlock(); unlockAudio(); } });
 
     document.body.dataset.theme = theme;
-    $all('.theme-pill').forEach(function (b) {
-      b.setAttribute('aria-pressed', String(b.dataset.theme === theme));
-    });
     $all('.level-pill').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.dataset.level === level));
     });

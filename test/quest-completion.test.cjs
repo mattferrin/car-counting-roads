@@ -9,7 +9,7 @@ function boot(game,theme,a,b){
  const style=d.createElement('style');style.textContent=read(game+'-quest.css')+'\n'+read('storybook.css');d.head.append(style);
  w.SpeechSynthesisUtterance=function(text){this.text=text;};
  w.speechSynthesis={getVoices:()=>[],cancel(){pending.length=0;},speak:u=>{pending.push(u);u.onstart?.();}};
- for(const f of [game+'-engine.js',game+'-layout.js',game+'-quest.js'])w.eval(read(f));
+ for(const f of [game+'-engine.js',game+'-layout.js','theme-switch.js',game+'-quest.js'])w.eval(read(f));
  return {w,d,pending,close:()=>w.close()};
 }
 async function settle(t){

@@ -15,7 +15,7 @@
      intentionally unversioned (63 shared clips; re-downloading them
      every deploy would be wasteful). -->
 <link rel="stylesheet" href="cancellation-quest.css?v=20">
-<link rel="stylesheet" href="storybook.css?v=28">
+<link rel="stylesheet" href="storybook.css?v=29">
 </head>
 <body data-theme="cars">
 <!-- Inline SVG symbols: every car is one car, every mermaid is one mermaid.
@@ -36,7 +36,7 @@
       <span id="eq-a">84</span><span class="op">−</span><span id="eq-b">27</span><span class="op">=</span><span class="q" id="eq-q">?</span>
     </div>
     <div class="toggles">
-      <div class="theme-switch" role="group" aria-label="Choose a world"><button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true"><svg viewBox="0 0 44 26" width="22" height="13" style="vertical-align:-2px" aria-hidden="true"><use href="#car-gold"/></svg> Ayan</button>
+      <div class="theme-switch" role="group" aria-label="Choose a world"><span class="theme-highlight" aria-hidden="true"></span><button type="button" class="pill theme-pill" data-theme="cars" aria-pressed="true"><svg viewBox="0 0 44 26" width="22" height="13" style="vertical-align:-2px" aria-hidden="true"><use href="#car-gold"/></svg> Ayan</button>
       <button type="button" class="pill theme-pill" data-theme="mermaids" aria-pressed="false"><img src="art/berry-star.png?v=1" width="20" height="14" style="width:20px;height:14px;vertical-align:-2px;object-fit:contain" alt="" aria-hidden="true"> Aliya</button></div>
       <button type="button" class="pill sound" id="sound-toggle" aria-pressed="true">⏳ Getting sound ready…</button>
     </div>
@@ -98,6 +98,7 @@
 <!-- ?v=16 on every script — bump together with the stylesheet on every deploy (see the cache-busting note in <head>). -->
 <script src="cancellation-engine.js?v=16"></script>
 <script src="cancellation-layout.js?v=16"></script>
-<script src="cancellation-quest.js?v=21"></script>
+<script src="theme-switch.js?v=1"></script>
+<script src="cancellation-quest.js?v=22"></script>
 </body>
 </html>

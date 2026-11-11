@@ -78,7 +78,7 @@ function boot(game, a, b, opts) {
     speak(u) { spoken.push(u); spokenAll.push(u); if (opts.speech !== 'stuck') u.onstart && u.onstart(); },
   };
   if (opts.soundOff) w.localStorage.setItem(game === 'cancellation' ? 'cq-sound' : 'aq-sound', 'off');
-  for (const name of [game + '-engine.js', game + '-layout.js', game + '-quest.js']) w.eval(fs.readFileSync(path.join(__dirname, name), 'utf8'));
+  for (const name of [game + '-engine.js', game + '-layout.js', 'theme-switch.js', game + '-quest.js']) w.eval(fs.readFileSync(path.join(__dirname, name), 'utf8'));
   return {
     w, d, starts, requests, spoken, spokenAll, cancels, startTimers, watchdogs, fetchDeferreds,
     resolveResume() { const ctx = contexts[contexts.length - 1]; if (ctx && ctx._resumeResolve) ctx._resumeResolve(); },
@@ -409,7 +409,7 @@ async function firstTapRace(game, a, b, landmark, firstClip, firstFrag) {
     assert(rm && rm.includes('speak-left') && rm.includes('animation: none'), game + ': reduced-motion outline steady');
     const html = fs.readFileSync(path.join(__dirname, game + '-quest.html'), 'utf8');
     assert(html.includes(game + '-quest.css?v=20'), game + ': stylesheet cache-busted');
-    assert(html.includes(game + '-quest.js?v=21'), game + ': script cache-busted');
+    assert(html.includes(game + '-quest.js?v=22'), game + ': script cache-busted');
     checks++;
   }
 

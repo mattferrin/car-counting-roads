@@ -8,7 +8,7 @@ function app(sub,query){
  w.matchMedia=()=>({matches:true});w.requestAnimationFrame=cb=>{frames.push(()=>cb(time+=3000));return frames.length;};
  w.SVGElement.prototype.getTotalLength=()=>300;w.SVGElement.prototype.getPointAtLength=n=>({x:n,y:n});
  w.CountingVoice={createNarrator:()=>({isOn:()=>false,unlock(){unlocks++;},preload(){},stop(){},speakMove:()=>new Promise(r=>{release=r;})})};
- for(const f of ['play-controls.js','play-capacity.js',...(sub?['cancellation-garage-engine.js','cancellation-garage.js']:['game.js'])])w.eval(read(f));
+ for(const f of ['play-controls.js','play-capacity.js','theme-switch.js',...(sub?['cancellation-garage-engine.js','cancellation-garage.js']:['game.js'])])w.eval(read(f));
  const controls=()=>[...d.querySelectorAll(sub?'.garage-route':'.route')];
  const shown=()=>controls().map(n=>n.getAttribute('aria-hidden'));
  const check=()=>{

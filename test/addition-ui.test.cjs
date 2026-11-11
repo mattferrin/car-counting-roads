@@ -30,7 +30,7 @@ function boot(a,b,mode='speech') {
   w.SpeechSynthesisUtterance=function(text){this.text=text};
   w.speechSynthesis={getVoices:()=>[],cancel:()=>{pending.length=0},speak:u=>{pending.push(u);u.onstart?.()}};
  }
- for(const name of ['addition-engine.js','addition-layout.js','addition-quest.js'])w.eval(fs.readFileSync(path.join(__dirname,name),'utf8'));
+ for(const name of ['addition-engine.js','addition-layout.js','theme-switch.js','addition-quest.js'])w.eval(fs.readFileSync(path.join(__dirname,name),'utf8'));
  return {w,pending,watchdogs,close:()=>dom.window.close()};
 }
 async function settle(t, errors=false){

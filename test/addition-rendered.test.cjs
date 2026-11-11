@@ -122,7 +122,7 @@ function boot(a, b, theme, reduced = true) {
   for (const id of ['left-grid', 'right-grid']) {
     Object.defineProperty(w.document.getElementById(id), 'clientWidth', { value: 250, configurable: true });
   }
-  for (const name of ['addition-engine.js','addition-layout.js','addition-quest.js']) {
+  for (const name of ['addition-engine.js','addition-layout.js','theme-switch.js','addition-quest.js']) {
     w.eval(fs.readFileSync(path.join(__dirname,name),'utf8'));
   }
   return { w, pending, watchdogs, anims, close: () => dom.window.close() };

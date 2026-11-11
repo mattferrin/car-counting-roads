@@ -8,7 +8,7 @@
   let state={blue:startCount('a',10),gold:startCount('b',0),max},serial=0,busy=false;
   let ids={blue:Array.from({length:state.blue},()=>++serial),gold:Array.from({length:state.gold},()=>++serial)};
   const nodes=new Map(),positions=new Map(),routes=[];
-  let capacityControl=null;
+  let capacityControl=null,themeControl=null;
   const specs=[['entry',10],['entry',1],['down',10],['down',1],['up',10],['up',1],['exit',10],['exit',1]];
   const names=()=>theme==='cars'?['Blue','Gold','cars']:['Teal','Pink','mermaids'];
   const symbol=side=>theme==='cars'?'car-'+side:'mermaid-'+(side==='blue'?'teal':'pink');
@@ -46,7 +46,7 @@
     const g=E.geometry(state),[blue,gold,things]=names();
     doc.querySelector('.equation').setAttribute('aria-label',blue+' minus '+gold+' equals difference');
     doc.body.dataset.theme=theme;$('world-line').textContent=(theme==='cars'?"Ayan's Car World":"Aliya's Mermaid World")+' · Subtraction Play';
-    doc.querySelectorAll('.theme-pill').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.theme===theme)));
+    themeControl?.refresh();
     $('garage-map').setAttribute('viewBox',`0 0 480 ${g.height}`);
     $('scenery').innerHTML=`<path d="M104 48 Q240 20 376 48" fill="none" stroke="#fff7cf" stroke-width="5" opacity=".6"/><path d="M104 ${g.bottom} Q240 ${g.bottom+28} 376 ${g.bottom}" fill="none" stroke="#80bba1" stroke-width="6" opacity=".5"/>`;
     $('shells').replaceChildren();
@@ -99,7 +99,7 @@
     for(const side of ['blue','gold']){$('num-'+side).textContent=state[side];$('cap-'+side).textContent=caption(state[side]);}
     updateControls();
   }
-  function updateControls(){routes.forEach(r=>root.PlayControls.update(r.button,E.canMove(state,r.kind,r.n),busy,[r.button],[r.hit]));doc.querySelectorAll('.theme-pill').forEach(b=>b.disabled=busy);$('garage-map').setAttribute('aria-busy',String(busy));capacityControl?.refresh();}
+  function updateControls(){routes.forEach(r=>root.PlayControls.update(r.button,E.canMove(state,r.kind,r.n),busy,[r.button],[r.hit]));$('garage-map').setAttribute('aria-busy',String(busy));capacityControl?.refresh();themeControl?.refresh();}
   function unitNode(id,side){
     let n=nodes.get(id);if(!n){n=el('g',{'data-id':id});n.append(el('rect',{x:-11,y:-9,width:22,height:18,rx:5,class:'unit-halo'}));const icon=el('svg',{x:-10,y:-7,width:20,height:14,viewBox:theme==='mermaids'?'0 0 460 266':'0 0 44 26'});icon.append(el('use'));n.append(icon);nodes.set(id,n);$('units').append(n);}
     n.querySelector('use').setAttribute('href','#'+symbol(side));n.dataset.side=side;return n;
@@ -164,7 +164,6 @@
     }finally{busy=false;updateControls();}
   }
   function updateURL(){const u=new URL(root.location.href);u.searchParams.set('theme',theme);u.searchParams.set('max',max);u.searchParams.delete('a');u.searchParams.delete('b');root.history.replaceState(null,'',u);}
-  doc.querySelectorAll('.theme-pill').forEach(b=>b.addEventListener('click',()=>{if(busy)return;theme=b.dataset.theme;build();render();updateURL();}));
   async function changeCapacity(next){
     const before={...state},old=new Map(positions),removed=[];
     const kept={blue:ids.blue.slice(0,next),gold:ids.gold.slice(0,next)};
@@ -179,6 +178,7 @@
     }finally{busy=false;updateControls();}
   }
   capacityControl=root.PlayCapacity.create($('play-capacity'),{value:max,isBusy:()=>busy,onChange:changeCapacity});
+  themeControl=root.ThemeSwitch.create(doc.querySelector('.theme-switch'),{value:theme,isBusy:()=>busy,onChange:value=>{theme=value;build();render();updateURL();}});
   build();render();
   // Read-only state receipt for regression tests and troubleshooting.
   root.CancellationGarageView={snapshot:()=>({...state,difference:state.blue-state.gold,busy,theme})};
