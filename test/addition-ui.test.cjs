@@ -75,6 +75,10 @@ const E=require('./addition-engine');
   const lms=[...d.querySelectorAll('.landmark')];
   assert.equal(lms.length,8);
   assert.deepEqual(lms.map(b=>b.querySelector('.name').textContent),['Castle','Magic Tree','Sunny Hill','Race Track','Volcano','Car Wash','Gas Station','Bridge']);
+  // Each landmark carries the other theme's picture, hidden, so a drag
+  // can wipe it in from the finger's side; the pairs match by strip spot.
+  assert.deepEqual(lms.map(b=>b.querySelector('.art img').getAttribute('src')),['art/landmarks/castle.png?v=5','art/landmarks/tree.png?v=5','art/landmarks/hill.png?v=5','art/landmarks/track.png?v=5','art/landmarks/volcano.png?v=5','art/landmarks/wash.png?v=5','art/landmarks/station.png?v=5','art/landmarks/bridge.png?v=5']);
+  assert.deepEqual(lms.map(b=>b.querySelector('.art-next').getAttribute('src')),['art/landmarks/palace.png?v=5','art/landmarks/whirlpool.png?v=5','art/landmarks/turtle.png?v=5','art/landmarks/cove.png?v=5','art/landmarks/reef.png?v=5','art/landmarks/shell.png?v=5','art/landmarks/wreck.png?v=5','art/landmarks/chest.png?v=5']);
   for(let i=0;i<sol.moves.length;i++) {
    const lm=d.querySelector('[data-landmark="volcano"]');
    lm.click(); lm.click(); lm.click(); // rapid triple-tap must equal one move
@@ -248,6 +252,9 @@ const E=require('./addition-engine');
   const mlms=[...d.querySelectorAll('.landmark')];
   assert.equal(mlms.length,8);
   assert.deepEqual(mlms.map(b=>b.querySelector('.name').textContent),['Palace','Whirlpool','Turtle Rock','Dolphin Cove','Coral Reef','Giant Shell','Shipwreck','Treasure Chest']);
+  // After the switch the pictures swap sides: palace leads, castle rides along.
+  assert.deepEqual(mlms.map(b=>b.querySelector('.art img').getAttribute('src')),['art/landmarks/palace.png?v=5','art/landmarks/whirlpool.png?v=5','art/landmarks/turtle.png?v=5','art/landmarks/cove.png?v=5','art/landmarks/reef.png?v=5','art/landmarks/shell.png?v=5','art/landmarks/wreck.png?v=5','art/landmarks/chest.png?v=5']);
+  assert.deepEqual(mlms.map(b=>b.querySelector('.art-next').getAttribute('src')),['art/landmarks/castle.png?v=5','art/landmarks/tree.png?v=5','art/landmarks/hill.png?v=5','art/landmarks/track.png?v=5','art/landmarks/volcano.png?v=5','art/landmarks/wash.png?v=5','art/landmarks/station.png?v=5','art/landmarks/bridge.png?v=5']);
   checks++; t.close();
  }
  // --- Speech-failure recovery (mirror of Cancellation Quest) -----------------

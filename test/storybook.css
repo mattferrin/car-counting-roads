@@ -73,13 +73,21 @@ html[data-theme-transition="to-cars"]::view-transition-new(root) { animation-nam
 @keyframes vt-theme-in-from-left { from { opacity: 0; transform: translateX(-48px); } to { opacity: 1; transform: translateX(0); } }
 @media (prefers-reduced-motion: reduce) { ::view-transition-old(root), ::view-transition-new(root) { animation: none; } }
 /* Finger-driven theme wipe: while the toggle is dragged, the incoming
- * theme's sky washes in from its side, feathered at the boundary, so at
- * the halfway point the page is half one theme and half the other.
- * --theme-wipe is the finger's 0..1 position across the switch; the
- * boundary sits at (1 - wipe) across the screen, with a 56px feather. */
+ * theme's sky washes in behind the finger — the boundary travels the
+ * same direction as the thumb — feathered, so at the halfway point the
+ * page is half one theme and half the other. --theme-wipe is the
+ * finger's 0..1 position across the switch; the boundary sits at that
+ * same fraction across the screen, with a 56px feather. */
 body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0; }
-body[data-blend-target="mermaids"]::before { opacity: 1; background: radial-gradient(ellipse at 12% 0%, #d5f6ee 0%, transparent 48%), linear-gradient(180deg, #94d7dc 0%, #68b5c4 56%, #e5d4a6 100%); -webkit-mask-image: linear-gradient(to right, transparent calc((1 - var(--theme-wipe, 0)) * 100%), #000 calc((1 - var(--theme-wipe, 0)) * 100% + 56px)); mask-image: linear-gradient(to right, transparent calc((1 - var(--theme-wipe, 0)) * 100%), #000 calc((1 - var(--theme-wipe, 0)) * 100% + 56px)); }
-body[data-blend-target="cars"]::before { opacity: 1; background: radial-gradient(ellipse at 10% 0%, #fff4c7 0%, transparent 42%), linear-gradient(180deg, #b5ddec 0%, #dcebd6 48%, #a2c68c 100%); -webkit-mask-image: linear-gradient(to right, #000 calc((1 - var(--theme-wipe, 0)) * 100% - 56px), transparent calc((1 - var(--theme-wipe, 0)) * 100%)); mask-image: linear-gradient(to right, #000 calc((1 - var(--theme-wipe, 0)) * 100% - 56px), transparent calc((1 - var(--theme-wipe, 0)) * 100%)); }
+body[data-blend-target="mermaids"]::before { opacity: 1; background: radial-gradient(ellipse at 12% 0%, #d5f6ee 0%, transparent 48%), linear-gradient(180deg, #94d7dc 0%, #68b5c4 56%, #e5d4a6 100%); -webkit-mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 56px), transparent calc(var(--theme-wipe, 0) * 100%)); mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 56px), transparent calc(var(--theme-wipe, 0) * 100%)); }
+body[data-blend-target="cars"]::before { opacity: 1; background: radial-gradient(ellipse at 10% 0%, #fff4c7 0%, transparent 42%), linear-gradient(180deg, #b5ddec 0%, #dcebd6 48%, #a2c68c 100%); -webkit-mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 56px)); mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 56px)); }
+/* Landmark buttons wipe the same way: each one carries the other
+ * theme's picture, hidden, and the drag reveals it from the finger's
+ * side with a soft edge — no hard swap. */
+.landmark .art { position: relative; display: inline-block; }
+.landmark .art-next { position: absolute; inset: 0; width: 28px; height: 28px; border-radius: 8px; pointer-events: none; opacity: 0; }
+body[data-blend-target="mermaids"] .landmark .art-next { opacity: 1; -webkit-mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 15%), transparent calc(var(--theme-wipe, 0) * 100%)); mask-image: linear-gradient(to right, #000 calc(var(--theme-wipe, 0) * 100% - 15%), transparent calc(var(--theme-wipe, 0) * 100%)); }
+body[data-blend-target="cars"] .landmark .art-next { opacity: 1; -webkit-mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 15%)); mask-image: linear-gradient(to right, transparent calc(var(--theme-wipe, 0) * 100%), #000 calc(var(--theme-wipe, 0) * 100% + 15%)); }
 .pill.theme-pill { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; background: transparent; border: 2px solid transparent; color: #6b7a80; }
 .pill.theme-pill svg { filter: none; opacity: .65; }
 .pill.theme-pill[data-theme="cars"][aria-pressed="true"] { color: #1668d6; }

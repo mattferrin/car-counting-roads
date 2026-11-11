@@ -25,11 +25,12 @@
       });
     }
     /* Finger-driven wipe: while the toggle is dragged, the incoming
-     * theme's sky washes in from its side (feathered at the boundary)
-     * and the two side colours blend by the same progress, so the page
-     * is half one theme and half the other at the halfway point. The
-     * cars and mermaids themselves swap only when the drag commits:
-     * the game holds one set of objects at a time. */
+     * theme's sky washes in behind the finger — the boundary travels
+     * the same direction as the thumb — and the two side colours blend
+     * by the same progress, so the page is half one theme and half the
+     * other at the halfway point. The cars and mermaids themselves swap
+     * only when the drag commits: the game holds one set of objects at
+     * a time. Landmark buttons carry the same wipe on their pictures. */
     var THEME_COLORS={cars:{left:[22,104,214],right:[201,138,4]},mermaids:{left:[14,125,140],right:[214,51,132]}};
     function lerpChannel(a,b,t){return Math.round(a+(b-a)*t);}
     function lerpColor(a,b,t){return 'rgb('+lerpChannel(a[0],b[0],t)+', '+lerpChannel(a[1],b[1],t)+', '+lerpChannel(a[2],b[2],t)+')';}

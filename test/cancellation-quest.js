@@ -823,12 +823,17 @@
     zones.forEach(function (zone) {
       if (!zone.el) return;
       zone.el.innerHTML = '';
-      T.landmarks.filter(function (lm) { return lm.strip === zone.strip; }).forEach(function (lm) {
+      var mine = T.landmarks.filter(function (lm) { return lm.strip === zone.strip; });
+      var theirs = THEMES[theme === 'cars' ? 'mermaids' : 'cars'].landmarks.filter(function (lm) { return lm.strip === zone.strip; });
+      mine.forEach(function (lm, i) {
         var b = el('button', 'landmark');
         b.type = 'button';
         b.dataset.landmark = lm.id;
         b.setAttribute('aria-label', lm.name + ' — tap here to cancel ' + THEMES[theme].things);
-        b.innerHTML = '<span class="art" aria-hidden="true">' + '<img src="art/landmarks/' + lm.id + '.png?v=5" width="28" height="28" alt="" draggable="false">' + '</span>' +
+        // The other theme's picture at the same spot rides along, hidden:
+        // while the toggle is dragged it wipes in from the finger's side.
+        var next = theirs[i] ? '<img class="art-next" src="art/landmarks/' + theirs[i].id + '.png?v=5" width="28" height="28" alt="" draggable="false">' : '';
+        b.innerHTML = '<span class="art" aria-hidden="true">' + '<img src="art/landmarks/' + lm.id + '.png?v=5" width="28" height="28" alt="" draggable="false">' + next + '</span>' +
           '<span class="name">' + lm.name + '</span>' +
           '<span class="hint">' + lm.hint + '</span>';
         b.addEventListener('click', function () { onLandmark(b, lm); });

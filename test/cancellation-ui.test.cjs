@@ -69,6 +69,11 @@ async function settle(t, errors=false){
   const t=boot(78,35),d=t.w.document;
   await settle(t);
   if (theme==='mermaids') { d.querySelector('[data-theme="mermaids"]').click(); await flush(); }
+  // The first landmark shows its theme's picture with the other theme's
+  // picture riding along, hidden, for the drag wipe.
+  const firstLm=d.querySelector('.landmark');
+  assert.equal(firstLm.querySelector('.art img').getAttribute('src'), theme==='cars' ? 'art/landmarks/castle.png?v=5' : 'art/landmarks/palace.png?v=5');
+  assert.equal(firstLm.querySelector('.art-next').getAttribute('src'), theme==='cars' ? 'art/landmarks/palace.png?v=5' : 'art/landmarks/castle.png?v=5');
   const E=require('./cancellation-engine');const sol=E.solve(78,35);
   assert(d.querySelector('.eqbar + #celebrate-banner'), 'celebration banner directly under the equation bar');
   assert(d.querySelector('#celebrate-banner').contains(d.querySelector('#new-mystery')));
