@@ -44,3 +44,25 @@ body[data-theme=mermaids] .route-plate{fill:#e5f8f5}
 body[data-theme=mermaids] .garage-result.negative{background:#ffe5f0;color:#a02b69}
 @media(prefers-reduced-motion:reduce){.garage-flash{animation:none}}
 @media(max-width:360px){.cancellation-garage .pill{padding:5px 7px;font-size:13px}.cancellation-garage .eqbar{padding:6px}.cancellation-garage .toggles{gap:6px}}
+
+/* ---- Full-theme finger wipe -----------------------------------------
+ * Every theme-dependent surface carries its incoming twin, hidden, and
+ * the drag reveals it from the finger's side with a soft edge: the
+ * units, the route-button characters, the roads and their centre
+ * lines, the shells and the route plates. The base rules below are the
+ * cars paint; the mermaids paint lives under [data-blend-target]. */
+.unit-next{opacity:0;pointer-events:none}
+.route-unit-next{opacity:0;pointer-events:none}
+.garage-road-next{fill:none;stroke:#657b89;stroke-width:12;stroke-linecap:round;stroke-linejoin:round;opacity:0;pointer-events:none}
+.garage-edge-next{fill:none;stroke:#eff3df;stroke-width:1.2;stroke-dasharray:3 5;stroke-linecap:round;opacity:0;pointer-events:none}
+.garage-shell-next{stroke:white;stroke-width:3;opacity:0;pointer-events:none}
+.garage-shell-next.blue{fill:#edf5fd}
+.garage-shell-next.gold{fill:#fff3d7}
+.route-plate-next{fill:#fffaf0;stroke:#fff;stroke-width:2.5;filter:drop-shadow(0 3px 2px #294b582b);opacity:0;pointer-events:none}
+body[data-blend-target="mermaids"] .unit-next,body[data-blend-target="mermaids"] .route-unit-next,body[data-blend-target="mermaids"] .garage-road-next,body[data-blend-target="mermaids"] .garage-edge-next,body[data-blend-target="mermaids"] .garage-shell-next,body[data-blend-target="mermaids"] .route-plate-next{opacity:1;-webkit-mask-image:linear-gradient(to right,#000 calc(var(--theme-wipe,0)*100% - 15%),transparent calc(var(--theme-wipe,0)*100%));mask-image:linear-gradient(to right,#000 calc(var(--theme-wipe,0)*100% - 15%),transparent calc(var(--theme-wipe,0)*100%))}
+body[data-blend-target="mermaids"] .garage-road-next{stroke:#3795a6}
+body[data-blend-target="mermaids"] .garage-edge-next{stroke:#d9ffff;stroke-dasharray:none}
+body[data-blend-target="mermaids"] .garage-shell-next.blue{fill:#e2f7f0}
+body[data-blend-target="mermaids"] .garage-shell-next.gold{fill:#fff0f7}
+body[data-blend-target="mermaids"] .route-plate-next{fill:#e5f8f5}
+body[data-blend-target="cars"] .unit-next,body[data-blend-target="cars"] .route-unit-next,body[data-blend-target="cars"] .garage-road-next,body[data-blend-target="cars"] .garage-edge-next,body[data-blend-target="cars"] .garage-shell-next,body[data-blend-target="cars"] .route-plate-next{opacity:1;-webkit-mask-image:linear-gradient(to right,transparent calc(var(--theme-wipe,0)*100%),#000 calc(var(--theme-wipe,0)*100% + 15%));mask-image:linear-gradient(to right,transparent calc(var(--theme-wipe,0)*100%),#000 calc(var(--theme-wipe,0)*100% + 15%))}
