@@ -7,10 +7,18 @@
  * colours. See HOLIDAYS.md.
  */
 
-/* ---- ambient snowfall (all pages) ---- */
+/* ---- ambient snowfall (all pages) ----
+ * Snow falls BEHIND the game, so it never covers the maths — it shows
+ * around the edges of the panels and between the landmarks instead.
+ * On the chooser page (home visible) it still falls over the top,
+ * like tinsel, because there is no maths to cover there. The solve /
+ * regroup snowfall (.holiday-stars) stays above: it is a brief reward,
+ * not ambient weather. */
 body[data-holiday] .holiday-snow {
-  position: fixed; inset: 0; z-index: 65; pointer-events: none; overflow: hidden;
+  position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden;
 }
+body[data-holiday] .page { position: relative; z-index: 2; }
+body[data-holiday]:has(#home:not([hidden])) .holiday-snow { z-index: 65; }
 body[data-holiday] .holiday-flake {
   position: absolute; top: -6vh; color: #fff;
   text-shadow: 0 0 4px rgba(255, 255, 255, .9);
@@ -67,18 +75,45 @@ body[data-holiday] .holiday-stars span {
 
 /* ---- attention guidance (Quests): where to look next ----
  * At "ready" the next tap is a landmark, and the "?" is the goal.
- * A soft festive halo on the landmark strip + a dashed gold outline
- * on the "?" — no layout change, no art change. */
-body[data-holiday="christmas"][data-phase="ready"] .landmark-strip {
-  border-radius: 999px;
-  animation: holiday-ready-glow 2.2s ease-in-out infinite;
+ * Each landmark button gets one tiny twinkling Christmas light at its
+ * top edge, in the same colours as the garland, lit only while it is
+ * the kids' turn. The button they tap flashes its light. No layout
+ * change, no art change. The "?" keeps its dashed gold outline. */
+body[data-holiday="christmas"] .landmark { position: relative; }
+body[data-holiday="christmas"][data-phase="ready"] .landmark::after {
+  content: ''; position: absolute; top: -5px; left: 50%;
+  width: 10px; height: 10px; border-radius: 50%; pointer-events: none;
+  transform: translateX(-50%);
+  animation: holiday-twinkle 1.6s ease-in-out infinite;
 }
-@keyframes holiday-ready-glow {
-  0%, 100% { box-shadow: 0 0 14px 3px rgba(244, 211, 94, .45), 0 0 26px 8px rgba(42, 157, 143, .18); }
-  50% { box-shadow: 0 0 22px 6px rgba(244, 211, 94, .7), 0 0 38px 12px rgba(42, 157, 143, .3); }
+body[data-holiday="christmas"][data-phase="ready"] .landmark:nth-child(5n+1)::after { background: #e63946; box-shadow: 0 0 8px #e63946; }
+body[data-holiday="christmas"][data-phase="ready"] .landmark:nth-child(5n+2)::after { background: #2a9d8f; box-shadow: 0 0 8px #2a9d8f; animation-delay: .3s; }
+body[data-holiday="christmas"][data-phase="ready"] .landmark:nth-child(5n+3)::after { background: #f4d35e; box-shadow: 0 0 8px #f4d35e; animation-delay: .6s; }
+body[data-holiday="christmas"][data-phase="ready"] .landmark:nth-child(5n+4)::after { background: #4361ee; box-shadow: 0 0 8px #4361ee; animation-delay: .9s; }
+body[data-holiday="christmas"][data-phase="ready"] .landmark:nth-child(5n+5)::after { background: #f72585; box-shadow: 0 0 8px #f72585; animation-delay: 1.2s; }
+body[data-holiday="christmas"][data-phase="moving"] .landmark[data-flight-target]::after {
+  content: ''; position: absolute; top: -6px; left: 50%;
+  width: 15px; height: 15px; border-radius: 50%; pointer-events: none;
+  transform: translateX(-50%);
+  background: #f4d35e; box-shadow: 0 0 12px #f4d35e;
+  animation: holiday-twinkle .5s ease-in-out infinite;
 }
 body[data-holiday="christmas"][data-phase="ready"] #eq-q {
   outline: 2px dashed rgba(201, 138, 4, .75); outline-offset: 2px; border-radius: 6px;
+}
+
+/* ---- tree topper: a little Christmas tree beside the answer ---- */
+body[data-holiday] .holiday-topper {
+  position: fixed; z-index: 80; pointer-events: none; font-size: 28px; line-height: 1;
+  animation: holiday-topper-drop .55s ease-in, holiday-topper-twinkle 1.6s ease-in-out .55s infinite;
+}
+@keyframes holiday-topper-drop {
+  from { transform: translateY(-18px) scale(.6); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes holiday-topper-twinkle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.12); opacity: .85; }
 }
 
 /* ---- solved state: festive glow on the answer bar + banner ----
@@ -92,9 +127,10 @@ body[data-holiday="christmas"] #celebrate-banner.show {
   box-shadow: 0 10px 26px rgba(20, 40, 70, .2), 0 0 26px rgba(244, 211, 94, .65);
 }
 
-/* ---- reduced motion: no snow, no lights, no glow animation ---- */
+/* ---- reduced motion: no snow, no lights, no topper, no glow animation ---- */
 @media (prefers-reduced-motion: reduce) {
   body[data-holiday] .holiday-snow,
   body[data-holiday] .holiday-garland { display: none; }
-  body[data-holiday="christmas"][data-phase="ready"] .landmark-strip { animation: none; }
+  body[data-holiday] .landmark::after,
+  body[data-holiday] .holiday-topper { display: none; }
 }
