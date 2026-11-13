@@ -82,6 +82,18 @@ Icicle / snow borders were considered and skipped for now: on a
 tappable areas. If one is ever wanted, the safe version is a thin
 snow strip on the chooser page only.
 
+## Promotion (2026-11-12)
+
+Promoted to production 2026-11-12, same rule as every promotion:
+everything except the mermaid. Root `holiday-effects.js` and
+`holiday-effects.css` are byte-identical to test; the four root HTML
+files carry the same two holiday lines (`holiday-effects.css?v=1`,
+`holiday-effects.js?v=1`); root keeps Classic E
+(`art/classic-e-mermaid.png`) and production titles — no Berry Star
+anywhere in root. `holiday-effects.test.cjs` stays in test/ only;
+the root suites (test.cjs, test-themes.cjs, all *.test.cjs) run with
+the holiday layer wired in and pass.
+
 ## Add a holiday (e.g. Valentine's Day)
 
 1. In `holiday-effects.js`, add one pack to `PACKS`:

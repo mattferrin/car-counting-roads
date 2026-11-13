@@ -1,0 +1,136 @@
+/* Holiday effects for Counting Worlds — test only.
+ * Every rule is scoped under body[data-holiday="..."], so with the
+ * switch off (no data-holiday attribute) this whole file is inert.
+ * Nothing here touches layout: snow, lights and bursts are fixed or
+ * absolute, pointer-events none, and glows are shadows/outlines only.
+ * Add a holiday: copy the christmas block, change the name, pick its
+ * colours. See HOLIDAYS.md.
+ */
+
+/* ---- ambient snowfall (all pages) ----
+ * Snow falls BEHIND the game, so it never covers the maths — it shows
+ * around the edges of the panels and between the landmarks instead.
+ * On the chooser page (home visible) it still falls over the top,
+ * like tinsel, because there is no maths to cover there. The solve /
+ * regroup snowfall (.holiday-stars) stays above: it is a brief reward,
+ * not ambient weather. */
+body[data-holiday] .holiday-snow {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden;
+}
+body[data-holiday] .page { position: relative; z-index: 2; }
+body[data-holiday]:has(#home:not([hidden])) .holiday-snow { z-index: 65; }
+body[data-holiday] .holiday-flake {
+  position: absolute; top: -6vh; color: #fff;
+  text-shadow: 0 0 4px rgba(255, 255, 255, .9);
+  animation: holiday-snow-fall var(--fall, 12s) linear var(--delay, 0s) infinite;
+  will-change: transform;
+}
+@keyframes holiday-snow-fall {
+  from { transform: translate3d(0, -6vh, 0); }
+  50% { transform: translate3d(var(--sway, 20px), 50vh, 0); }
+  to { transform: translate3d(calc(var(--sway, 20px) * -0.5), 106vh, 0); }
+}
+
+/* ---- twinkle-light garland along the top edge ---- */
+body[data-holiday] .holiday-garland {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 66;
+  display: flex; justify-content: space-evenly; padding-top: 2px;
+  pointer-events: none;
+}
+body[data-holiday] .holiday-light {
+  width: 9px; height: 9px; border-radius: 50%;
+  animation: holiday-twinkle 1.6s ease-in-out infinite;
+}
+body[data-holiday="christmas"] .holiday-light:nth-child(5n+1) { background: #e63946; box-shadow: 0 0 8px #e63946; }
+body[data-holiday="christmas"] .holiday-light:nth-child(5n+2) { background: #2a9d8f; box-shadow: 0 0 8px #2a9d8f; animation-delay: .3s; }
+body[data-holiday="christmas"] .holiday-light:nth-child(5n+3) { background: #f4d35e; box-shadow: 0 0 8px #f4d35e; animation-delay: .6s; }
+body[data-holiday="christmas"] .holiday-light:nth-child(5n+4) { background: #4361ee; box-shadow: 0 0 8px #4361ee; animation-delay: .9s; }
+body[data-holiday="christmas"] .holiday-light:nth-child(5n+5) { background: #f72585; box-shadow: 0 0 8px #f72585; animation-delay: 1.2s; }
+@keyframes holiday-twinkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .35; transform: scale(.75); }
+}
+
+/* ---- extra sparkle riding on the games' own move bursts ---- */
+body[data-holiday] .holiday-burst {
+  position: absolute; z-index: 6; pointer-events: none; font-size: 20px;
+  animation: holiday-burst-fly .9s ease-out forwards;
+}
+@keyframes holiday-burst-fly {
+  to { transform: translate(var(--dx, 0px), var(--dy, -24px)) scale(.4) rotate(160deg); opacity: 0; }
+}
+
+/* ---- solve / regroup / round-number snowfall ---- */
+body[data-holiday] .holiday-stars {
+  position: fixed; inset: 0; z-index: 72; pointer-events: none; overflow: hidden;
+}
+body[data-holiday] .holiday-stars span {
+  position: absolute; animation: holiday-star-fall 2.4s ease-in forwards;
+}
+@keyframes holiday-star-fall {
+  0% { transform: translateY(-20px) scale(.6); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(46vh) scale(1.15) rotate(140deg); opacity: 0; }
+}
+
+/* ---- attention guidance (Quests): where to look next ----
+ * At "ready" the next tap is a landmark, and the "?" is the goal.
+ * Each landmark button gets one tiny twinkling Christmas light at its
+ * top edge, in the same colours as the garland, lit only while it is
+ * the kids' turn. The button they tap flashes its light. No layout
+ * change, no art change. The "?" keeps its dashed gold outline. */
+body[data-holiday="christmas"] .landmark { position: relative; }
+body[data-holiday="christmas"][data-phase="ready"] .landmark::after {
+  content: ''; position: absolute; top: -5px; left: 50%;
+  width: 10px; height: 10px; border-radius: 50%; pointer-events: none;
+  transform: translateX(-50%);
+  animation: holiday-twinkle 1.6s ease-in-out infinite;
+}
+body[data-holiday="christmas"][data-phase="ready"] .landmark:nth-child(5n+1)::after { background: #e63946; box-shadow: 0 0 8px #e63946; }
+body[data-holiday="christmas"][data-phase="ready"] .landmark:nth-child(5n+2)::after { background: #2a9d8f; box-shadow: 0 0 8px #2a9d8f; animation-delay: .3s; }
+body[data-holiday="christmas"][data-phase="ready"] .landmark:nth-child(5n+3)::after { background: #f4d35e; box-shadow: 0 0 8px #f4d35e; animation-delay: .6s; }
+body[data-holiday="christmas"][data-phase="ready"] .landmark:nth-child(5n+4)::after { background: #4361ee; box-shadow: 0 0 8px #4361ee; animation-delay: .9s; }
+body[data-holiday="christmas"][data-phase="ready"] .landmark:nth-child(5n+5)::after { background: #f72585; box-shadow: 0 0 8px #f72585; animation-delay: 1.2s; }
+body[data-holiday="christmas"][data-phase="moving"] .landmark[data-flight-target]::after {
+  content: ''; position: absolute; top: -6px; left: 50%;
+  width: 15px; height: 15px; border-radius: 50%; pointer-events: none;
+  transform: translateX(-50%);
+  background: #f4d35e; box-shadow: 0 0 12px #f4d35e;
+  animation: holiday-twinkle .5s ease-in-out infinite;
+}
+body[data-holiday="christmas"][data-phase="ready"] #eq-q {
+  outline: 2px dashed rgba(201, 138, 4, .75); outline-offset: 2px; border-radius: 6px;
+}
+
+/* ---- tree topper: a little Christmas tree beside the answer ---- */
+body[data-holiday] .holiday-topper {
+  position: fixed; z-index: 80; pointer-events: none; font-size: 28px; line-height: 1;
+  animation: holiday-topper-drop .55s ease-in, holiday-topper-twinkle 1.6s ease-in-out .55s infinite;
+}
+@keyframes holiday-topper-drop {
+  from { transform: translateY(-18px) scale(.6); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes holiday-topper-twinkle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.12); opacity: .85; }
+}
+
+/* ---- solved state: festive glow on the answer bar + banner ----
+ * The banner already has its own border and pulsing button; this only
+ * adds an outline + glow, so nothing moves. */
+body[data-holiday="christmas"][data-phase="complete"] .eqbar {
+  box-shadow: 0 0 0 3px rgba(230, 57, 70, .5), 0 0 28px 8px rgba(244, 211, 94, .55), 0 4px 18px rgba(41, 75, 88, .1);
+}
+body[data-holiday="christmas"] #celebrate-banner.show {
+  outline: 3px solid #f4d35e; outline-offset: 2px;
+  box-shadow: 0 10px 26px rgba(20, 40, 70, .2), 0 0 26px rgba(244, 211, 94, .65);
+}
+
+/* ---- reduced motion: no snow, no lights, no topper, no glow animation ---- */
+@media (prefers-reduced-motion: reduce) {
+  body[data-holiday] .holiday-snow,
+  body[data-holiday] .holiday-garland { display: none; }
+  body[data-holiday] .landmark::after,
+  body[data-holiday] .holiday-topper { display: none; }
+}
